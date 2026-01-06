@@ -34,5 +34,12 @@ class AppColors {
   static const Color darkSurface = Color(0xFF1E1E1E);
   static const Color darkTextPrimary = Color(0xFFFFFFFF);
   static const Color darkTextSecondary = Color(0xFFB3B3B3);
+  
+  // Login Page Colors
+  static const Color loginGradientStart = Color(0xFF1E3A8A); // Dark blue
+  static const Color loginGradientEnd = Color(0xFFFF6B35); // Orange
+  static const Color loginButtonEnabled = Color(0xFFFF6B35); // Vibrant orange
+  static const Color loginButtonDisabled = Color(0xFFFFB99D); // Light orange (muted)
+  static const Color loginInfoBox = Color(0xFFFFF4E6); // Light orange background
 }
 
