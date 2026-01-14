@@ -72,25 +72,26 @@ class _GoogleOAuthWebViewState extends State<GoogleOAuthWebView> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
-            String url = request.url;
+            final url = request.url;
+            final uri = Uri.parse(url);
             print('Debug: Navigation request to: $url');
-            
-            // Intercept callback URL with localhost and replace with 10.0.2.2 for emulator
-            // Google redirects to localhost:3002, but emulator needs 10.0.2.2:3002
-            if (url.contains('/auth/google/callback') && 
-                (url.contains('localhost:3002') || url.contains('127.0.0.1:3002'))) {
-              final uri = Uri.parse(url);
+
+            // Only rewrite when the actual host of the URL is localhost/127 and path is the callback.
+            final isLocalHost =
+                uri.host == 'localhost' || uri.host == '127.0.0.1';
+            final isCallback = uri.path.contains('/auth/google/callback');
+
+            if (isLocalHost && isCallback) {
               final newUri = uri.replace(host: '10.0.2.2');
-              
-              print('Debug: Intercepting localhost callback, redirecting to: ${newUri.toString()}');
-              
-              // Load the corrected URL
+              print(
+                  'Debug: Intercepting localhost callback, redirecting to: ${newUri.toString()}');
+
               Future.microtask(() {
                 _controller.loadRequest(newUri);
               });
               return NavigationDecision.prevent;
             }
-            
+
             // Allow all other navigation
             return NavigationDecision.navigate;
           },

@@ -12,8 +12,9 @@
         <domain includeSubdomains="true">10.0.0.0</domain>
     </domain-config>
     
-    <!-- Default: block cleartext traffic for all other domains -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Default: allow cleartext traffic for all other domains (development only) -->
+    <!-- NOTE: This should be set to false and tightened before production release -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
