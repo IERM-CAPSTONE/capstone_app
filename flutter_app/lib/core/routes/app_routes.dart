@@ -1,14 +1,10 @@
 import 'package:go_router/go_router.dart';
 import '../../features/auth/login/login_page.dart';
-import '../../features/auth/register/register_page.dart';
-import '../../features/home/home_page.dart';
-import '../../features/attendance/attendance_page.dart';
+import '../../features/exam_rooms/exam_rooms_page.dart';
 
 class AppRoutes {
   static const String login = '/login';
-  static const String register = '/register';
-  static const String home = '/home';
-  static const String attendance = '/attendance';
+  static const String examSchedule = '/exam-schedule';
   
   static final GoRouter router = GoRouter(
     initialLocation: login,
@@ -18,8 +14,11 @@ class AppRoutes {
         name: 'login',
         builder: (context, state) => const LoginPage(),
       ),
-      
-      
+      GoRoute(
+        path: examSchedule,
+        name: 'exam-schedule',
+        builder: (context, state) => const ExamRoomsPage(),
+      ),
     ],
   );
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/routes/app_routes.dart';
 import 'login_controller.dart';
 import 'login_state.dart';
 
@@ -185,7 +187,7 @@ class LoginPage extends ConsumerWidget {
           _buildCampusDropdown(state, controller, isEnabled),
           const SizedBox(height: 20),
           // Login Button
-          _buildLoginButton(state, controller, isEnabled),
+          _buildLoginButton(context, state, controller, isEnabled),
           const SizedBox(height: 20),
           // Information Box
           _buildInfoBox(),
@@ -281,6 +283,7 @@ class LoginPage extends ConsumerWidget {
   }
 
   Widget _buildLoginButton(
+    BuildContext context,
     LoginState state,
     LoginController controller,
     bool isEnabled,
@@ -315,7 +318,19 @@ class LoginPage extends ConsumerWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: isEnabled && !state.isLoading
-                ? () => controller.loginWithGoogle()
+                ? () async {
+                    final success = await controller.loginWithGoogle();
+                    if (success && context.mounted) {
+                      context.go(AppRoutes.examSchedule);
+                    } else if (!success && context.mounted && state.errorMessage != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(state.errorMessage!),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 : null,
             borderRadius: BorderRadius.circular(8),
             child: Container(

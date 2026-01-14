@@ -1,5 +1,16 @@
 class Env {
-  // Redis Configuration
+  // API Configuration
+  static const String apiHost = String.fromEnvironment(
+    'API_HOST',
+    defaultValue: '10.0.2.2', // Android emulator special IP to access host machine
+  );
+  
+  static const String apiPort = String.fromEnvironment(
+    'API_PORT',
+    defaultValue: '3000',
+  );
+  
+  // Redis Configuration (if needed for direct access)
   static const String redisHost = String.fromEnvironment(
     'REDIS_HOST',
     defaultValue: 'localhost',
@@ -15,12 +26,6 @@ class Env {
     defaultValue: '',
   );
   
-  // API Configuration
-  static const String apiPort = String.fromEnvironment(
-    'API_PORT',
-    defaultValue: '3000',
-  );
-  
   // Background Worker Configuration
   static const String backgroundPort = String.fromEnvironment(
     'BACKGROUND_PORT',
@@ -34,7 +39,7 @@ class Env {
   
   // Computed properties
   static String get apiBaseUrl {
-    return 'http://$redisHost:$apiPort/api';
+    return 'http://$apiHost:$apiPort/api';
   }
   
   static int get apiPortInt {

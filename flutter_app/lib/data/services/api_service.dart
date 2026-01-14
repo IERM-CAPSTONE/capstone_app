@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import '../models/user_model.dart';
+import '../models/exam_session.dart';
+import '../models/student_exam.dart';
 
 part 'api_service.g.dart';
 
@@ -31,5 +33,31 @@ abstract class ApiService {
   
   @GET('/attendance/history')
   Future<List<Map<String, dynamic>>> getAttendanceHistory();
+
+  // Exam Sessions endpoints
+  @GET('/exam-sessions')
+  Future<PaginatedExamSessionResponse> getExamSessions(
+    @Query('page') int? page,
+    @Query('limit') int? limit,
+    @Query('subjectCode') String? subjectCode,
+    @Query('examRoomId') String? examRoomId,
+    @Query('proctorId') String? proctorId,
+  );
+
+  @GET('/exam-sessions/{id}')
+  Future<ExamSession> getExamSession(@Path('id') String id);
+
+  // Student Exams endpoints
+  @GET('/student-exams')
+  Future<PaginatedStudentExamResponse> getStudentExams(
+    @Query('page') int? page,
+    @Query('limit') int? limit,
+    @Query('examSessionId') String? examSessionId,
+    @Query('studentId') String? studentId,
+    @Query('status') String? status,
+  );
+
+  @GET('/student-exams/{id}')
+  Future<StudentExam> getStudentExam(@Path('id') String id);
 }
 
