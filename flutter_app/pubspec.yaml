@@ -28,6 +28,13 @@ dependencies:
   camera: ^0.10.5+5
   image_picker: ^1.0.5
   
+  # Google Sign In
+  google_sign_in: ^6.2.1
+  
+  # WebView for OAuth
+  webview_flutter: ^4.4.2
+  url_launcher: ^6.2.5
+  
   # UI
   cupertino_icons: ^1.0.6
   

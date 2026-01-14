@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class Env {
   // Redis Configuration
   static const String redisHost = String.fromEnvironment(
@@ -18,7 +21,7 @@ class Env {
   // API Configuration
   static const String apiPort = String.fromEnvironment(
     'API_PORT',
-    defaultValue: '3000',
+    defaultValue: '3002',
   );
   
   // Background Worker Configuration
@@ -34,11 +37,22 @@ class Env {
   
   // Computed properties
   static String get apiBaseUrl {
-    return 'http://$redisHost:$apiPort/api';
+    // On Android emulator, use 10.0.2.2 to access host machine's localhost
+    // This is a fixed IP that works on ALL Android emulators, no need to change per machine
+    // On web and other platforms, use the configured host
+    String host = redisHost;
+    if (!kIsWeb && Platform.isAndroid) {
+      // 10.0.2.2 is the special IP that Android emulator uses to access host machine's localhost
+      // This works on ALL machines without needing to know the actual IP address
+      if (host == 'localhost' || host == '127.0.0.1') {
+        host = '10.0.2.2';
+      }
+    }
+    return 'http://$host:$apiPort/api';
   }
   
   static int get apiPortInt {
-    return int.tryParse(apiPort) ?? 3000;
+    return int.tryParse(apiPort) ?? 3002;
   }
   
   static int get redisPortInt {

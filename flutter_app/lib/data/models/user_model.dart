@@ -9,6 +9,7 @@ class UserModel {
   final String? name;
   final String? phone;
   final String? avatar;
+  final String? role;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   
@@ -18,6 +19,7 @@ class UserModel {
     this.name,
     this.phone,
     this.avatar,
+    this.role,
     this.createdAt,
     this.updatedAt,
   });
@@ -33,6 +35,7 @@ class UserModel {
     String? name,
     String? phone,
     String? avatar,
+    String? role,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -42,6 +45,7 @@ class UserModel {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       avatar: avatar ?? this.avatar,
+      role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

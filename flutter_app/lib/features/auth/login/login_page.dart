@@ -185,7 +185,7 @@ class LoginPage extends ConsumerWidget {
           _buildCampusDropdown(state, controller, isEnabled),
           const SizedBox(height: 20),
           // Login Button
-          _buildLoginButton(state, controller, isEnabled),
+          _buildLoginButton(context, state, controller, isEnabled),
           const SizedBox(height: 20),
           // Information Box
           _buildInfoBox(),
@@ -281,6 +281,7 @@ class LoginPage extends ConsumerWidget {
   }
 
   Widget _buildLoginButton(
+    BuildContext context,
     LoginState state,
     LoginController controller,
     bool isEnabled,
@@ -315,7 +316,7 @@ class LoginPage extends ConsumerWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: isEnabled && !state.isLoading
-                ? () => controller.loginWithGoogle()
+                ? () => controller.loginWithGoogle(context)
                 : null,
             borderRadius: BorderRadius.circular(8),
             child: Container(
