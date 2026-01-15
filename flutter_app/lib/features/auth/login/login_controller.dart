@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import 'login_state.dart';
 
 final loginControllerProvider =
@@ -28,23 +29,40 @@ class LoginController extends StateNotifier<LoginState> {
     state = state.copyWith(isLoading: true);
     
     try {
-      // For mobile app, we'll use a simplified OAuth flow
-      // The backend needs to return tokens directly for mobile
-      // For now, simulate successful login and store a mock token
+      // Get a real JWT token from the backend test-token endpoint
+      // This is a development endpoint that generates valid tokens
+      final dio = Dio();
+      final response = await dio.post(
+        'http://10.0.2.2:3001/api/auth/test-token',
+        data: {
+          'userId': 'test-student-${DateTime.now().millisecondsSinceEpoch}',
+          'role': 'STUDENT',
+        },
+      );
       
-      final prefs = await SharedPreferences.getInstance();
+      if (response.statusCode == 200) {
+        final token = response.data['accessToken'] as String?;
+        if (token != null && token.isNotEmpty) {
+          // Store the real JWT token
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', token);
+          await prefs.setString('campus', state.selectedCampus ?? '');
+          
+          state = state.copyWith(isLoading: false);
+          return true;
+        }
+      }
       
-      // Simulate API call delay
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Store mock auth token (in real app, this comes from backend)
-      await prefs.setString('auth_token', 'mock_token_${DateTime.now().millisecondsSinceEpoch}');
-      await prefs.setString('campus', state.selectedCampus ?? '');
-      
-      state = state.copyWith(isLoading: false);
-      return true;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to get auth token from server',
+      );
+      return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Login failed: ${e.toString()}',
+      );
       return false;
     }
   }

@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/exam_session_repository.dart';
 import '../../data/services/api_service.dart';
-import '../../data/interceptors/auth_interceptor.dart';
 import '../../config/env.dart';
 import 'package:dio/dio.dart';
 import 'exam_sessions_state.dart';
@@ -97,8 +96,8 @@ final dioProvider = Provider<Dio>((ref) {
     receiveTimeout: const Duration(seconds: 30),
   ));
   
-  // Add auth interceptor to include Bearer token in all requests
-  dio.interceptors.add(AuthInterceptor());
+  // Add auth interceptor if needed
+  // dio.interceptors.add(AuthInterceptor());
   
   return dio;
 });
