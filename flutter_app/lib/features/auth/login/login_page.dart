@@ -318,19 +318,7 @@ class LoginPage extends ConsumerWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: isEnabled && !state.isLoading
-                ? () async {
-                    final success = await controller.loginWithGoogle();
-                    if (success && context.mounted) {
-                      context.go(AppRoutes.examSchedule);
-                    } else if (!success && context.mounted && state.errorMessage != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(state.errorMessage!),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
+                ? () => controller.loginWithGoogle(context)
                 : null,
             borderRadius: BorderRadius.circular(8),
             child: Container(

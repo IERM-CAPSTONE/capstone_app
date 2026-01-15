@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import '../../features/auth/login/login_page.dart';
+import '../../features/home/home_page.dart';
 import '../../features/exam_rooms/exam_rooms_page.dart';
 
 class AppRoutes {
@@ -13,6 +14,11 @@ class AppRoutes {
         path: login,
         name: 'login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: home,
+        name: 'home',
+        builder: (context, state) => const HomePage(),
       ),
       GoRoute(
         path: examSchedule,

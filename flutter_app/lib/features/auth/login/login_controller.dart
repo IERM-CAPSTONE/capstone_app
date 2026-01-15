@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 import 'login_state.dart';
+import 'google_oauth_webview.dart';
+import '../../../core/routes/app_routes.dart';
 
 final loginControllerProvider =
     StateNotifierProvider<LoginController, LoginState>(
@@ -23,58 +25,80 @@ class LoginController extends StateNotifier<LoginState> {
     state = state.copyWith(isLoading: isLoading);
   }
 
-  Future<bool> loginWithGoogle() async {
-    if (!state.canLogin) return false;
+  Future<void> loginWithGoogle(BuildContext context) async {
+    if (!state.canLogin) return;
     
     state = state.copyWith(isLoading: true);
     
     try {
-      // Get a real JWT token from the backend test-token endpoint
-      // This is a development endpoint that generates valid tokens
-      final dio = Dio();
-      final response = await dio.post(
-        'http://10.0.2.2:3001/api/auth/test-token',
-        data: {
-          'userId': 'test-student-${DateTime.now().millisecondsSinceEpoch}',
-          'role': 'STUDENT',
-        },
-      );
+      // Show Google OAuth WebView
+      final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.of(context);
       
-      if (response.statusCode == 200) {
-        final token = response.data['accessToken'] as String?;
-        if (token != null && token.isNotEmpty) {
-          // Store the real JWT token
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_token', token);
-          await prefs.setString('campus', state.selectedCampus ?? '');
-          
-          state = state.copyWith(isLoading: false);
-          return true;
-        }
+      await navigator.push(
+        MaterialPageRoute(
+          builder: (webViewContext) => GoogleOAuthWebView(
+            onSuccess: (user) {
+              // Login successful, navigate based on role
+              // Close WebView first, then navigate
+              Future.microtask(() {
+                if (navigator.canPop()) {
+                  navigator.pop();
+                }
+                
+                // Wait a bit for WebView to close, then navigate
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  // If user is student, redirect to homepage
+                  if (user.role?.toLowerCase() == 'student') {
+                    // Use GoRouter to navigate
+                    if (context.mounted) {
+                      context.go(AppRoutes.home);
+                    }
+                  } else {
+                    // For other roles, you can add different routes here
+                    if (context.mounted) {
+                      context.go(AppRoutes.home);
+                    }
+                  }
+                });
+              });
+            },
+            onError: (error) {
+              // Show error message
+              // Close WebView first, then show error
+              Future.microtask(() {
+                if (navigator.canPop()) {
+                  navigator.pop();
+                }
+                
+                // Wait a bit for WebView to close, then show error
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (context.mounted) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(error),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                });
+              });
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi đăng nhập: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-      
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Failed to get auth token from server',
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Login failed: ${e.toString()}',
-      );
-      return false;
-    }
-  }
-  
-  // Check if user is already logged in
-  Future<bool> checkAuthStatus() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      return token != null && token.isNotEmpty;
-    } catch (e) {
-      return false;
+    } finally {
+      state = state.copyWith(isLoading: false);
     }
   }
 }

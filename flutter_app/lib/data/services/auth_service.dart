@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import '../models/user_model.dart';
@@ -7,6 +8,7 @@ class AuthService {
   final SharedPreferences _prefs;
   
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user_data';
   
   AuthService(this._apiService, this._prefs);
@@ -89,6 +91,24 @@ class AuthService {
   // Get token
   String? getToken() {
     return _prefs.getString(_tokenKey);
+  }
+  
+  // Get refresh token
+  String? getRefreshToken() {
+    return _prefs.getString(_refreshTokenKey);
+  }
+  
+  // Save tokens
+  Future<void> saveTokens(String accessToken, String? refreshToken) async {
+    await _prefs.setString(_tokenKey, accessToken);
+    if (refreshToken != null) {
+      await _prefs.setString(_refreshTokenKey, refreshToken);
+    }
+  }
+  
+  // Save user data
+  Future<void> saveUserData(UserModel user) async {
+    await _prefs.setString(_userKey, jsonEncode(user.toJson()));
   }
 }
 
