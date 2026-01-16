@@ -128,6 +128,15 @@ class _GoogleOAuthWebViewState extends State<GoogleOAuthWebView> {
             print('Debug: Error code: ${error.errorCode}');
             print('Debug: Error URL: ${error.url}');
             
+            // Ignore non-critical errors from Google infrastructure
+            // (e.g., signaler-pa WebSocket which doesn't affect OAuth flow)
+            if (error.url?.contains('signaler-pa.googleapis.com') == true ||
+                error.url?.contains('google.com/gen_204') == true ||
+                error.url?.contains('accounts.google.com') == true && error.errorCode == -1) {
+              print('Debug: Ignoring non-critical Google infrastructure error');
+              return;
+            }
+            
             // Check if it's connection error
             if (error.description.contains('ERR_CONNECTION_REFUSED') ||
                 error.description.contains('ERR_CONNECTION_TIMED_OUT') ||
@@ -151,8 +160,13 @@ class _GoogleOAuthWebViewState extends State<GoogleOAuthWebView> {
             }
           },
         ),
-      )
-      ..loadRequest(Uri.parse(googleAuthUrl));
+      );
+    
+    // Add delay to ensure WebView is fully initialized before loading URL
+    Future.delayed(const Duration(milliseconds: 500), () {
+      print('Debug: WebView initialized, loading URL: $googleAuthUrl');
+      _controller.loadRequest(Uri.parse(googleAuthUrl));
+    });
   }
 
   Future<void> _handleCallback(String url) async {
@@ -165,7 +179,7 @@ class _GoogleOAuthWebViewState extends State<GoogleOAuthWebView> {
     
     try {
       // Wait longer for the page to fully load and JavaScript to execute
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await Future.delayed(const Duration(milliseconds: 2500));
       
       // Check again if completed (might have been set by another callback)
       if (_hasCompleted) {
@@ -200,7 +214,7 @@ class _GoogleOAuthWebViewState extends State<GoogleOAuthWebView> {
         })();
       ''');
       
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 1000));
       
       // Use JavaScript to get the response from various sources
       final script = '''
@@ -321,11 +335,9 @@ class _GoogleOAuthWebViewState extends State<GoogleOAuthWebView> {
         
         print('Debug: Cleaned JSON string: $jsonString');
         
-        // Try to parse JSON (may need to parse twice if double-encoded)
         try {
           dynamic parsed = json.decode(jsonString);
           
-          // If the parsed result is still a string, parse it again
           if (parsed is String) {
             print('Debug: First parse returned string: $parsed');
             print('Debug: Parsing again...');
@@ -392,50 +404,56 @@ class _GoogleOAuthWebViewState extends State<GoogleOAuthWebView> {
           if (responseData.containsKey('user')) {
             print('Debug: Found user in response! Processing login...');
             
-            // Success! Extract user data and tokens
             final authService = DependencyInjection.get<AuthService>();
             
-            // Get cookies from WebView using JavaScript
-            final cookieScript = '''
-              (function() {
-                var cookies = document.cookie.split(';');
-                var result = {};
-                for (var i = 0; i < cookies.length; i++) {
-                  var cookie = cookies[i].trim();
-                  var eqPos = cookie.indexOf('=');
-                  if (eqPos > 0) {
-                    var name = cookie.substring(0, eqPos);
-                    var value = cookie.substring(eqPos + 1);
-                    result[name] = value;
-                  }
-                }
-                return JSON.stringify(result);
-              })();
-            ''';
+            final accessToken = responseData['accessToken'] as String?;
+            final refreshToken = responseData['refreshToken'] as String?;
             
-            try {
-              final cookiesResult = await _controller.runJavaScriptReturningResult(cookieScript);
-              String? cookiesJson;
-              
-              cookiesJson = cookiesResult.toString();
-              if (cookiesJson.startsWith('"') && cookiesJson.endsWith('"')) {
-                cookiesJson = cookiesJson.substring(1, cookiesJson.length - 1);
-                cookiesJson = cookiesJson.replaceAll('\\"', '"');
+            if (accessToken != null) {
+              await authService.saveTokens(accessToken, refreshToken);
+              print('Debug: Saved tokens from JSON response successfully');
+            } else {
+              print('Debug: Tokens not in JSON, trying cookies...');
+              try {
+                final cookieScript = '''
+                  (function() {
+                    var cookies = document.cookie.split(';');
+                    var result = {};
+                    for (var i = 0; i < cookies.length; i++) {
+                      var cookie = cookies[i].trim();
+                      var eqPos = cookie.indexOf('=');
+                      if (eqPos > 0) {
+                        var name = cookie.substring(0, eqPos);
+                        var value = cookie.substring(eqPos + 1);
+                        result[name] = value;
+                      }
+                    }
+                    return JSON.stringify(result);
+                  })();
+                ''';
+                
+                final cookiesResult = await _controller.runJavaScriptReturningResult(cookieScript);
+                String? cookiesJson = cookiesResult.toString();
+                
+                if (cookiesJson.startsWith('"') && cookiesJson.endsWith('"')) {
+                  cookiesJson = cookiesJson.substring(1, cookiesJson.length - 1);
+                  cookiesJson = cookiesJson.replaceAll('\\"', '"');
+                }
+                
+                final cookieMap = json.decode(cookiesJson) as Map<String, dynamic>;
+                final cookieAccessToken = cookieMap['accessToken'] as String?;
+                final cookieRefreshToken = cookieMap['refreshToken'] as String?;
+                
+                if (cookieAccessToken != null) {
+                  await authService.saveTokens(cookieAccessToken, cookieRefreshToken);
+                  print('Debug: Saved tokens from cookies successfully');
+                } else {
+                  print('Debug: Warning - No tokens found in JSON or cookies');
+                }
+              } catch (e) {
+                print('Debug: Could not get cookies: $e');
+                print('Debug: Warning - No tokens available');
               }
-              
-              // Parse cookies
-              final cookieMap = json.decode(cookiesJson) as Map<String, dynamic>;
-              final accessToken = cookieMap['accessToken'] as String?;
-              final refreshToken = cookieMap['refreshToken'] as String?;
-              
-              if (accessToken != null) {
-                await authService.saveTokens(accessToken, refreshToken);
-                print('Debug: Saved tokens successfully');
-              }
-            } catch (e) {
-              print('Debug: Could not get cookies: $e');
-              // If we can't get cookies, tokens might be in response headers
-              // We'll need to handle this differently
             }
             
             // Save user data

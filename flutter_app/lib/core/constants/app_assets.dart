@@ -2,6 +2,8 @@ class AppAssets {
   // Images
   static const String logo = 'assets/images/logo.png';
   static const String placeholder = 'assets/images/placeholder.png';
+  static const String fptLogo = 'assets/LogoFPT-2017-copy-3042-1513928399_1200x0.jpg';
+  static const String googleLogo = 'assets/Google__G__logo.svg.png';
   
   // Icons
   static const String iconHome = 'assets/icons/home.png';
