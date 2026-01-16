@@ -5,6 +5,7 @@ import '../../features/exam_rooms/exam_rooms_page.dart';
 
 class AppRoutes {
   static const String login = '/login';
+  static const String home = '/home';
   static const String examSchedule = '/exam-schedule';
   
   static final GoRouter router = GoRouter(

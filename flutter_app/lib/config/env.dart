@@ -10,7 +10,7 @@ class Env {
   
   static const String apiPort = String.fromEnvironment(
     'API_PORT',
-    defaultValue: '3000',
+    defaultValue: '3001',
   );
   
   // Redis Configuration (if needed for direct access)
@@ -29,16 +29,10 @@ class Env {
     defaultValue: '',
   );
   
-  // API Configuration
-  static const String apiPort = String.fromEnvironment(
-    'API_PORT',
-    defaultValue: '3002',
-  );
-  
   // Background Worker Configuration
   static const String backgroundPort = String.fromEnvironment(
     'BACKGROUND_PORT',
-    defaultValue: '3001',
+    defaultValue: '3002',
   );
   
   static Future<void> init() async {
