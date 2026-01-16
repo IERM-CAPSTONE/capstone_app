@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/services/api_service.dart';
 import '../data/services/auth_service.dart';
-import '../data/services/camera_service.dart';
 import '../data/repositories/user_repository.dart';
 import 'env.dart';
 

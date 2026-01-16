@@ -54,8 +54,13 @@ class LoginController extends StateNotifier<LoginState> {
                     if (context.mounted) {
                       context.go(AppRoutes.home);
                     }
+                  } else if (user.role?.toLowerCase() == 'proctor') {
+                    // Navigate to proctor home or profile
+                    if (context.mounted) {
+                      context.go(AppRoutes.home); // For now, same home, but can change later
+                    }
                   } else {
-                    // For other roles, you can add different routes here
+                    // For other roles, default to home
                     if (context.mounted) {
                       context.go(AppRoutes.home);
                     }
