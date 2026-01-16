@@ -1,0 +1,87 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/app_colors.dart';
+import 'proctor_profile_controller.dart';
+import 'widgets/proctor_profile_header.dart';
+import 'widgets/proctor_personal_info_section.dart';
+import 'widgets/proctor_device_verification_section.dart';
+import 'widgets/proctor_security_section.dart';
+import 'widgets/proctor_help_support_section.dart';
+import 'widgets/bottom_nav_bar.dart';
+
+class ProctorProfilePage extends ConsumerWidget {
+  const ProctorProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileState = ref.watch(proctorProfileControllerProvider);
+    final profileController = ref.read(proctorProfileControllerProvider.notifier);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFF6B35), // Orange color
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Proctor Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: () {
+              // Navigate to settings
+            },
+          ),
+        ],
+      ),
+      body: profileState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : profileState.user == null
+              ? const Center(child: Text('No user data'))
+              : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile Header Section
+                      ProctorProfileHeader(user: profileState.user!),
+
+                      const SizedBox(height: 24),
+
+                      // Personal Information Section
+                      const ProctorPersonalInfoSection(),
+
+                      const SizedBox(height: 24),
+
+                      // Device Verification Section
+                      const ProctorDeviceVerificationSection(),
+
+                      const SizedBox(height: 24),
+
+                      // Security Section
+                      const ProctorSecuritySection(),
+
+                      const SizedBox(height: 24),
+
+                      // Help & Support Section
+                      ProctorHelpSupportSection(
+                        onLogout: () => profileController.logout(context),
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+    );
+  }
+}
