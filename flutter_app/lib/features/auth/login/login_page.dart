@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_assets.dart';
 import 'login_controller.dart';
 import 'login_state.dart';
 
@@ -95,44 +96,14 @@ class LoginPage extends ConsumerWidget {
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Blue and green stripes background
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2196F3),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      bottomLeft: Radius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF4CAF50),
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // Blue plus sign
-          const Icon(
-            Icons.add,
-            color: Color(0xFF1976D2),
-            size: 40,
-            weight: 700,
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          AppAssets.fptLogo,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
@@ -363,14 +334,7 @@ class LoginPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Only authorized proctors can access this system',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            
           ],
         ),
       );
@@ -378,73 +342,11 @@ class LoginPage extends ConsumerWidget {
 }
 
   Widget _buildGoogleLogo() {
-    return SizedBox(
+    return Image.asset(
+      AppAssets.googleLogo,
       width: 20,
       height: 20,
-      child: Stack(
-        children: [
-          // Red section (top-left)
-          Positioned(
-            left: 0,
-            top: 0,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEA4335),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(10),
-                ),
-              ),
-            ),
-          ),
-          // Blue section (top-right)
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                color: Color(0xFF4285F4),
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(10),
-                ),
-              ),
-            ),
-          ),
-          // Yellow section (bottom-left)
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFBBC05),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                ),
-              ),
-            ),
-          ),
-          // Green section (bottom-right)
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                color: Color(0xFF34A853),
-                borderRadius: BorderRadius.only(
-                  bottomRight: Radius.circular(10),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      fit: BoxFit.contain,
     );
   }
 
