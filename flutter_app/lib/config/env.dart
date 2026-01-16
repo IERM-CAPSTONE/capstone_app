@@ -2,7 +2,18 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Env {
-  // Redis Configuration
+  // API Configuration
+  static const String apiHost = String.fromEnvironment(
+    'API_HOST',
+    defaultValue: '10.0.2.2', // Android emulator special IP to access host machine
+  );
+  
+  static const String apiPort = String.fromEnvironment(
+    'API_PORT',
+    defaultValue: '3000',
+  );
+  
+  // Redis Configuration (if needed for direct access)
   static const String redisHost = String.fromEnvironment(
     'REDIS_HOST',
     defaultValue: 'localhost',

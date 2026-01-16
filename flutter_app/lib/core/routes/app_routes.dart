@@ -3,7 +3,7 @@ import '../../features/auth/login/login_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/profile/profile_page.dart';
 import '../../features/profile/proctor_profile_page.dart';
-
+import '../../features/exam_rooms/exam_rooms_page.dart';
 class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
@@ -11,6 +11,7 @@ class AppRoutes {
   static const String attendance = '/attendance';
   static const String profile = '/profile';
   static const String proctorProfile = '/proctor-profile';
+  static const String examSchedule = '/exam-schedule';
   
   static final GoRouter router = GoRouter(
     initialLocation: login,
@@ -34,6 +35,10 @@ class AppRoutes {
         path: proctorProfile,
         name: 'proctor-profile',
         builder: (context, state) => const ProctorProfilePage(),
+        path: examSchedule,
+        name: 'exam-schedule',
+        builder: (context, state) => const ExamRoomsPage(),
+
       ),
     ],
   );

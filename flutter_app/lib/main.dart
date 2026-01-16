@@ -7,9 +7,6 @@ import 'config/dependency_injection.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize environment
-  await Env.init();
-  
   // Initialize dependency injection
   await DependencyInjection.init();
   
