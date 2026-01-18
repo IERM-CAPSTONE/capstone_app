@@ -48,8 +48,10 @@ class DependencyInjection {
     final apiService = ApiService(dio);
     _dependencies[ApiService] = apiService;
     
-    // Initialize Services
-    _dependencies[AuthService] = AuthService(apiService, prefs);
+    // Initialize AuthService
+    final authService = AuthService(dio);
+    await authService.init();
+    _dependencies[AuthService] = authService;
     
     // Initialize Repositories
     _dependencies[UserRepository] = UserRepository(apiService);

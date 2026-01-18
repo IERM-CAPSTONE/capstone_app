@@ -28,11 +28,14 @@ dependencies:
   camera: ^0.10.5+5
   image_picker: ^1.0.5
   
+  # Firebase & Authentication
+  firebase_core: ^2.24.0
+  firebase_auth: ^4.13.0
+  
   # Google Sign In
   google_sign_in: ^6.2.1
   
-  # WebView for OAuth
-  webview_flutter: ^4.4.2
+  # URL Launcher
   url_launcher: ^6.2.5
   
   # UI
@@ -57,5 +60,6 @@ flutter:
   uses-material-design: true
   
   assets:
+    - assets/avatar_face.png
     - assets/
 
