@@ -3,12 +3,11 @@ import '../../features/auth/login/login_page.dart';
 import '../../features/home/home_page.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
+import '../../features/exam_rooms/exam_rooms_page.dart';
 
 class AppRoutes {
   static const String login = '/login';
-  static const String register = '/register';
-  static const String home = '/home';
-  static const String attendance = '/attendance';
+  static const String examSchedule = '/exam-schedule';
   
   static final GoRouter router = GoRouter(
     initialLocation: login,
@@ -41,6 +40,11 @@ class AppRoutes {
         path: home,
         name: 'home',
         builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: examSchedule,
+        name: 'exam-schedule',
+        builder: (context, state) => const ExamRoomsPage(),
       ),
     ],
   );
