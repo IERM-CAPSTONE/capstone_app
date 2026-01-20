@@ -19,7 +19,7 @@ dependencies:
   
   # HTTP & API
   dio: ^5.4.0
-  retrofit: ^4.0.3
+  retrofit: ^4.1.0
   
   # Local Storage
   shared_preferences: ^2.2.2
@@ -29,15 +29,16 @@ dependencies:
   camera: ^0.10.5+5
   image_picker: ^1.0.5
   
-  # Firebase & Authentication
-  firebase_core: ^2.24.0
-  firebase_auth: ^4.13.0
+  # Firebase & Authentication (latest versions with Pigeon fixes)
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
   
-  # Google Sign In
+  # Google Sign In - using version 6.x for stable API
   google_sign_in: ^6.2.1
   
-  # URL Launcher
+  # URL Launcher & Web
   url_launcher: ^6.2.5
+  webview_flutter: ^4.4.2
   
   # UI
   cupertino_icons: ^1.0.6
@@ -47,20 +48,23 @@ dependencies:
   
   # Code Generation
   json_annotation: ^4.8.1
-  retrofit_generator: ^8.0.6
-  json_serializable: ^6.7.1
-  build_runner: ^2.4.7
-  riverpod_generator: ^2.3.9
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  
+  # Code Generation
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.2.0
+  riverpod_generator: ^2.3.9
+  
 
+  
 flutter:
   uses-material-design: true
   
   assets:
     - assets/avatar_face.png
     - assets/
-

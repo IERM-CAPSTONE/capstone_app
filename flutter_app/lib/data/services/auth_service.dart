@@ -1,48 +1,72 @@
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import '../models/user_model.dart';
 
+/// AuthService using google_sign_in with Firebase Auth
 class AuthService {
   final _auth = FirebaseAuth.instance;
-  final _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+
+  // GoogleSignIn without serverClientId - let it use default from google-services.json
+  final _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
+
   late final SharedPreferences _prefs;
   final Dio _dio;
-  
+
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user_data';
-  
+
   AuthService(this._dio);
-  
+
   // Initialize with SharedPreferences
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  /// Sign in with Google using Firebase
+  /// Sign in with Google using native google_sign_in plugin
   Future<User?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleSignInAccount = await _googleSignIn.signIn();
-      
-      if (googleSignInAccount == null) {
-        print('Google sign-in cancelled by user');
+      print('🔄 Starting native Google Sign-In...');
+
+      // Step 1: Sign out first to clear any corrupted state
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+
+      // Step 2: Perform Google Sign-In
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        print('❌ Google sign-in cancelled by user');
         return null;
       }
 
-      final GoogleSignInAuthentication googleSignInAuthentication =
-          await googleSignInAccount.authentication;
+      print('✅ Got Google account: ${googleUser.email}');
 
+      // Step 3: Get authentication details
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      print('✅ Got Google auth tokens');
+
+      // Step 4: Create Firebase credential
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleSignInAuthentication.accessToken,
-        idToken: googleSignInAuthentication.idToken,
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
 
+      // Step 5: Sign in to Firebase
       final userCredential = await _auth.signInWithCredential(credential);
+
+      print('✅ Firebase sign-in successful: ${userCredential.user?.email}');
       return userCredential.user;
     } catch (e) {
-      print('Error during Google sign-in: $e');
+      print('❌ Google sign-in error: $e');
       rethrow;
     }
   }
@@ -89,10 +113,11 @@ class AuthService {
   }
 
   /// Verify Firebase token with backend and get app tokens
-  Future<Map<String, dynamic>> verifyFirebaseTokenWithBackend(String idToken) async {
+  Future<Map<String, dynamic>> verifyFirebaseTokenWithBackend(
+      String idToken) async {
     try {
       print('Verifying Firebase token with backend...');
-      
+
       final response = await _dio.post(
         '/auth/firebase/login',
         data: {
@@ -106,7 +131,8 @@ class AuthService {
         final data = response.data as Map<String, dynamic>;
         return data;
       } else {
-        throw Exception('Backend authentication failed: ${response.statusMessage}');
+        throw Exception(
+            'Backend authentication failed: ${response.statusMessage}');
       }
     } on DioException catch (e) {
       print('Dio error: ${e.message}');
@@ -149,8 +175,7 @@ class AuthService {
   /// Save user data to local storage
   Future<void> saveUserData(UserModel user) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userKey, user.toJson().toString());
+      await _prefs.setString(_userKey, jsonEncode(user.toJson()));
       print('User data saved successfully');
     } catch (e) {
       print('Error saving user data: $e');
@@ -161,13 +186,9 @@ class AuthService {
   /// Get saved user data
   Future<UserModel?> getSavedUserData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userJson = prefs.getString(_userKey);
+      final userJson = _prefs.getString(_userKey);
       if (userJson != null) {
-        // Parse the JSON string back to UserModel
-        return UserModel.fromJson(Map<String, dynamic>.from(
-          {'id': 'unknown', 'email': 'unknown'} // Minimal fallback
-        ));
+        return UserModel.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
       }
       return null;
     } catch (e) {
@@ -186,4 +207,3 @@ class AuthService {
     return _prefs.getString(_tokenKey);
   }
 }
-

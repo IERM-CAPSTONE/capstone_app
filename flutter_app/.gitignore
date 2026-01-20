@@ -15,11 +15,14 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
+out/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code related
+.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+*.code-workspace
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -32,19 +35,43 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Common generated files (using build_runner)
+*.g.dart
+*.freezed.dart
+*.config.dart
+
+# Private environment/secrets
+.env
+.env.*
+*.jks
+*.keystore
+*.p12
+*.key
+*.pem
+
+# Android specific
+/android/local.properties
+/android/key.properties
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# iOS specific
+/ios/Pods/
+/ios/.bundle/
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
+/ios/ServiceDefinitions.json
+/ios/Runner/GeneratedPluginRegistrant.h
+/ios/Runner/GeneratedPluginRegistrant.m
+
+# Firebase (sometimes ignored if handled via CI/CD)
+# android/app/google-services.json
+# ios/Runner/GoogleService-Info.plist
+
 # Symbolication related
 app.*.symbols
 
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-# Generated files
-*.g.dart
-*.freezed.dart
-*.config.dart
-*.env.dart

@@ -9,8 +9,9 @@ class LoginState {
     this.errorMessage,
   });
 
-  bool get isCampusSelected => selectedCampus != null && selectedCampus!.isNotEmpty;
-  bool get canLogin => isCampusSelected && !isLoading;
+  bool get isCampusSelected =>
+      selectedCampus != null && selectedCampus!.isNotEmpty;
+  bool get canLogin => !isLoading;
 
   LoginState copyWith({
     String? selectedCampus,
@@ -24,5 +25,3 @@ class LoginState {
     );
   }
 }
-
-

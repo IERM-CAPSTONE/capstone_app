@@ -1,23 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
-import '../../../core/routes/app_routes.dart';
 import 'login_controller.dart';
 import 'login_state.dart';
 
 class LoginPage extends ConsumerWidget {
   const LoginPage({super.key});
-
-  // List of campuses
-  static const List<String> campuses = [
-    'FPT University - Ho Chi Minh Campus',
-    'FPT University - Ha Noi Campus',
-    'FPT University - Da Nang Campus',
-    'FPT University - Can Tho Campus',
-    'FPT University - Quy Nhon Campus',
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,60 +14,90 @@ class LoginPage extends ConsumerWidget {
     final loginController = ref.read(loginControllerProvider.notifier);
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.loginGradientStart,
-              AppColors.loginGradientEnd,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-              // Logo
-              _buildLogo(),
-              const SizedBox(height: 16),
-              // Title
-              const Text(
-                'FPT Exam Management',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+      body: Stack(
+        children: [
+          // Main content
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.loginGradientStart,
+                  AppColors.loginGradientEnd,
+                ],
               ),
-              const SizedBox(height: 8),
-              // Subtitle
-              const Text(
-                'Secure Examination Management System',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const Spacer(flex: 1),
-              // Login Card
-              _buildLoginCard(context, loginState, loginController),
-              const Spacer(flex: 2),
-              // Copyright
-              const Padding(
-                padding: EdgeInsets.only(bottom: 24),
-                child: Text(
-                  '© 2026 FPT University. All rights reserved.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  const Spacer(flex: 2),
+                  // Logo
+                  _buildLogo(),
+                  const SizedBox(height: 16),
+                  // Title
+                  const Text(
+                    'FPT Exam Management',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
+                  const SizedBox(height: 8),
+                  // Subtitle
+                  const Text(
+                    'Secure Examination Management System',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const Spacer(flex: 1),
+                  // Login Card
+                  _buildLoginCard(context, loginState, loginController),
+                  const Spacer(flex: 2),
+                  // Copyright
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 24),
+                    child: Text(
+                      '© 2026 FPT University. All rights reserved.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Loading overlay
+          if (loginState.isLoading)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.appBarOrange),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Đang đăng nhập...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -115,7 +134,7 @@ class LoginPage extends ConsumerWidget {
     LoginState state,
     LoginController controller,
   ) {
-    final isEnabled = state.isCampusSelected;
+    const isEnabled = true;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -147,16 +166,13 @@ class LoginPage extends ConsumerWidget {
           const SizedBox(height: 8),
           // Instruction text
           const Text(
-            'Select your campus and sign in with Google',
+            'Sign in with your Google account to continue',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 24),
-          // Campus Selection
-          _buildCampusDropdown(state, controller, isEnabled),
-          const SizedBox(height: 20),
           // Login Button
           _buildLoginButton(context, state, controller, isEnabled),
           const SizedBox(height: 20),
@@ -164,92 +180,6 @@ class LoginPage extends ConsumerWidget {
           _buildInfoBox(),
         ],
       ),
-    );
-  }
-
-  Widget _buildCampusDropdown(
-    LoginState state,
-    LoginController controller,
-    bool isEnabled,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Select Campus *',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: AppColors.divider,
-            ),
-          ),
-          child: DropdownButtonFormField<String>(
-            value: state.selectedCampus,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            hint: Text(
-              'Choose your campus',
-              style: TextStyle(
-                color: AppColors.textSecondary.withOpacity(0.6),
-              ),
-            ),
-            items: campuses.map((campus) {
-              return DropdownMenuItem<String>(
-                value: campus,
-                child: Text(
-                  campus,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                  ),
-                ),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                controller.selectCampus(value);
-              } else {
-                controller.clearCampus();
-              }
-            },
-            icon: const Icon(
-              Icons.arrow_drop_down,
-              color: AppColors.textSecondary,
-            ),
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-            ),
-            dropdownColor: Colors.white,
-          ),
-        ),
-      ],
     );
   }
 
@@ -319,36 +249,34 @@ class LoginPage extends ConsumerWidget {
 
   Widget _buildInfoBox() {
     return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.loginInfoBox,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Please use your FPT University email (@fpt.edu.vn)',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.loginInfoBox,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Please use your FPT University email (@fpt.edu.vn)',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 4),
-            
-          ],
-        ),
-      );
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
   }
 }
 
-  Widget _buildGoogleLogo() {
-    return Image.asset(
-      AppAssets.googleLogo,
-      width: 20,
-      height: 20,
-      fit: BoxFit.contain,
-    );
-  }
-
+Widget _buildGoogleLogo() {
+  return Image.asset(
+    AppAssets.googleLogo,
+    width: 20,
+    height: 20,
+    fit: BoxFit.contain,
+  );
+}

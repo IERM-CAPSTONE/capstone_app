@@ -3,24 +3,31 @@ import '../../features/auth/login/login_page.dart';
 import '../../features/home/home_page.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
+import '../../features/profile/profile_page.dart';
+import '../../features/profile/proctor_profile_page.dart';
 import '../../features/exam_rooms/exam_rooms_page.dart';
 
 class AppRoutes {
   static const String login = '/login';
+  static const String register = '/register';
+  static const String home = '/home';
+  static const String attendance = '/attendance';
+  static const String profile = '/profile';
+  static const String proctorProfile = '/proctor-profile';
   static const String examSchedule = '/exam-schedule';
-  
+
   static final GoRouter router = GoRouter(
     initialLocation: login,
     redirect: (context, state) {
       try {
         final authService = DependencyInjection.get<AuthService>();
         final isLoggedIn = authService.isLoggedIn();
-        
+
         if (isLoggedIn && state.matchedLocation == login) {
           print('Token found! Redirecting to home...');
           return home;
         }
-        
+
         if (!isLoggedIn && state.matchedLocation == home) {
           print('No token found. Redirecting to login...');
           return login;
@@ -42,6 +49,16 @@ class AppRoutes {
         builder: (context, state) => const HomePage(),
       ),
       GoRoute(
+        path: profile,
+        name: 'profile',
+        builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: proctorProfile,
+        name: 'proctor-profile',
+        builder: (context, state) => const ProctorProfilePage(),
+      ),
+      GoRoute(
         path: examSchedule,
         name: 'exam-schedule',
         builder: (context, state) => const ExamRoomsPage(),
@@ -49,4 +66,3 @@ class AppRoutes {
     ],
   );
 }
-

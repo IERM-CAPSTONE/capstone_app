@@ -54,11 +54,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCKnAUcjxv67dcjBFkCT_R8iTLdQPFMSO0',
-    appId: '1:904946824619:android:4810fe2d88b13921850eee',
-    messagingSenderId: '904946824619',
-    projectId: 'capstone-89804',
-    storageBucket: 'capstone-89804.firebasestorage.app',
+    apiKey: 'AIzaSyAg5F0xRLCr3OFDQ67qGSDDqjx4zWN6ElA',
+    appId: '1:1090862722356:android:e66b0e88c5be0daae90961',
+    messagingSenderId: '1090862722356',
+    projectId: 'flrm-9b3a0',
+    storageBucket: 'flrm-9b3a0.firebasestorage.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -79,5 +79,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'capstone-89804.firebasestorage.app',
     iosBundleId: 'com.example.app',
   );
-
 }
