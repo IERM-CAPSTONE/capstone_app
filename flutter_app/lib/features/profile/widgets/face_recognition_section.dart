@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../profile_controller.dart';
+import '../../auth/registerf_face/register_page.dart';
 
 class FaceRecognitionSection extends ConsumerWidget {
   const FaceRecognitionSection({super.key});
@@ -109,7 +110,13 @@ class FaceRecognitionSection extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () => profileController.updateFaceData(),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RegisterFaceStartPage(),
+                  ),
+                );
+              },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 side: const BorderSide(color: Colors.green, width: 1),

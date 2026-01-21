@@ -63,9 +63,13 @@ class StudentExam {
 @JsonSerializable()
 class PaginatedStudentExamResponse {
   final List<StudentExam> data;
+  @JsonKey(defaultValue: 0)
   final int total;
+  @JsonKey(defaultValue: 1)
   final int page;
+  @JsonKey(defaultValue: 10)
   final int limit;
+  @JsonKey(defaultValue: 0)
   final int totalPages;
 
   PaginatedStudentExamResponse({

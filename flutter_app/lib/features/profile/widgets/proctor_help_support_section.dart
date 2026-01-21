@@ -75,7 +75,7 @@ class ProctorHelpSupportSection extends ConsumerWidget {
               },
               icon: const Icon(Icons.logout, color: Colors.red),
               label: const Text(
-                'Logout',
+                'Log out',
                 style: TextStyle(
                   color: Colors.red,
                   fontSize: 16,
@@ -163,8 +163,8 @@ class ProctorHelpSupportSection extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
+          title: const Text('Log out'),
+          content: const Text('Are you sure you want to log out?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -176,7 +176,7 @@ class ProctorHelpSupportSection extends ConsumerWidget {
                 onLogout();
               },
               child: const Text(
-                'Logout',
+                'Log out',
                 style: TextStyle(color: Colors.red),
               ),
             ),

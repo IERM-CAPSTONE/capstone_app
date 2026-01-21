@@ -6,20 +6,24 @@ part 'user_model.g.dart';
 class UserModel {
   final String id;
   final String email;
-  final String? name;
-  final String? phone;
-  final String? avatar;
+  final String? fullName; // Renamed from name
+  final String? username; // Added
+  final String? avatarUrl; // Renamed from avatar
   final String? role;
+  final String? code;
+  final bool isActive; // Added
   final DateTime? createdAt;
   final DateTime? updatedAt;
   
   UserModel({
     required this.id,
     required this.email,
-    this.name,
-    this.phone,
-    this.avatar,
+    this.fullName,
+    this.username,
+    this.avatarUrl,
     this.role,
+    this.code,
+    this.isActive = true,
     this.createdAt,
     this.updatedAt,
   });
@@ -32,20 +36,24 @@ class UserModel {
   UserModel copyWith({
     String? id,
     String? email,
-    String? name,
-    String? phone,
-    String? avatar,
+    String? fullName,
+    String? username,
+    String? avatarUrl,
     String? role,
+    String? code,
+    bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return UserModel(
       id: id ?? this.id,
       email: email ?? this.email,
-      name: name ?? this.name,
-      phone: phone ?? this.phone,
-      avatar: avatar ?? this.avatar,
+      fullName: fullName ?? this.fullName,
+      username: username ?? this.username,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       role: role ?? this.role,
+      code: code ?? this.code,
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

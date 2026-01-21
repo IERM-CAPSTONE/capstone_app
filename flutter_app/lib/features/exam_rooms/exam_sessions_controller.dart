@@ -1,20 +1,39 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/exam_session_repository.dart';
 import '../../data/services/api_service.dart';
-import '../../config/env.dart';
-import 'package:dio/dio.dart';
+import '../../data/services/auth_service.dart';
+import '../../config/dependency_injection.dart';
 import 'exam_sessions_state.dart';
 
 class ExamSessionsController extends StateNotifier<ExamSessionsState> {
   final ExamSessionRepository _repository;
+  final AuthService _authService;
 
-  ExamSessionsController(this._repository) : super(const ExamSessionsState()) {
+  ExamSessionsController(this._repository, this._authService) : super(const ExamSessionsState()) {
     loadExamSessions();
   }
 
   Future<void> loadExamSessions() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      print('📋 Loading exam sessions...');
+
+      // Get current user to filter by role
+      final currentUser = await _authService.getSavedUserData();
+      String? filterStudentId;
+      String? filterProctorId;
+
+      if (currentUser != null) {
+        final userRole = currentUser.role?.toUpperCase();
+        if (userRole == 'STUDENT') {
+          filterStudentId = currentUser.id;
+          print('👤 Filtering as STUDENT: $filterStudentId');
+        } else if (userRole == 'PROCTOR') {
+          filterProctorId = currentUser.id;
+          print('👤 Filtering as PROCTOR: $filterProctorId');
+        }
+      }
+      
       final result = await _repository.getExamSessions(
         search: state.searchQuery.isEmpty ? null : state.searchQuery,
         status: state.filterStatus,
@@ -22,7 +41,11 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         timeSlot: state.filterTimeSlot,
         page: state.currentPage,
         itemsPerPage: state.itemsPerPage,
+        studentId: filterStudentId,
+        proctorId: filterProctorId,
       );
+      
+      print('✅ Loaded ${(result['items'] as List).length} sessions');
       
       state = state.copyWith(
         examSessions: result['items'] as List<Map<String, dynamic>>,
@@ -30,6 +53,7 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         isLoading: false,
       );
     } catch (e) {
+      print('❌ Error loading exam sessions: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load exam sessions: $e',
@@ -88,32 +112,14 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
   }
 }
 
-// Providers
-final dioProvider = Provider<Dio>((ref) {
-  final dio = Dio(BaseOptions(
-    baseUrl: Env.apiBaseUrl,
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-  ));
-  
-  // Add auth interceptor if needed
-  // dio.interceptors.add(AuthInterceptor());
-  
-  return dio;
-});
-
-final apiServiceProvider = Provider<ApiService>((ref) {
-  final dio = ref.watch(dioProvider);
-  return ApiService(dio);
-});
-
-final examSessionRepositoryProvider = Provider<ExamSessionRepository>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
-  return ExamSessionRepository(apiService);
-});
-
+// Provider - gets shared ApiService from DependencyInjection
 final examSessionsControllerProvider =
-    StateNotifierProvider<ExamSessionsController, ExamSessionsState>((ref) {
-  final repository = ref.watch(examSessionRepositoryProvider);
-  return ExamSessionsController(repository);
+    StateNotifierProvider.autoDispose<ExamSessionsController, ExamSessionsState>((ref) {
+  final apiService = DependencyInjection.get<ApiService>();
+  final authService = DependencyInjection.get<AuthService>();
+  final repository = ExamSessionRepository(apiService);
+  
+  print('🏗️ Creating ExamSessionsController');
+  
+  return ExamSessionsController(repository, authService);
 });

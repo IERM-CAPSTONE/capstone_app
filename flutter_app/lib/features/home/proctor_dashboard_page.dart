@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../auth/registerf_face/register_page.dart';
-import '../../config/dependency_injection.dart';
-import '../../data/services/auth_service.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/constants/app_colors.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class ProctorDashboardPage extends StatelessWidget {
+  const ProctorDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +14,7 @@ class HomePage extends StatelessWidget {
         backgroundColor: AppColors.appBarOrange,
         elevation: 0,
         title: const Text(
-          'Student Homepage',
+          'Proctor Dashboard',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,

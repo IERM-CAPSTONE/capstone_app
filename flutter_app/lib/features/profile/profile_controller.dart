@@ -3,35 +3,55 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/routes/app_routes.dart';
 import '../../data/models/user_model.dart';
+import '../../config/dependency_injection.dart';
+import '../../data/services/auth_service.dart';
 import 'profile_state.dart';
 
 class ProfileController extends StateNotifier<ProfileState> {
   ProfileController() : super(ProfileState.initial()) {
-    // UI-only: use mock data, no backend calls.
-    loadMockUserProfile();
+    loadUserProfile();
   }
 
-  void loadMockUserProfile() {
-    state = state.copyWith(
-      isLoading: false,
-      error: null,
-      user: UserModel(
-        id: 'SE140123',
-        email: 'anvv@fpt.edu.vn',
-        name: 'Nguyen Van An',
-        phone: '+84 912 345 678',
-        avatar: '',
-        role: 'student',
-        createdAt: null,
-        updatedAt: null,
-      ),
-    );
+  Future<void> loadUserProfile() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final authService = DependencyInjection.get<AuthService>();
+      final user = await authService.getSavedUserData();
+      
+      if (user != null) {
+        state = state.copyWith(
+          isLoading: false,
+          user: user,
+        );
+      } else {
+        // Fallback or handle null user (maybe redirect to login?)
+        state = state.copyWith(
+          isLoading: false,
+          error: 'User data not found',
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
   }
 
   Future<void> logout(BuildContext context) async {
-    // UI-only: just navigate back to login screen.
-    if (context.mounted) {
-      context.go(AppRoutes.login);
+    try {
+      final authService = DependencyInjection.get<AuthService>();
+      await authService.signOut();
+      
+      if (context.mounted) {
+        context.go(AppRoutes.login);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Logout failed: $e')),
+        );
+      }
     }
   }
 
@@ -49,6 +69,6 @@ class ProfileController extends StateNotifier<ProfileState> {
 }
 
 final profileControllerProvider =
-    StateNotifierProvider<ProfileController, ProfileState>((ref) {
+    StateNotifierProvider.autoDispose<ProfileController, ProfileState>((ref) {
   return ProfileController();
 });

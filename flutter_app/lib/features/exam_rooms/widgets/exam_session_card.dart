@@ -95,13 +95,17 @@ class ExamSessionCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Icon(
-                    Icons.people,
+                    Icons.meeting_room,
                     size: 14,
                     color: Colors.grey[600],
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '$presentStudents/$totalStudents',
+                    session.roomNumber != null 
+                        ? 'Room ${session.roomNumber}'
+                        : (session.examRoomId != null 
+                            ? 'Room ${session.examRoomId!.substring(0, 6)}...'
+                            : 'No Room'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[700],

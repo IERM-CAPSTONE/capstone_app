@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/models/exam_session.dart';
+import '../../data/models/user_model.dart';
+import '../../config/dependency_injection.dart';
+import '../../data/services/auth_service.dart';
+import '../../core/routes/app_routes.dart';
 import 'exam_sessions_controller.dart';
 import 'exam_sessions_state.dart';
-import 'widgets/exam_session_card.dart';
-import 'widgets/exam_room_filter_sheet.dart';
+import 'package:intl/intl.dart';
+import 'widgets/redesigned_exam_session_card.dart';
+import '../profile/widgets/bottom_nav_bar.dart';
 import 'exam_room_detail_page.dart';
 
 class ExamRoomsPage extends ConsumerStatefulWidget {
@@ -16,6 +22,7 @@ class ExamRoomsPage extends ConsumerStatefulWidget {
 
 class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
   final TextEditingController _searchController = TextEditingController();
+  int _selectedTab = 0; // 0: Upcoming, 1: All Exams
 
   @override
   void dispose() {
@@ -36,63 +43,112 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
             _buildHeader(context),
             Expanded(
               child: Container(
+                width: double.infinity,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: Color(0xFFF5F5F5), // Light grey background
                   borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(20),
+                    top: Radius.circular(24),
                   ),
                 ),
-                child: Column(
-                  children: [
-                    _buildSearchBar(controller),
-                    Expanded(
-                      child: _buildContent(state, controller),
-                    ),
-                  ],
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  child: _buildContent(state, controller),
                 ),
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => context.go(AppRoutes.home),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'Exam Schedule',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24), // Balance the back button
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildToggle(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2), // Light translucent bg
+        borderRadius: BorderRadius.circular(25),
+      ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 12),
-          const Icon(Icons.meeting_room, color: Colors.white, size: 28),
-          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Exam Rooms',
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 0 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Upcoming',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _selectedTab == 0 ? Colors.black87 : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 1 ? const Color(0xFFFF6B35) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'All Exams',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
-                Text(
-                  'Back to Dashboard',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -100,75 +156,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     );
   }
 
-  Widget _buildSearchBar(ExamSessionsController controller) {
-    final state = ref.watch(examSessionsControllerProvider);
-    
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) => controller.setSearchQuery(value),
-              decoration: InputDecoration(
-                hintText: 'Search exam rooms...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 20),
-                        onPressed: () {
-                          _searchController.clear();
-                          controller.setSearchQuery('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: () => _showFilterSheet(controller),
-                  icon: const Icon(Icons.tune),
-                  color: Colors.black87,
-                ),
-              ),
-              if (state.hasActiveFilters)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF6B35),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildContent(ExamSessionsState state, ExamSessionsController controller) {
     if (state.isLoading) {
@@ -177,78 +165,100 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
 
     if (state.error != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              state.error!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => controller.refresh(),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+        child: Text(state.error!, style: const TextStyle(color: Colors.red)),
       );
     }
 
-    if (state.examSessions.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No exam sessions found',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-            ),
-            if (state.hasActiveFilters || state.searchQuery.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {
-                  _searchController.clear();
-                  controller.clearFilters();
-                },
-                child: const Text('Clear filters'),
-              ),
-            ],
-          ],
+    // Filter and Group Data
+    final filteredSessions = state.examSessions.where((data) {
+      final session = data['session'] as ExamSession;
+      if (_selectedTab == 0) {
+        // Upcoming: Scheduled or Ongoing
+        return session.status == ExamSessionStatus.scheduled || 
+               session.status == ExamSessionStatus.ongoing;
+      }
+      return true; // All Exams
+    }).toList();
+
+    if (filteredSessions.isEmpty) {
+      return const Center(
+        child: Text(
+          'No exams found',
+          style: TextStyle(color: Colors.grey, fontSize: 16),
         ),
       );
     }
+    
+    // Sort logic (if not already sorted by backend)
+    // filteredSessions.sort(...) 
 
-    return RefreshIndicator(
-      onRefresh: () async => controller.refresh(),
-      child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 16),
-        itemCount: state.examSessions.length + 1,
-        itemBuilder: (context, index) {
-          if (index == state.examSessions.length) {
-            return _buildPagination(state, controller);
-          }
+    // Group by Date
+    final Map<String, List<dynamic>> groupedSessions = {};
+    for (var data in filteredSessions) {
+      final session = data['session'] as ExamSession;
+      final dateKey = session.examOpenTime != null
+          ? DateFormat('MMM dd\nEEEE').format(session.examOpenTime!)
+          : 'TBA';
+      
+      if (!groupedSessions.containsKey(dateKey)) {
+        groupedSessions[dateKey] = [];
+      }
+      groupedSessions[dateKey]!.add(data);
+    }
 
-          final sessionData = state.examSessions[index];
-          final session = sessionData['session'] as ExamSession;
-          final totalStudents = sessionData['totalStudents'] as int;
-          final presentStudents = sessionData['presentStudents'] as int;
-          
-          return ExamSessionCard(
-            session: session,
-            totalStudents: totalStudents,
-            presentStudents: presentStudents,
-            onTap: () => _navigateToDetail(session.id),
-          );
-        },
-      ),
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: groupedSessions.length + 1, // +1 for pagination loader/buttons
+      itemBuilder: (context, index) {
+        if (index == groupedSessions.length) {
+          return _buildPagination(state, controller);
+        }
+
+        final dateKey = groupedSessions.keys.elementAt(index);
+        final dateSessions = groupedSessions[dateKey]!;
+
+        // Check if date is today
+        final isToday = dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
+        final displayDate = isToday 
+            ? DateFormat('MMM dd').format(DateTime.now()) + '\nToday'
+            : dateKey;
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date Header Column
+            SizedBox(
+              width: 50,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  displayDate,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Cards Column
+            Expanded(
+              child: Column(
+                children: dateSessions.map((data) {
+                  final session = data['session'] as ExamSession;
+                  return RedesignedExamSessionCard(
+                    session: session,
+                    onTap: () => _navigateToDetail(session.id),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -328,77 +338,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF6B35),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Home', false),
-              _buildNavItem(Icons.calendar_today, 'Exam Schedule', true),
-              _buildNavItem(Icons.confirmation_number, 'Ticket', false),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isActive ? Colors.white : Colors.white.withOpacity(0.5),
-          size: 26,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isActive ? Colors.white : Colors.white.withOpacity(0.5),
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showFilterSheet(ExamSessionsController controller) {
-    final state = ref.read(examSessionsControllerProvider);
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ExamRoomFilterSheet(
-        currentStatus: state.filterStatus,
-        currentDate: state.filterDate,
-        currentTimeSlot: state.filterTimeSlot,
-        onApply: ({status, date, timeSlot}) {
-          controller.applyFilters(
-            status: status,
-            date: date,
-            timeSlot: timeSlot,
-          );
-        },
-      ),
-    );
-  }
 
   void _navigateToDetail(String examRoomId) {
     Navigator.push(

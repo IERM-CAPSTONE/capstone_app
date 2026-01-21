@@ -57,7 +57,10 @@ class ExamSessionsState {
   bool get hasActiveFilters =>
       filterStatus != null || filterDate != null || (filterTimeSlot?.isNotEmpty ?? false);
 
-  int get totalPages => (totalItems / itemsPerPage).ceil();
+  int get totalPages {
+    if (totalItems == 0 && examSessions.isNotEmpty) return 1;
+    return (totalItems / itemsPerPage).ceil();
+  }
   bool get hasNextPage => currentPage < totalPages;
   bool get hasPreviousPage => currentPage > 1;
 }

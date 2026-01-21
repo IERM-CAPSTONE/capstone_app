@@ -32,9 +32,15 @@ class DependencyInjection {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          final token = prefs.getString('auth_token');
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          // Skip auth for login/register endpoints
+          final requiresAuth = options.extra['requiresAuth'] != false;
+          final isAuthEndpoint = options.path.contains('/auth/');
+          
+          if (requiresAuth && !isAuthEndpoint) {
+            final token = prefs.getString('auth_token');
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
           }
           return handler.next(options);
         },

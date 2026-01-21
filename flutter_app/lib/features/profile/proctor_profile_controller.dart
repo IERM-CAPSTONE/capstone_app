@@ -3,35 +3,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/routes/app_routes.dart';
 import '../../data/models/user_model.dart';
+import '../../config/dependency_injection.dart';
+import '../../data/services/auth_service.dart';
 import 'proctor_profile_state.dart';
 
 class ProctorProfileController extends StateNotifier<ProctorProfileState> {
   ProctorProfileController() : super(ProctorProfileState.initial()) {
-    // UI-only: use mock data, no backend calls.
-    loadMockProctorProfile();
+    loadUserProfile();
   }
 
-  void loadMockProctorProfile() {
-    state = state.copyWith(
-      isLoading: false,
-      error: null,
-      user: UserModel(
-        id: 'PRO001',
-        email: 'proctor@fpt.edu.vn',
-        name: 'Nguyen Van Proctor',
-        phone: '+84 912 345 679',
-        avatar: '',
-        role: 'proctor',
-        createdAt: null,
-        updatedAt: null,
-      ),
-    );
+  Future<void> loadUserProfile() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final authService = DependencyInjection.get<AuthService>();
+      final user = await authService.getSavedUserData();
+      
+      if (user != null) {
+        state = state.copyWith(
+          isLoading: false,
+          user: user,
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'User data not found',
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
   }
 
   Future<void> logout(BuildContext context) async {
-    // UI-only: just navigate back to login screen.
-    if (context.mounted) {
-      context.go(AppRoutes.login);
+    try {
+      final authService = DependencyInjection.get<AuthService>();
+      await authService.signOut();
+      
+      if (context.mounted) {
+        context.go(AppRoutes.login);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Logout failed: $e')),
+        );
+      }
     }
   }
 
@@ -49,6 +68,6 @@ class ProctorProfileController extends StateNotifier<ProctorProfileState> {
 }
 
 final proctorProfileControllerProvider =
-    StateNotifierProvider<ProctorProfileController, ProctorProfileState>((ref) {
+    StateNotifierProvider.autoDispose<ProctorProfileController, ProctorProfileState>((ref) {
   return ProctorProfileController();
 });

@@ -18,6 +18,7 @@ class ExamSession {
   final String? proctorId;
   final String? hallInvigilatorId;
   final String? subjectCode;
+  final String? roomNumber; // Added roomNumber
   final DateTime? examOpenTime;
   final DateTime? examCloseTime;
   final ExamSessionStatus status;
@@ -30,6 +31,7 @@ class ExamSession {
     this.proctorId,
     this.hallInvigilatorId,
     this.subjectCode,
+    this.roomNumber,
     this.examOpenTime,
     this.examCloseTime,
     required this.status,
@@ -70,9 +72,13 @@ class ExamSession {
 @JsonSerializable()
 class PaginatedExamSessionResponse {
   final List<ExamSession> data;
+  @JsonKey(defaultValue: 0)
   final int total;
+  @JsonKey(defaultValue: 1)
   final int page;
+  @JsonKey(defaultValue: 10)
   final int limit;
+  @JsonKey(defaultValue: 0)
   final int totalPages;
 
   PaginatedExamSessionResponse({

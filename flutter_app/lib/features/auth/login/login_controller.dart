@@ -86,11 +86,15 @@ class LoginController extends StateNotifier<LoginState> {
       final userModel = UserModel(
         id: userData['id'] as String? ?? firebaseUser.uid,
         email: userData['email'] as String? ?? firebaseUser.email ?? '',
-        name: userData['fullName'] as String? ??
+        fullName: userData['fullName'] as String? ??
+            userData['name'] as String? ??
             firebaseUser.displayName ??
             'User',
         role: userData['role'] as String? ?? 'student',
-        avatar: userData['avatar'] as String? ?? firebaseUser.photoURL,
+        avatarUrl: userData['avatarUrl'] as String? ??
+            userData['avatar'] as String? ??
+            firebaseUser.photoURL,
+        code: userData['code'] as String?,
       );
 
       await authService.saveUserData(userModel);
@@ -100,7 +104,11 @@ class LoginController extends StateNotifier<LoginState> {
 
       // 9. Navigate to home
       if (context.mounted) {
-        context.go(AppRoutes.home);
+        if (userModel.role == 'PROCTOR' || userModel.role == 'proctor') {
+           context.go(AppRoutes.proctorDashboard);
+        } else {
+           context.go(AppRoutes.home);
+        }
       }
     } catch (e) {
       print('❌ Google sign-in error: $e');

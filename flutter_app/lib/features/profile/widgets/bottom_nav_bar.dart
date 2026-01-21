@@ -32,7 +32,7 @@ class BottomNavBar extends StatelessWidget {
               context.go(AppRoutes.home);
               break;
             case 1:
-              // TODO: Navigate to schedule
+              context.go(AppRoutes.examSchedule);
               break;
             case 2:
               // TODO: Navigate to notification

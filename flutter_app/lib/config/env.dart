@@ -39,7 +39,7 @@ class Env {
   // Background Worker Configuration
   static const String backgroundPort = String.fromEnvironment(
     'BACKGROUND_PORT',
-    defaultValue: '3001',
+    defaultValue: '3002',
   );
 
   static Future<void> init() async {

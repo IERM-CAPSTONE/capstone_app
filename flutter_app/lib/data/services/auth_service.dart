@@ -42,17 +42,17 @@ class AuthService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        print('❌ Google sign-in cancelled by user');
+        print(' Google sign-in cancelled by user');
         return null;
       }
 
-      print('✅ Got Google account: ${googleUser.email}');
+      print(' Got Google account: ${googleUser.email}');
 
       // Step 3: Get authentication details
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      print('✅ Got Google auth tokens');
+      print(' Got Google auth tokens');
 
       // Step 4: Create Firebase credential
       final credential = GoogleAuthProvider.credential(
@@ -63,10 +63,10 @@ class AuthService {
       // Step 5: Sign in to Firebase
       final userCredential = await _auth.signInWithCredential(credential);
 
-      print('✅ Firebase sign-in successful: ${userCredential.user?.email}');
+      print(' Firebase sign-in successful: ${userCredential.user?.email}');
       return userCredential.user;
     } catch (e) {
-      print('❌ Google sign-in error: $e');
+      print(' Google sign-in error: $e');
       rethrow;
     }
   }
@@ -123,6 +123,10 @@ class AuthService {
         data: {
           'idToken': idToken,
         },
+        options: Options(
+          // Bypass auth interceptor for login endpoint
+          extra: {'requiresAuth': false},
+        ),
       );
 
       print('Backend response: ${response.data}');
@@ -136,6 +140,8 @@ class AuthService {
       }
     } on DioException catch (e) {
       print('Dio error: ${e.message}');
+      print('Response status: ${e.response?.statusCode}');
+      print('Response body: ${e.response?.data}');
       throw Exception('Backend request failed: ${e.message}');
     } catch (e) {
       print('Error verifying token with backend: $e');

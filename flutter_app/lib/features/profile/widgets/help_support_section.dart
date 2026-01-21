@@ -51,7 +51,7 @@ class HelpSupportSection extends ConsumerWidget {
               },
               icon: const Icon(Icons.logout, color: Colors.red),
               label: const Text(
-                'Logout',
+                'Log out',
                 style: TextStyle(
                   color: Colors.red,
                   fontSize: 16,
@@ -138,8 +138,8 @@ class HelpSupportSection extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: const Text('Log out'),
+        content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -151,7 +151,7 @@ class HelpSupportSection extends ConsumerWidget {
               onLogout();
             },
             child: const Text(
-              'Logout',
+              'Log out',
               style: TextStyle(color: Colors.red),
             ),
           ),

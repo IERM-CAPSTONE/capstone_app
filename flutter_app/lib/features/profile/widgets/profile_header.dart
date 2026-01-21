@@ -33,10 +33,10 @@ class ProfileHeader extends StatelessWidget {
                 width: 3,
               ),
             ),
-            child: user.avatar != null && user.avatar!.isNotEmpty
+            child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                 ? ClipOval(
                     child: Image.network(
-                      user.avatar!,
+                      user.avatarUrl!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
                           _buildDefaultAvatar(),
@@ -49,7 +49,7 @@ class ProfileHeader extends StatelessWidget {
           
           // Name
           Text(
-            user.name ?? 'No Name',
+            (user.fullName ?? 'No Name').toUpperCase(),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 24,
@@ -62,7 +62,7 @@ class ProfileHeader extends StatelessWidget {
           
           // Student ID
           Text(
-            user.id, // Using id as studentId for now
+            user.code?.toUpperCase() ?? user.id,
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 16,

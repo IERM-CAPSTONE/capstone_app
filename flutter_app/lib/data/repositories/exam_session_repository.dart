@@ -14,6 +14,8 @@ class ExamSessionRepository {
     String? status,
     DateTime? date,
     String? timeSlot,
+    String? proctorId,
+    String? studentId,
     int page = 1,
     int itemsPerPage = 10,
   }) async {
@@ -23,7 +25,8 @@ class ExamSessionRepository {
         itemsPerPage,
         search, // Using search as subjectCode filter
         null, // examRoomId
-        null, // proctorId
+        proctorId, // proctorId
+        studentId, // studentId
       );
 
       // Apply additional client-side filters if needed

@@ -38,6 +38,7 @@ class PersonalInfoSection extends ConsumerWidget {
             value: user.email,
           ),
           
+          /*
           const SizedBox(height: 12),
           
           _buildInfoRow(
@@ -46,7 +47,10 @@ class PersonalInfoSection extends ConsumerWidget {
             label: 'Phone Number',
             value: user.phone ?? 'Not provided',
           ),
+          */
           
+          /* 
+          // Class and Major fields are not yet available in the database
           const SizedBox(height: 12),
           
           _buildInfoRow(
@@ -64,6 +68,7 @@ class PersonalInfoSection extends ConsumerWidget {
             label: 'Major',
             value: 'Software Engineering', // TODO: Get from user model
           ),
+          */
         ],
       ),
     );

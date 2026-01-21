@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import '../../features/auth/login/login_page.dart';
 import '../../features/home/home_page.dart';
+import '../../features/home/proctor_dashboard_page.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
 import '../../features/profile/profile_page.dart';
@@ -15,16 +16,23 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String proctorProfile = '/proctor-profile';
   static const String examSchedule = '/exam-schedule';
+  static const String proctorDashboard = '/proctor-dashboard';
 
   static final GoRouter router = GoRouter(
     initialLocation: login,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       try {
         final authService = DependencyInjection.get<AuthService>();
         final isLoggedIn = authService.isLoggedIn();
 
         if (isLoggedIn && state.matchedLocation == login) {
-          print('Token found! Redirecting to home...');
+          final user = await authService.getSavedUserData();
+          final role = user?.role?.toLowerCase();
+          print('Token found! Redirecting based on role: $role');
+          
+          if (role == 'proctor') {
+            return proctorDashboard;
+          }
           return home;
         }
 
@@ -62,6 +70,11 @@ class AppRoutes {
         path: examSchedule,
         name: 'exam-schedule',
         builder: (context, state) => const ExamRoomsPage(),
+      ),
+      GoRoute(
+        path: proctorDashboard,
+        name: 'proctor-dashboard',
+        builder: (context, state) => const ProctorDashboardPage(),
       ),
     ],
   );

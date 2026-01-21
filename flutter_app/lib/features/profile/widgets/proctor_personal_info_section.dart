@@ -40,12 +40,14 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
 
           const SizedBox(height: 12),
 
+          /*
           _buildInfoRow(
             icon: Icons.phone,
             iconColor: Colors.green,
             label: 'Phone Number',
-            value: user.phone ?? 'Not provided',
+            value: 'Not Provided',
           ),
+          */
 
           const SizedBox(height: 12),
 
@@ -53,7 +55,7 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
             icon: Icons.badge,
             iconColor: Colors.purple,
             label: 'Employee ID',
-            value: user.id,
+            value: user.code?.toUpperCase() ?? user.id,
           ),
 
           const SizedBox(height: 12),
