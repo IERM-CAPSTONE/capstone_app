@@ -17,7 +17,7 @@ class Env {
 
   static const String apiPort = String.fromEnvironment(
     'API_PORT',
-    defaultValue: '3000',
+    defaultValue: '3002', // Changed from 3000 to 3002 to match backend
   );
 
   // Redis Configuration (if needed for direct access)
@@ -52,7 +52,7 @@ class Env {
     // On Android emulator, use 10.0.2.2 to access host machine's localhost
     // This is a fixed IP that works on ALL Android emulators, no need to change per machine
     // On web and other platforms, use the configured host
-    String host = redisHost;
+    String host = apiHost; // Fixed: Changed from redisHost to apiHost
     if (!kIsWeb && Platform.isAndroid) {
       // 10.0.2.2 is the special IP that Android emulator uses to access host machine's localhost
       // This works on ALL machines without needing to know the actual IP address
