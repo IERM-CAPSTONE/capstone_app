@@ -2,26 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/exam_session.dart';
-import '../../data/models/user_model.dart';
-import '../../config/dependency_injection.dart';
-import '../../data/services/auth_service.dart';
 import '../../core/routes/app_routes.dart';
 import '../../shared/widgets/skeleton_loader.dart';
-import '../exam_sessions/exam_sessions_controller.dart';
-import '../exam_sessions/exam_sessions_state.dart';
+import 'exam_sessions_controller.dart';
+import 'exam_sessions_state.dart';
 import 'package:intl/intl.dart';
-import '../exam_sessions/widgets/redesigned_exam_session_card.dart';
+import 'widgets/redesigned_exam_session_card.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
-import 'exam_room_detail_page.dart';
+import '../exam_rooms/exam_room_detail_page.dart';
 
-class ExamRoomsPage extends ConsumerStatefulWidget {
-  const ExamRoomsPage({super.key});
+class ExamSessionsPage extends ConsumerStatefulWidget {
+  const ExamSessionsPage({super.key});
 
   @override
-  ConsumerState<ExamRoomsPage> createState() => _ExamRoomsPageState();
+  ConsumerState<ExamSessionsPage> createState() => _ExamSessionsPageState();
 }
 
-class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
+class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedTab = 0; // 0: Upcoming, 1: All Exams
 
@@ -46,7 +43,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF5F5F5), // Light grey background
+                  color: Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(24),
                   ),
@@ -91,7 +88,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 24), // Balance the back button
+              const SizedBox(width: 24),
             ],
           ),
           const SizedBox(height: 24),
@@ -105,7 +102,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2), // Light translucent bg
+        color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Row(
@@ -137,10 +134,10 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _selectedTab == 1 ? const Color(0xFFFF6B35) : Colors.transparent,
+                  color: _selectedTab == 1 ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
+                child: const Text(
                   'All Exams',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -157,8 +154,6 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     );
   }
 
-
-
   Widget _buildContent(ExamSessionsState state, ExamSessionsController controller) {
     // Show skeleton loading instead of error
     if (state.isLoading || state.error != null) {
@@ -173,11 +168,10 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     final filteredSessions = state.examSessions.where((data) {
       final session = data['session'] as ExamSession;
       if (_selectedTab == 0) {
-        // Upcoming: Scheduled or Ongoing
         return session.status == ExamSessionStatus.scheduled || 
                session.status == ExamSessionStatus.ongoing;
       }
-      return true; // All Exams
+      return true;
     }).toList();
 
     if (filteredSessions.isEmpty) {
@@ -188,9 +182,6 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
         ),
       );
     }
-    
-    // Sort logic (if not already sorted by backend)
-    // filteredSessions.sort(...) 
 
     // Group by Date
     final Map<String, List<dynamic>> groupedSessions = {};
@@ -208,7 +199,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: groupedSessions.length + 1, // +1 for pagination loader/buttons
+      itemCount: groupedSessions.length + 1,
       itemBuilder: (context, index) {
         if (index == groupedSessions.length) {
           return _buildPagination(state, controller);
@@ -217,7 +208,6 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
         final dateKey = groupedSessions.keys.elementAt(index);
         final dateSessions = groupedSessions[dateKey]!;
 
-        // Check if date is today
         final isToday = dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
         final displayDate = isToday 
             ? DateFormat('MMM dd').format(DateTime.now()) + '\nToday'
@@ -226,7 +216,6 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date Header Column
             SizedBox(
               width: 50,
               child: Padding(
@@ -244,7 +233,6 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
               ),
             ),
             const SizedBox(width: 12),
-            // Cards Column
             Expanded(
               child: Column(
                 children: dateSessions.map((data) {
@@ -295,7 +283,9 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: GestureDetector(
-                      onTap: () => controller.goToPage(pageNumber),
+                      onTap: () {
+                        // Add goToPage method if needed
+                      },
                       child: Container(
                         width: 32,
                         height: 32,
@@ -337,8 +327,6 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
       ),
     );
   }
-
-
 
   void _navigateToDetail(String examRoomId) {
     Navigator.push(

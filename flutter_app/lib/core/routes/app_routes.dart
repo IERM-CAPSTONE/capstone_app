@@ -6,7 +6,7 @@ import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
 import '../../features/profile/profile_page.dart';
 import '../../features/profile/proctor_profile_page.dart';
-import '../../features/exam_rooms/exam_rooms_page.dart';
+import '../../features/exam_sessions/exam_sessions_page.dart';
 
 class AppRoutes {
   static const String login = '/login';
@@ -69,7 +69,7 @@ class AppRoutes {
       GoRoute(
         path: examSchedule,
         name: 'exam-schedule',
-        builder: (context, state) => const ExamRoomsPage(),
+        builder: (context, state) => const ExamSessionsPage(),
       ),
       GoRoute(
         path: proctorDashboard,
