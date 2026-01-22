@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../profile_controller.dart';
 import '../../auth/registerf_face/register_page.dart';
+import '../../auth/face_authenticate/face_authenticate_page.dart';
 
 class FaceRecognitionSection extends ConsumerWidget {
   const FaceRecognitionSection({super.key});
@@ -29,7 +30,6 @@ class FaceRecognitionSection extends ConsumerWidget {
               ),
             ),
           ),
-          
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -104,9 +104,35 @@ class FaceRecognitionSection extends ConsumerWidget {
               ],
             ),
           ),
-          
           const SizedBox(height: 12),
-          
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const FaceAuthenticatePage(),
+                  ),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: const BorderSide(color: Colors.blue, width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Test Face Authentication',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(

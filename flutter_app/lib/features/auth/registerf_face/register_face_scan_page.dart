@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import 'register_second_page.dart';
+import 'register_face_live_scan_page.dart';
 
 /// Static UI - Face scan intro screen (Step before ID capture).
-/// Pressing "Start scan" navigates to the ID capture page.
+/// Pressing "Start scan" navigates to the live face scan page.
 class RegisterFaceScanIntroPage extends StatelessWidget {
   const RegisterFaceScanIntroPage({super.key});
 
@@ -109,7 +109,7 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const RegisterFaceIdCapturePage(),
+                          builder: (_) => const RegisterFaceLiveScanPage(),
                         ),
                       );
                     },

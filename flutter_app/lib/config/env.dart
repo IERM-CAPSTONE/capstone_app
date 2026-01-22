@@ -6,7 +6,7 @@ class Env {
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue:
-        'https://raggedly-postmedial-angeles.ngrok-free.dev', // Android emulator special IP to access host machine
+        'https://raggedly-postmedial-angeles.ngrok-free.dev/api', // Android emulator special IP to access host machine
   );
 
   // Redis Configuration (if needed for direct access)
@@ -35,7 +35,6 @@ class Env {
     // Initialize environment variables
     // Can load from .env file or other sources
   }
-
 
   static int get redisPortInt {
     return int.tryParse(redisPort) ?? 6379;
