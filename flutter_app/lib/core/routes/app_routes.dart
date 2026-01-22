@@ -29,7 +29,7 @@ class AppRoutes {
           final user = await authService.getSavedUserData();
           final role = user?.role?.toLowerCase();
           print('Token found! Redirecting based on role: $role');
-          
+
           if (role == 'proctor') {
             return proctorDashboard;
           }
