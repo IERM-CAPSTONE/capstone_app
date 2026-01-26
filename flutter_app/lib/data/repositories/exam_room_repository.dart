@@ -1,5 +1,9 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/exam_room.dart';
 import '../models/exam_student.dart';
+import '../models/student_exam.dart';
+
+final examRoomRepositoryProvider = Provider((ref) => ExamRoomRepository());
 
 /// Mock repository for exam rooms data
 class ExamRoomRepository {
@@ -75,6 +79,105 @@ class ExamRoomRepository {
   Future<List<ExamStudent>> getExamStudents(String examRoomId) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return _mockStudents[examRoomId] ?? [];
+  }
+
+  /// Get student exams by exam session ID (for seating plan)
+  Future<List<StudentExam>> getExamStudentsBySessionId(String examSessionId) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    
+    // Mock data: Create student exams with seat numbers
+    return [
+      StudentExam(
+        id: '1',
+        examSessionId: examSessionId,
+        studentId: 'S001',
+        seatNumber: 1,
+        status: StudentExamStatus.checkedIn,
+        currentLocation: 'Room 101',
+        identityId: 'ID001',
+        isMatched: true,
+        checkinTime: DateTime.now().subtract(const Duration(hours: 1)),
+        checkoutTime: null,
+        isValid: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      StudentExam(
+        id: '2',
+        examSessionId: examSessionId,
+        studentId: 'S002',
+        seatNumber: 2,
+        status: StudentExamStatus.registered,
+        currentLocation: null,
+        identityId: null,
+        isMatched: false,
+        checkinTime: null,
+        checkoutTime: null,
+        isValid: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      StudentExam(
+        id: '3',
+        examSessionId: examSessionId,
+        studentId: 'S003',
+        seatNumber: 7,
+        status: StudentExamStatus.checkedIn,
+        currentLocation: 'Room 101',
+        identityId: 'ID003',
+        isMatched: true,
+        checkinTime: DateTime.now().subtract(const Duration(minutes: 45)),
+        checkoutTime: null,
+        isValid: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      StudentExam(
+        id: '4',
+        examSessionId: examSessionId,
+        studentId: 'S004',
+        seatNumber: 13,
+        status: StudentExamStatus.removed,
+        currentLocation: null,
+        identityId: null,
+        isMatched: false,
+        checkinTime: null,
+        checkoutTime: null,
+        isValid: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      StudentExam(
+        id: '5',
+        examSessionId: examSessionId,
+        studentId: 'S005',
+        seatNumber: 18,
+        status: StudentExamStatus.checkedIn,
+        currentLocation: 'Room 101',
+        identityId: 'ID005',
+        isMatched: true,
+        checkinTime: DateTime.now().subtract(const Duration(minutes: 30)),
+        checkoutTime: null,
+        isValid: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      StudentExam(
+        id: '6',
+        examSessionId: examSessionId,
+        studentId: 'S006',
+        seatNumber: 24,
+        status: StudentExamStatus.registered,
+        currentLocation: null,
+        identityId: null,
+        isMatched: false,
+        checkinTime: null,
+        checkoutTime: null,
+        isValid: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    ];
   }
 
   // Mock data

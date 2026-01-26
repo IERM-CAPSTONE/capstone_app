@@ -117,6 +117,9 @@ class AuthService {
       String idToken) async {
     try {
       print('Verifying Firebase token with backend...');
+      print('📍 Base URL: ${_dio.options.baseUrl}');
+      print('📍 Endpoint: /auth/firebase/login');
+      print('📍 Full URL: ${_dio.options.baseUrl}/auth/firebase/login');
 
       final response = await _dio.post(
         '/auth/firebase/login',

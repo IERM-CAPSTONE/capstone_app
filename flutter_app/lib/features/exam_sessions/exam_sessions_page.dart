@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/exam_session.dart';
 import '../../core/routes/app_routes.dart';
 import '../../shared/widgets/skeleton_loader.dart';
+import '../../config/dependency_injection.dart';
+import '../../data/services/auth_service.dart';
 import 'exam_sessions_controller.dart';
 import 'exam_sessions_state.dart';
 import 'package:intl/intl.dart';
 import 'widgets/redesigned_exam_session_card.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
-import '../exam_rooms/exam_room_detail_page.dart';
+import 'exam_session_detail_page.dart';
 
 class ExamSessionsPage extends ConsumerStatefulWidget {
   const ExamSessionsPage({super.key});
@@ -328,11 +330,32 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  void _navigateToDetail(String examRoomId) {
+  Future<void> _navigateToDetail(String examSessionId) async {
+    print('🔍 DEBUG: Navigating to exam session ID: $examSessionId');
+    
+    // Check user role - only proctor can view detail page
+    final authService = DependencyInjection.get<AuthService>();
+    final user = await authService.getSavedUserData();
+    final role = user?.role?.toUpperCase();
+    
+    if (role == 'STUDENT') {
+      // Show message that students cannot view detail
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Students cannot view exam session details. Only proctors have access.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ExamRoomDetailPage(examRoomId: examRoomId),
+        builder: (context) => ExamSessionDetailPage(examSessionId: examSessionId),
       ),
     );
   }

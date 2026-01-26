@@ -45,10 +45,11 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         proctorId: filterProctorId,
       );
       
-      print('✅ Loaded ${(result['items'] as List).length} sessions');
+      final items = result['items'] as List;
+      print('✅ Loaded ${items.length} sessions');
       
       state = state.copyWith(
-        examSessions: result['items'] as List<Map<String, dynamic>>,
+        examSessions: items.cast<Map<String, dynamic>>(),
         totalItems: result['totalItems'] as int,
         isLoading: false,
       );

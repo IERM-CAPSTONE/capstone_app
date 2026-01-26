@@ -20,7 +20,7 @@ class StudentExam {
   final String id;
   final String examSessionId;
   final String studentId;
-  final int? seatNumber;
+  final String? seatNumber;  // Changed from int? to String?
   final StudentExamStatus status;
   final String? currentLocation;
   final String? identityId;
@@ -63,13 +63,9 @@ class StudentExam {
 @JsonSerializable()
 class PaginatedStudentExamResponse {
   final List<StudentExam> data;
-  @JsonKey(defaultValue: 0)
   final int total;
-  @JsonKey(defaultValue: 1)
   final int page;
-  @JsonKey(defaultValue: 10)
   final int limit;
-  @JsonKey(defaultValue: 0)
   final int totalPages;
 
   PaginatedStudentExamResponse({
@@ -80,8 +76,30 @@ class PaginatedStudentExamResponse {
     required this.totalPages,
   });
 
-  factory PaginatedStudentExamResponse.fromJson(Map<String, dynamic> json) =>
-      _$PaginatedStudentExamResponseFromJson(json);
+  factory PaginatedStudentExamResponse.fromJson(Map<String, dynamic> json) {
+    // Ensure proper type conversion for integer fields
+    int parseToInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
 
-  Map<String, dynamic> toJson() => _$PaginatedStudentExamResponseToJson(this);
+    return PaginatedStudentExamResponse(
+      data: (json['data'] as List<dynamic>? ?? [])
+          .map((e) => StudentExam.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      total: parseToInt(json['total']),
+      page: parseToInt(json['page']),
+      limit: parseToInt(json['limit']),
+      totalPages: parseToInt(json['totalPages']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'data': data,
+    'total': total,
+    'page': page,
+    'limit': limit,
+    'totalPages': totalPages,
+  };
 }

@@ -26,13 +26,13 @@ class ExamSessionRepository {
         search, // Using search as subjectCode filter
         null, // examRoomId
         proctorId, // proctorId
-        studentId, // studentId
+        studentId, // studentId - directly pass to backend
       );
 
       // Apply additional client-side filters if needed
       var sessions = response.data;
 
-      // Filter by status if provided
+      // Filter by status if provided (Backend might handle this, but client-side ensures consistency)
       if (status != null && status.isNotEmpty) {
         sessions = sessions.where((session) {
           final sessionStatus = session.statusLabel.toLowerCase();
@@ -84,15 +84,34 @@ class ExamSessionRepository {
   /// Get exam session by ID
   Future<Map<String, dynamic>?> getExamSessionById(String id) async {
     try {
+      print('🔍 DEBUG Repository: Calling API getExamSession($id)');
+      
+      // Call API and let it deserialize
       final session = await _apiService.getExamSession(id);
+      
+      print('✅ DEBUG Repository: Got session object');
+      print('   - ID: ${session.id}');
+      print('   - ExamCode: ${session.examCode}');
+      print('   - Status: ${session.status}');
+      print('   - RoomNumber: ${session.roomNumber}');
+      
       final studentCount = await _getStudentCount(id);
+      print('📊 DEBUG Repository: Student count: ${studentCount['total']}');
 
       return {
         'session': session,
         'totalStudents': studentCount['total'] ?? 0,
         'presentStudents': studentCount['present'] ?? 0,
       };
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ DEBUG Repository ERROR: $e');
+      print('   Error type: ${e.runtimeType}');
+      if (stackTrace.toString().contains('exam_session.g.dart:10')) {
+        print('   ⚠️ JSON Deserialization failed at line 10');
+        print('   ⚠️ This means one of the required fields is null');
+      }
+      print('📍 Stack trace (first 5 lines):');
+      print(stackTrace.toString().split('\n').take(5).join('\n'));
       return null;
     }
   }

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/services/api_service.dart';
 import '../data/services/auth_service.dart';
 import '../data/repositories/user_repository.dart';
+import '../data/repositories/exam_session_repository.dart';
 import 'env.dart';
 
 class DependencyInjection {
@@ -44,6 +45,54 @@ class DependencyInjection {
           }
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          // Unwrap backend response wrapper
+          if (response.data is Map) {
+            final data = response.data as Map<String, dynamic>;
+            // Check if response is wrapped with {success, statusCode, data}
+            if (data.containsKey('data') && data.containsKey('success')) {
+              final innerData = data['data'];
+              
+              // Check type of innerData
+              if (innerData is Map) {
+                // innerData is Map - check if it's paginated
+                final innerMap = innerData as Map;
+                final isPaginated = innerMap.containsKey('data') && innerMap.containsKey('total');
+                
+                if (isPaginated) {
+                  print('📦 DEBUG: Paginated response (keep wrapper for retrofit)');
+                  // Keep as-is: {success, data: {data: [...], total, ...}}
+                } else {
+                  print('📦 DEBUG: Single object (unwrap)');
+                  // Unwrap: {success, data: {id, ...}} → {id, ...}
+                  response.data = innerData;
+                }
+              } else if (innerData is List) {
+                print('📦 DEBUG: Direct list response (keep wrapper for retrofit)');
+                // innerData is List - this is also paginated, keep wrapper
+                // {success, data: [...]}
+              } else {
+                print('📦 DEBUG: Unknown data type: ${innerData.runtimeType}');
+              }
+            }
+          }
+          
+          // Debug log for exam-sessions endpoint
+          if (response.requestOptions.path.contains('exam-sessions/')) {
+            print('📡 DEBUG HTTP Response (after processing):');
+            print('   URL: ${response.requestOptions.path}');
+            print('   Status: ${response.statusCode}');
+            print('   Data type: ${response.data.runtimeType}');
+            if (response.data is Map) {
+              final keys = (response.data as Map).keys.toList();
+              print('   Keys: $keys');
+              if (keys.contains('id')) {
+                print('   id field: ${(response.data as Map)['id']}');
+              }
+            }
+          }
+          return handler.next(response);
+        },
       ),
     );
     
@@ -60,6 +109,7 @@ class DependencyInjection {
     
     // Initialize Repositories
     _dependencies[UserRepository] = UserRepository(apiService);
+    _dependencies[ExamSessionRepository] = ExamSessionRepository(apiService);
     
     _initialized = true;
   }

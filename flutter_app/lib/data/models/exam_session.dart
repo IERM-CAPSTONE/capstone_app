@@ -18,12 +18,23 @@ class ExamSession {
   final String? proctorId;
   final String? hallInvigilatorId;
   final String? subjectCode;
-  final String? roomNumber; // Added roomNumber
+  final String? examCode;
+  final String? openCode;
+  final String? roomNumber;
   final DateTime? examOpenTime;
   final DateTime? examCloseTime;
   final ExamSessionStatus status;
+  final List<String> examType;
+  final String? semester;
+  final String? note;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? proctorName;
+  final String? hallInvigilatorName;
+  final int? maxRows;
+  final int? maxColumns;
+  final int? totalSeats;
+  final bool isArchived;
 
   ExamSession({
     required this.id,
@@ -31,12 +42,23 @@ class ExamSession {
     this.proctorId,
     this.hallInvigilatorId,
     this.subjectCode,
+    this.examCode,
+    this.openCode,
     this.roomNumber,
     this.examOpenTime,
     this.examCloseTime,
     required this.status,
+    this.examType = const [],
+    this.semester,
+    this.note,
     required this.createdAt,
     required this.updatedAt,
+    this.proctorName,
+    this.hallInvigilatorName,
+    this.maxRows,
+    this.maxColumns,
+    this.totalSeats,
+    this.isArchived = false,
   });
 
   factory ExamSession.fromJson(Map<String, dynamic> json) =>
@@ -72,13 +94,9 @@ class ExamSession {
 @JsonSerializable()
 class PaginatedExamSessionResponse {
   final List<ExamSession> data;
-  @JsonKey(defaultValue: 0)
   final int total;
-  @JsonKey(defaultValue: 1)
   final int page;
-  @JsonKey(defaultValue: 10)
   final int limit;
-  @JsonKey(defaultValue: 0)
   final int totalPages;
 
   PaginatedExamSessionResponse({
@@ -89,8 +107,23 @@ class PaginatedExamSessionResponse {
     required this.totalPages,
   });
 
-  factory PaginatedExamSessionResponse.fromJson(Map<String, dynamic> json) =>
-      _$PaginatedExamSessionResponseFromJson(json);
+  factory PaginatedExamSessionResponse.fromJson(Map<String, dynamic> json) {
+    int parseToInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    return PaginatedExamSessionResponse(
+      data: (json['data'] as List<dynamic>? ?? [])
+          .map((e) => ExamSession.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      total: parseToInt(json['total']),
+      page: parseToInt(json['page']),
+      limit: parseToInt(json['limit']),
+      totalPages: parseToInt(json['totalPages']),
+    );
+  }
 
   Map<String, dynamic> toJson() => _$PaginatedExamSessionResponseToJson(this);
 }

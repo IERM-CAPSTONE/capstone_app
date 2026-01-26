@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/exam_room.dart';
 import '../../data/models/exam_student.dart';
-import '../../data/repositories/exam_room_repository.dart';
-import 'exam_rooms_controller.dart';
+import '../../data/repositories/exam_room_repository.dart' as repo;
 import 'widgets/student_list_item.dart';
+import 'seating_plan_page.dart';
 
 final examRoomDetailProvider =
     FutureProvider.family<ExamRoom?, String>((ref, examRoomId) async {
-  final repository = ref.watch(examRoomRepositoryProvider);
+  final repository = ref.watch(repo.examRoomRepositoryProvider);
   return repository.getExamRoomById(examRoomId);
 });
 
 final examStudentsProvider =
     FutureProvider.family<List<ExamStudent>, String>((ref, examRoomId) async {
-  final repository = ref.watch(examRoomRepositoryProvider);
+  final repository = ref.watch(repo.examRoomRepositoryProvider);
   return repository.getExamStudents(examRoomId);
 });
 
@@ -102,7 +102,7 @@ class ExamRoomDetailPage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildExamInfo(examRoom),
-          _buildActionButtons(),
+          _buildActionButtons(context),
           _buildStatsCards(examRoom, studentsAsync),
           _buildStudentList(studentsAsync),
         ],
@@ -152,52 +152,83 @@ class ExamRoomDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.camera_alt, size: 20),
-              label: const Text('FA Checkin'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.camera_alt, size: 20),
+                  label: const Text('FA Checkin'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4CAF50),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.file_upload, size: 20),
-              label: const Text('Export'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.file_upload, size: 20),
+                  label: const Text('Export'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4CAF50),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.notifications, size: 20),
+                  label: const Text('Send Notification'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2196F3),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications, size: 20),
-              label: const Text('Send Notification'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SeatingPlanPage(
+                      examSessionId: examRoomId,
+                      examSessionTitle: 'Seating Plan',
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.event_seat, size: 20),
+              label: const Text('View Seating Plan'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
+                backgroundColor: const Color(0xFFFF6B35),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -276,7 +307,7 @@ class ExamRoomDetailPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha((0.05 * 255).round()),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
