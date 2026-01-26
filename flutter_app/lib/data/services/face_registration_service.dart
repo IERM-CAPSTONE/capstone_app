@@ -1,17 +1,11 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import '../../config/env.dart';
 import '../../features/auth/registerf_face/register_state.dart';
 
 class FaceRegistrationService {
   final Dio _dio;
 
-  FaceRegistrationService()
-      : _dio = Dio(BaseOptions(
-          baseUrl: Env.apiBaseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
-        ));
+  FaceRegistrationService(this._dio);
 
   /// Đăng ký khuôn mặt mới với mã hóa AES
   /// Gửi dữ liệu đã mã hóa dưới dạng JSON
@@ -25,7 +19,8 @@ class FaceRegistrationService {
       final encryptedImagesMap = <String, String>{};
       for (var entry in capturedImages.entries) {
         final poseName = entry.key.name; // center, left, right, up, down
-        encryptedImagesMap[poseName] = entry.value; // Already encrypted by controller
+        encryptedImagesMap[poseName] =
+            entry.value; // Already encrypted by controller
       }
 
       final requestData = {
@@ -51,14 +46,14 @@ class FaceRegistrationService {
     }
   }
 
-  /// Xác thực khuôn mặt với mã hóa AES
+  /// Xác thực khuôn mặt
   Future<Map<String, dynamic>> authenticateFace({
-    required String encryptedImage,
-    bool isEncrypted = true,
+    required String imageBase64,
+    bool isEncrypted = false,
   }) async {
     try {
       final requestData = {
-        'encryptedImage': encryptedImage,
+        'image': imageBase64,
         'isEncrypted': isEncrypted,
       };
 

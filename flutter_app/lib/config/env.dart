@@ -6,18 +6,20 @@ class Env {
   static const String apiHost = String.fromEnvironment(
     'API_HOST',
     defaultValue:
-        '10.0.2.2', // Android emulator special IP to access host machine
-  );
+// Uncomment
+//         '10.0.2.2', // Android emulator special IP to access host machine
+//   );
 
-  static const String googleClientId = String.fromEnvironment(
-    'GOOGLE_CLIENT_ID',
-    defaultValue:
-        '1090862722356-inbujal2kr2a3lg3go3gui5uh91ppqfg.apps.googleusercontent.com',
-  );
+//   static const String googleClientId = String.fromEnvironment(
+//     'GOOGLE_CLIENT_ID',
+//     defaultValue:
+//         '1090862722356-inbujal2kr2a3lg3go3gui5uh91ppqfg.apps.googleusercontent.com',
+//   );
 
-  static const String apiPort = String.fromEnvironment(
-    'API_PORT',
-    defaultValue: '3002', // Changed from 3000 to 3002 to match backend
+//   static const String apiPort = String.fromEnvironment(
+//     'API_PORT',
+//     defaultValue: '3002', // Changed from 3000 to 3002 to match backend
+        'https://raggedly-postmedial-angeles.ngrok-free.dev/api', // Android emulator special IP to access host machine
   );
 
   // Redis Configuration (if needed for direct access)

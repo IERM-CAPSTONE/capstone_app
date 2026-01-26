@@ -6,10 +6,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:crypto/crypto.dart';
-import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:image/image.dart' as img;
 import '../../../data/services/face_registration_service.dart';
+import '../../../data/services/auth_service.dart';
+import '../../../data/services/socket_service.dart';
 import '../../../core/services/glasses_detection_service.dart';
+import '../../../config/dependency_injection.dart';
 import 'register_state.dart';
 
 final registerFaceControllerProvider =
@@ -26,7 +28,8 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
   final _glassesService = GlassesDetectionService();
   int _frameCounter = 0; // Đếm frames để skip
   int _poseStableCount = 0; // Đếm số lần pose ổn định
-  static const int _requiredStableFrames = 3; // Cần 3 lần ổn định mới chụp
+  static const int _requiredStableFrames =
+      2; // Đếm 1 -> 2 để đảm bảo ảnh đủ nét mà vẫn nhanh
 
   // Blink detection
   bool _blinkDetected = false;
@@ -35,15 +38,11 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
   static const int _requiredBlinks = 1; // Cần nhấp nháy ít nhất 1 lần
 
   // Ngưỡng góc quay đầu - Giảm để dễ bắt hơn
-  static const double _hMin = 15.0; // LEFT/RIGHT: quay trái/phải ít nhất 15°
-  static const double _vUpMin = 10.0; // UP: ngửa đầu ít nhất 10°
-  static const double _vDownMin = 10.0; // DOWN: cúi đầu ít nhất 10°
-  static const double _centerThreshold =
-      10.0; // CENTER: cho phép lệch ±10°
-
-  // AES Encryption Key (must be 32 characters for AES-256)
-  // IMPORTANT: In production, store this key securely (e.g., env variables, secure storage)
-  final String _encryptionKey = 'MySecureKey123456789012345678901'; // 32 chars
+  // Ngưỡng góc quay đầu - Điều chỉnh để dễ bắt hơn cho UP/DOWN
+  static const double _hMin = 12.0; // LEFT/RIGHT: quay trái/phải (dễ hơn 15°)
+  static const double _vUpMin = 3.0; // UP: ngửa đầu (hạ xuống 3° - Cực kỳ nhạy)
+  static const double _vDownMin = 5.0; // DOWN: cúi đầu
+  static const double _centerThreshold = 12.0; // CENTER: dễ hơn (từ 10°)
 
   RegisterFaceController() : super(const RegisterFaceState());
 
@@ -53,6 +52,10 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     _faceDetector?.close();
     _glassesService.dispose();
     state.cameraController?.dispose();
+    try {
+      final socketService = DependencyInjection.get<SocketService>();
+      socketService.unsubscribe('face_registered');
+    } catch (_) {}
     super.dispose();
   }
 
@@ -99,6 +102,20 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       _detectionTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) {
         _processLatestImage();
       });
+
+      // Init Socket.IO connection
+      final authService = DependencyInjection.get<AuthService>();
+      final token = authService.getToken();
+      if (token != null) {
+        final socketService = DependencyInjection.get<SocketService>();
+        socketService.init(token);
+        socketService.subscribe('face_registered', (data) {
+          debugPrint('Real-time event received: $data');
+          if (data['status'] == 'success') {
+            state = state.copyWith(status: FaceScanStatus.completed);
+          }
+        });
+      }
     } catch (e) {
       state = state.copyWith(
         status: FaceScanStatus.error,
@@ -153,7 +170,8 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
           if (state.currentPose == HeadPose.center && !_blinkDetected) {
             state = state.copyWith(
               status: FaceScanStatus.faceDetected,
-              instructionMessage: '👁️ Nhấp nháy mắt $_blinkCount/$_requiredBlinks lần',
+              instructionMessage:
+                  '👁️ Nhấp nháy mắt $_blinkCount/$_requiredBlinks lần',
               isWearingGlasses: isWearingGlasses,
             );
             return; // Chưa cho phép tiếp tục
@@ -161,9 +179,11 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
 
           _poseStableCount++;
 
-          String message = '✓ Giữ yên... $_poseStableCount/$_requiredStableFrames';
+          String message =
+              '✓ Giữ yên... $_poseStableCount/$_requiredStableFrames';
           if (state.currentPose == HeadPose.center && _blinkDetected) {
-            message = '✓ Liveness OK! Giữ yên... $_poseStableCount/$_requiredStableFrames';
+            message =
+                '✓ Liveness OK! Giữ yên... $_poseStableCount/$_requiredStableFrames';
           }
 
           state = state.copyWith(
@@ -243,9 +263,11 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
         // Front camera mirror: người quay phải → Y âm (trái trong ảnh)
         return eulerY < -_hMin;
       case HeadPose.up:
-        return eulerX < -_vUpMin;
+        // ML Kit: Positive Euler X means looking UP
+        return eulerX > _vUpMin;
       case HeadPose.down:
-        return eulerX > _vDownMin;
+        // ML Kit: Negative Euler X means looking DOWN
+        return eulerX < -_vDownMin;
     }
   }
 
@@ -254,8 +276,11 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     _isCapturing = true;
 
     try {
+      // Ngừng nhận diện AI bằng cách hủy timer, KHÔNG gọi stopImageStream() để tránh crash Android
       _detectionTimer?.cancel();
-      await state.cameraController?.stopImageStream();
+
+      // Chờ một chút ngắn để camera ổn định sau khi ngừng stream AI (nếu cần)
+      await Future.delayed(const Duration(milliseconds: 100));
 
       final XFile? photo = await state.cameraController?.takePicture();
       if (photo == null) {
@@ -273,18 +298,21 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
           status: FaceScanStatus.completed,
           capturedPoses: newCapturedPoses,
           capturedImages: newCapturedImages,
-          instructionMessage: 'Đã hoàn thành chụp 5 góc!',
+          instructionMessage: 'Đang tự động gửi dữ liệu...',
         );
+
+        // Tự động gửi dữ liệu, ID sẽ được Server lấy từ Token
+        registerFace("");
       } else {
         final nextPose = _getNextPose(newCapturedPoses);
-        
+
         // Reset blink detection cho pose CENTER mới
         if (nextPose == HeadPose.center) {
           _blinkDetected = false;
           _blinkCount = 0;
           _wasEyesOpen = true;
         }
-        
+
         state = state.copyWith(
           status: FaceScanStatus.scanning,
           capturedPoses: newCapturedPoses,
@@ -302,9 +330,16 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
   }
 
   void _restartDetection() {
-    state.cameraController?.startImageStream((image) {
-      _lastImage = image;
-    });
+    _isCapturing = false;
+    // Chỉ khởi động lại stream nếu nó thực sự đã bị dừng (tránh lỗi 'already running')
+    if (state.cameraController != null &&
+        !state.cameraController!.value.isStreamingImages) {
+      state.cameraController?.startImageStream((image) {
+        _lastImage = image;
+      });
+    }
+
+    _detectionTimer?.cancel();
     _detectionTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) {
       _processLatestImage();
     });
@@ -317,68 +352,76 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     return HeadPose.center;
   }
 
-  Future<void> registerFace(String studentId) async {
+  Future<void> registerFace(String studentId,
+      {Map<HeadPose, String>? debugImages}) async {
+    // If debugImages is provided, override the state images (for Quick Test feature)
+    final imagesToProcess = debugImages ?? state.capturedImages;
+
     state = state.copyWith(
         status: FaceScanStatus.capturing,
-        instructionMessage: 'Đang đăng ký...');
+        instructionMessage: 'Đang đăng ký lên Server...');
 
     try {
-      // Encrypt images before sending
-      final encryptedImages = <HeadPose, String>{};
-      for (final entry in state.capturedImages.entries) {
-        final encryptedData = await _encryptImage(entry.value);
-        encryptedImages[entry.key] = encryptedData;
+      // Xử lý nén ảnh trước khi gửi (không mã hóa AES nữa)
+      final processedImages = <HeadPose, String>{};
+      for (final entry in imagesToProcess.entries) {
+        final base64Data = await _processImage(entry.value);
+        processedImages[entry.key] = base64Data;
       }
 
-      final service = FaceRegistrationService();
+      final service = DependencyInjection.get<FaceRegistrationService>();
       final result = await service.registerFace(
-        capturedImages: encryptedImages, // Send encrypted data
+        capturedImages: processedImages,
         studentId: studentId,
-        isEncrypted: true, // Flag to indicate data is encrypted
+        isEncrypted: false, // Tắt mã hóa
       );
 
-      if (result['status'] == 'success') {
+      // Lưu ý: Dữ liệu thực tế nằm trong field 'data' do NestJS TransformInterceptor
+      final actualData = result['data'] ?? {};
+
+      if (actualData['status'] == 'success') {
         state = state.copyWith(status: FaceScanStatus.completed);
       } else {
+        // ERROR: Keep the images so user can retry with 'Quick Test' button
         state = state.copyWith(
           status: FaceScanStatus.error,
-          errorMessage: result['message'] ?? 'Đăng ký thất bại',
+          errorMessage: actualData['message'] ?? 'Server error',
+          capturedImages: imagesToProcess, // Keep them!
         );
       }
     } catch (e) {
       state = state.copyWith(
-          status: FaceScanStatus.error, errorMessage: e.toString());
+        status: FaceScanStatus.error,
+        errorMessage: e.toString(),
+        capturedImages: imagesToProcess,
+      );
     }
   }
 
-  /// Encrypts image file using AES-256 and returns Base64 encoded string
-  Future<String> _encryptImage(String imagePath) async {
+  /// Nén ảnh JPEG và trả về chuỗi Base64
+  Future<String> _processImage(String imagePath) async {
     try {
-      // Read image bytes
+      // 1. Đọc và nén ảnh
       final imageBytes = await File(imagePath).readAsBytes();
-      
-      // Create AES key and IV
-      final key = encrypt.Key.fromUtf8(_encryptionKey);
-      final iv = encrypt.IV.fromLength(16);
-      
-      // Create encrypter
-      final encrypter = encrypt.Encrypter(encrypt.AES(key));
-      
-      // Encrypt the image bytes
-      final encrypted = encrypter.encryptBytes(imageBytes, iv: iv);
-      
-      // Return Base64 encoded encrypted data
-      return encrypted.base64;
+      final decodedImage = img.decodeImage(imageBytes);
+
+      Uint8List dataToSend;
+      if (decodedImage != null) {
+        // Nén xuống JPEG quality 70 (Thường còn < 50KB)
+        dataToSend =
+            Uint8List.fromList(img.encodeJpg(decodedImage, quality: 70));
+        debugPrint(
+            'Compressed image: ${imageBytes.length} -> ${dataToSend.length} bytes');
+      } else {
+        dataToSend = imageBytes;
+      }
+
+      // 2. Trả về Base64 thô (Không mã hóa AES)
+      return base64Encode(dataToSend);
     } catch (e) {
-      debugPrint('Error encrypting image: $e');
+      debugPrint('Error processing image: $e');
       rethrow;
     }
-  }
-
-  /// Generate SHA-256 hash for data integrity verification
-  String _generateHash(Uint8List data) {
-    final digest = sha256.convert(data);
-    return digest.toString();
   }
 
   InputImage? _inputImageFromCameraImage(CameraImage image) {

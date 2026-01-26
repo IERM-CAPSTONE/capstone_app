@@ -25,11 +25,19 @@ class _RegisterFaceLiveScanPageState
 
   @override
   Widget build(BuildContext context) {
-    // Chỉ xem trạng thái hoàn thành để chuyển màn hình
-    final isCompleted = ref.watch(registerFaceControllerProvider
-        .select((s) => s.status == FaceScanStatus.completed));
-    if (isCompleted) {
+    final state = ref.watch(registerFaceControllerProvider);
+
+    // Auto-navigation or auto-response based on state
+    if (state.status == FaceScanStatus.completed) {
       return _buildCompletedScreen(context);
+    }
+
+    if (state.status == FaceScanStatus.error) {
+      return _buildErrorScreen(context, state.errorMessage ?? "Unknown error");
+    }
+
+    if (state.status == FaceScanStatus.capturing) {
+      return _buildProcessingScreen(context, state.instructionMessage);
     }
 
     return Scaffold(
@@ -38,21 +46,109 @@ class _RegisterFaceLiveScanPageState
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Camera Preview - Đặt trong RepaintBoundary để không bị vẽ lại thừa
             const RepaintBoundary(child: _CameraPreviewWidget()),
-
-            // 2. Overlay Oval - Chỉ vẽ lại khi status thay đổi
             const _OvalOverlayWidget(),
-
-            // 3. Header & Tiến độ
             const _HeaderWidget(),
-
-            // 4. Hướng dẫn & Icon - Phần này thay đổi thường xuyên nhất
             const _InstructionWidget(),
-
-            // 5. Cảnh báo đeo kính (Nổi bật)
             const _GlassesWarningWidget(),
+
+            // Debug button for testing (Quick re-submit)
+            if (state.capturedImages.length == 5)
+              Positioned(
+                bottom: 20,
+                right: 20,
+                child: FloatingActionButton.extended(
+                  backgroundColor: Colors.redAccent,
+                  onPressed: () => ref
+                      .read(registerFaceControllerProvider.notifier)
+                      .registerFace(
+                        '',
+                        debugImages: state.capturedImages,
+                      ),
+                  label: const Text('DEBUG: Gửi lại ảnh cũ'),
+                  icon: const Icon(Icons.bug_report),
+                ),
+              ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProcessingScreen(BuildContext context, String message) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: AppColors.appBarOrange),
+            const SizedBox(height: 24),
+            Text(message,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorScreen(BuildContext context, String error) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 80),
+              const SizedBox(height: 24),
+              const Text('Lỗi đăng ký!',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Text(error,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.black54)),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => ref
+                      .read(registerFaceControllerProvider.notifier)
+                      .initializeCamera(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.appBarOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  child: const Text('Thử lại từ đầu'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Nút test nhanh khi có dữ liệu cũ
+              if (ref
+                      .read(registerFaceControllerProvider)
+                      .capturedImages
+                      .length ==
+                  5)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => ref
+                        .read(registerFaceControllerProvider.notifier)
+                        .registerFace(
+                          'STU_RETRY_${DateTime.now().millisecondsSinceEpoch}',
+                        ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.appBarOrange),
+                      padding: const EdgeInsets.all(16),
+                    ),
+                    child: const Text('Thử gửi lại dữ liệu cũ'),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -69,52 +165,19 @@ class _RegisterFaceLiveScanPageState
             const SizedBox(height: 24),
             const Text('Đăng ký thành công!',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Text('Dữ liệu khuôn mặt đã được cập nhật.',
+                style: TextStyle(color: Colors.black54)),
             const SizedBox(height: 48),
             ElevatedButton(
-              onPressed: () async {
-                // Hiển thị vòng xoay đang xử lý
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(
-                      child: CircularProgressIndicator(color: Colors.white)),
-                );
-
-                // ID sinh viên - Ở bản thật sẽ lấy từ Auth state
-                final studentId =
-                    'STU_${DateTime.now().millisecondsSinceEpoch}';
-
-                await ref
-                    .read(registerFaceControllerProvider.notifier)
-                    .registerFace(studentId);
-
-                if (context.mounted) {
-                  Navigator.of(context).pop(); // Đóng vòng xoay
-
-                  final finalState = ref.read(registerFaceControllerProvider);
-                  if (finalState.status == FaceScanStatus.completed) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Đăng ký khuôn mặt thành công!'),
-                          backgroundColor: Colors.green),
-                    );
-                    Navigator.of(context).pop(); // Quay về
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Lỗi: ${finalState.errorMessage}'),
-                          backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              },
+              onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.appBarOrange,
                 foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
               ),
-              child: const Text('Gửi dữ liệu đăng ký'),
+              child: const Text('Hoàn tất'),
             ),
           ],
         ),
