@@ -52,7 +52,8 @@ class ExamRoomDetailPage extends ConsumerWidget {
                     }
                     return _buildContent(context, examRoom, studentsAsync);
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, stack) => Center(
                     child: Text('Error: $error'),
                   ),
@@ -127,7 +128,7 @@ class ExamRoomDetailPage extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  examRoom.title,
+                  examRoom.displayName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -247,7 +248,7 @@ class ExamRoomDetailPage extends ConsumerWidget {
     final students = studentsAsync.valueOrNull ?? [];
     final presentCount = students.where((s) => s.isPresent).length;
     final absentCount = students.where((s) => s.isAbsent).length;
-    
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -369,7 +370,7 @@ class ExamRoomDetailPage extends ConsumerWidget {
                   ),
                 );
               }
-              
+
               return Column(
                 children: [
                   ...students.map((student) => StudentListItem(

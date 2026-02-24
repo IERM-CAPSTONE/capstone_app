@@ -30,14 +30,13 @@ class PersonalInfoSection extends ConsumerWidget {
               ),
             ),
           ),
-          
           _buildInfoRow(
             icon: Icons.email,
             iconColor: Colors.blue,
             label: 'Email',
-            value: user.email,
+            value: user.email ?? '',
           ),
-          
+
           /*
           const SizedBox(height: 12),
           
@@ -48,7 +47,7 @@ class PersonalInfoSection extends ConsumerWidget {
             value: user.phone ?? 'Not provided',
           ),
           */
-          
+
           /* 
           // Class and Major fields are not yet available in the database
           const SizedBox(height: 12),

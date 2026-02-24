@@ -20,7 +20,7 @@ class StudentExam {
   final String id;
   final String examSessionId;
   final String studentId;
-  final String? seatNumber;  // Changed from int? to String?
+  final String? seatNumber; // Changed from int? to String?
   final StudentExamStatus status;
   final String? currentLocation;
   final String? identityId;
@@ -30,6 +30,8 @@ class StudentExam {
   final bool isValid;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? studentName;
+  final String? studentCode;
 
   StudentExam({
     required this.id,
@@ -45,10 +47,40 @@ class StudentExam {
     required this.isValid,
     required this.createdAt,
     required this.updatedAt,
+    this.studentName,
+    this.studentCode,
   });
 
-  factory StudentExam.fromJson(Map<String, dynamic> json) =>
-      _$StudentExamFromJson(json);
+  factory StudentExam.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      if (value is String) return DateTime.tryParse(value);
+      return null;
+    }
+
+    return StudentExam(
+      id: json['id'] as String? ?? '',
+      examSessionId: json['examSessionId'] as String? ?? '',
+      studentId: json['studentId'] as String? ?? '',
+      seatNumber: json['seatNumber']?.toString(),
+      status: StudentExamStatus.values.firstWhere(
+        (e) =>
+            e.toString().split('.').last.toUpperCase() ==
+            (json['status'] as String? ?? '').toUpperCase(),
+        orElse: () => StudentExamStatus.registered,
+      ),
+      currentLocation: json['currentLocation'] as String?,
+      identityId: json['identityId'] as String?,
+      isMatched: json['isMatched'] as bool? ?? false,
+      checkinTime: parseDate(json['checkinTime']),
+      checkoutTime: parseDate(json['checkoutTime']),
+      isValid: json['isValid'] as bool? ?? true,
+      createdAt: parseDate(json['createdAt']) ?? DateTime.now(),
+      updatedAt: parseDate(json['updatedAt']) ?? DateTime.now(),
+      studentName: json['studentName'] as String?,
+      studentCode: json['studentCode'] as String?,
+    );
+  }
 
   Map<String, dynamic> toJson() => _$StudentExamToJson(this);
 
@@ -96,10 +128,10 @@ class PaginatedStudentExamResponse {
   }
 
   Map<String, dynamic> toJson() => {
-    'data': data,
-    'total': total,
-    'page': page,
-    'limit': limit,
-    'totalPages': totalPages,
-  };
+        'data': data,
+        'total': total,
+        'page': page,
+        'limit': limit,
+        'totalPages': totalPages,
+      };
 }

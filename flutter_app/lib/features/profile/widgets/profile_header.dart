@@ -44,9 +44,9 @@ class ProfileHeader extends StatelessWidget {
                   )
                 : _buildDefaultAvatar(),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Name
           Text(
             (user.fullName ?? 'No Name').toUpperCase(),
@@ -57,21 +57,21 @@ class ProfileHeader extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Student ID
           Text(
-            user.code?.toUpperCase() ?? user.id,
+            user.code?.toUpperCase() ?? user.id ?? '',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 16,
               color: Colors.grey,
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // University Tag
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

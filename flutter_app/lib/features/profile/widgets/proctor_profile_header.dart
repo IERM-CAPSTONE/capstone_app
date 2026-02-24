@@ -62,7 +62,7 @@ class ProctorProfileHeader extends StatelessWidget {
 
           // Proctor ID
           Text(
-            user.id,
+            user.code?.toUpperCase() ?? user.id ?? '',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 16,

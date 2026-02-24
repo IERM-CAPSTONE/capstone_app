@@ -27,6 +27,7 @@ class DependencyInjection {
         receiveTimeout: Duration(milliseconds: Env.apiTimeoutMs),
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
@@ -54,46 +55,50 @@ class DependencyInjection {
             // Check if response is wrapped with {success, statusCode, data}
             if (data.containsKey('data') && data.containsKey('success')) {
               final innerData = data['data'];
-              
+
               // Check type of innerData
               if (innerData is Map) {
                 // innerData is Map - check if it's paginated
                 final innerMap = innerData as Map;
-                final isPaginated = innerMap.containsKey('data') && innerMap.containsKey('total');
-                
-                if (isPaginated) {
-                  print('📦 DEBUG: Paginated response (keep wrapper for retrofit)');
-                  // Keep as-is: {success, data: {data: [...], total, ...}}
-                } else {
-                  print('📦 DEBUG: Single object (unwrap)');
+                final isPaginated = innerMap.containsKey('data') &&
+                    innerMap.containsKey('total');
+
+                if (!isPaginated) {
                   // Unwrap: {success, data: {id, ...}} → {id, ...}
                   response.data = innerData;
                 }
-              } else if (innerData is List) {
-                print('📦 DEBUG: Direct list response (keep wrapper for retrofit)');
-                // innerData is List - this is also paginated, keep wrapper
-                // {success, data: [...]}
-              } else {
-                print('📦 DEBUG: Unknown data type: ${innerData.runtimeType}');
-              }
-            }
-          }
-          
-          // Debug log for exam-sessions endpoint
-          if (response.requestOptions.path.contains('exam-sessions/')) {
-            print('📡 DEBUG HTTP Response (after processing):');
-            print('   URL: ${response.requestOptions.path}');
-            print('   Status: ${response.statusCode}');
-            print('   Data type: ${response.data.runtimeType}');
-            if (response.data is Map) {
-              final keys = (response.data as Map).keys.toList();
-              print('   Keys: $keys');
-              if (keys.contains('id')) {
-                print('   id field: ${(response.data as Map)['id']}');
               }
             }
           }
           return handler.next(response);
+        },
+        onError: (DioException e, handler) async {
+          // Handle 401 Unauthorized
+          if (e.response?.statusCode == 401) {
+            // Avoid infinite loops if refresh itself fails with 401
+            if (e.requestOptions.path.contains('/auth/refresh') ||
+                e.requestOptions.path.contains('/auth/firebase/login')) {
+              return handler.next(e);
+            }
+
+            try {
+              final authService = DependencyInjection.get<AuthService>();
+              final newToken = await authService.refreshToken();
+
+              if (newToken != null) {
+                // Update header with new token
+                final options = e.requestOptions;
+                options.headers['Authorization'] = 'Bearer $newToken';
+
+                // Retry the request
+                final response = await dio.fetch(options);
+                return handler.resolve(response);
+              }
+            } catch (refreshError) {
+              // Refresh failed
+            }
+          }
+          return handler.next(e);
         },
       ),
     );
@@ -120,7 +125,6 @@ class DependencyInjection {
     // Initialize Repositories
     _dependencies[UserRepository] = UserRepository(apiService);
     _dependencies[ExamSessionRepository] = ExamSessionRepository(apiService);
-    
 
     _initialized = true;
   }

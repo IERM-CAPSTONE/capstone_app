@@ -101,9 +101,9 @@ class ExamSessionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    session.roomNumber != null 
+                    session.roomNumber != null
                         ? 'Room ${session.roomNumber}'
-                        : (session.examRoomId != null 
+                        : (session.examRoomId != null
                             ? 'Room ${session.examRoomId!.substring(0, 6)}...'
                             : 'No Room'),
                     style: TextStyle(
@@ -132,23 +132,20 @@ class ExamSessionCard extends StatelessWidget {
     Color textColor;
     String label;
 
-    switch (session.status) {
-      case ExamSessionStatus.scheduled:
-        backgroundColor = const Color(0xFF2196F3).withOpacity(0.15);
-        textColor = const Color(0xFF2196F3);
-        label = session.statusLabel;
-        break;
-      case ExamSessionStatus.ongoing:
-        backgroundColor = const Color(0xFFFF6B35).withOpacity(0.15);
-        textColor = const Color(0xFFFF6B35);
-        label = session.statusLabel;
-        break;
-      case ExamSessionStatus.ended:
-        backgroundColor = const Color(0xFF4CAF50).withOpacity(0.15);
-        textColor = const Color(0xFF4CAF50);
-        label = session.statusLabel;
-        break;
+    if (session.isScheduled) {
+      backgroundColor = const Color(0xFF2196F3).withOpacity(0.15);
+      textColor = const Color(0xFF2196F3);
+    } else if (session.isOngoing) {
+      backgroundColor = const Color(0xFFFF6B35).withOpacity(0.15);
+      textColor = const Color(0xFFFF6B35);
+    } else if (session.isEnded) {
+      backgroundColor = const Color(0xFF4CAF50).withOpacity(0.15);
+      textColor = const Color(0xFF4CAF50);
+    } else {
+      backgroundColor = Colors.grey.withOpacity(0.15);
+      textColor = Colors.grey;
     }
+    label = session.statusLabel;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

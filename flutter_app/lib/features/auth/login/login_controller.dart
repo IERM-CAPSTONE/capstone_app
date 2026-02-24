@@ -38,7 +38,6 @@ class LoginController extends StateNotifier<LoginState> {
       final authService = DependencyInjection.get<AuthService>();
 
       // 1. Sign in with Firebase
-      print('Step 1: Signing in with Firebase...');
       final firebaseUser = await authService.signInWithGoogle();
 
       if (firebaseUser == null) {
@@ -47,23 +46,15 @@ class LoginController extends StateNotifier<LoginState> {
         return;
       }
 
-      print('Step 2: Firebase user authenticated: ${firebaseUser.email}');
-
       // 2. Get Firebase ID token
       final idToken = await firebaseUser.getIdToken();
       if (idToken == null) {
         throw Exception('Failed to get Firebase ID token');
       }
 
-      print(
-          'Step 3: Firebase ID token obtained (${idToken.substring(0, 20)}...)');
-
       // 3. Send Firebase token to backend for verification
-      print('Step 4: Sending Firebase token to backend for verification...');
       final backendResponse =
           await authService.verifyFirebaseTokenWithBackend(idToken);
-
-      print('Step 5: Backend verification successful');
 
       // 4. Extract tokens from backend response
       final accessToken = backendResponse['accessToken'] as String?;
@@ -75,12 +66,8 @@ class LoginController extends StateNotifier<LoginState> {
             'Invalid backend response: missing tokens or user data');
       }
 
-      print('Step 6: Received app tokens from backend');
-
       // 5. Save tokens locally
       await authService.saveTokens(accessToken, refreshToken);
-
-      print('Step 7: Tokens saved locally');
 
       // 6. Create and save user model
       final userModel = UserModel(
@@ -99,25 +86,22 @@ class LoginController extends StateNotifier<LoginState> {
 
       await authService.saveUserData(userModel);
 
-      print('Step 8: User data saved');
-      print('✅ Authentication flow completed successfully!');
-
-      // 9. Navigate to home
+      // 7. Navigate to home
       if (context.mounted) {
         if (userModel.role == 'PROCTOR' || userModel.role == 'proctor') {
-           context.go(AppRoutes.proctorDashboard);
+          context.go(AppRoutes.proctorDashboard);
         } else {
-           context.go(AppRoutes.home);
+          context.go(AppRoutes.home);
         }
       }
     } catch (e) {
       print('❌ Google sign-in error: $e');
       if (context.mounted) {
         messenger.showSnackBar(
-          SnackBar(
-            content: Text('Lỗi đăng nhập: ${e.toString()}'),
+          const SnackBar(
+            content: Text('Đăng nhập thất bại. Vui lòng thử lại.'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
       }

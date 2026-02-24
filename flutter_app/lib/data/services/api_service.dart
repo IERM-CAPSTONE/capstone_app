@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import '../models/user_model.dart';
 import '../models/exam_session.dart';
+import '../models/exam_room.dart';
 import '../models/student_exam.dart';
 
 part 'api_service.g.dart';
@@ -43,6 +44,7 @@ abstract class ApiService {
     @Query('examRoomId') String? examRoomId,
     @Query('proctorId') String? proctorId,
     @Query('studentId') String? studentId,
+    @Query('date') String? date,
   );
 
   @GET('/exam-sessions/{id}')
@@ -60,4 +62,28 @@ abstract class ApiService {
 
   @GET('/student-exams/{id}')
   Future<StudentExam> getStudentExam(@Path('id') String id);
+
+  // Users
+  @GET('/users')
+  Future<PaginatedUserResponse> getUsers(
+    @Query('page') int? page,
+    @Query('limit') int? limit,
+    @Query('role') String? role,
+    @Query('search') String? search,
+  );
+
+  @GET('/users/proctors')
+  Future<PaginatedUserResponse> getProctors(
+    @Query('page') int? page,
+    @Query('limit') int? limit,
+    @Query('search') String? search,
+  );
+
+  // Exam Rooms
+  @GET('/exam-rooms')
+  Future<PaginatedExamRoomResponse> getExamRooms(
+    @Query('page') int? page,
+    @Query('limit') int? limit,
+    @Query('roomNumber') String? roomNumber,
+  );
 }

@@ -43,7 +43,7 @@ class ExamRoomCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          examRoom.title,
+                          examRoom.displayName,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -77,7 +77,7 @@ class ExamRoomCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    DateFormat('MMM dd, yyyy').format(examRoom.date),
+                    DateFormat('MMM dd, yyyy').format(examRoom.date!),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[700],
@@ -91,7 +91,7 @@ class ExamRoomCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    examRoom.timeSlot,
+                    examRoom.timeSlot!,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[700],
@@ -144,6 +144,9 @@ class ExamRoomCard extends StatelessWidget {
         backgroundColor = const Color(0xFF4CAF50);
         textColor = Colors.white;
         break;
+      default:
+        backgroundColor = Colors.grey;
+        textColor = Colors.white;
     }
 
     return Container(

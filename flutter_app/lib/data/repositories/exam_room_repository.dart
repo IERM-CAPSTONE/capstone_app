@@ -25,7 +25,7 @@ class ExamRoomRepository {
     if (search != null && search.isNotEmpty) {
       rooms = rooms
           .where((room) =>
-              room.title.toLowerCase().contains(search.toLowerCase()))
+              room.title?.toLowerCase().contains(search.toLowerCase()) ?? false)
           .toList();
     }
 
@@ -36,9 +36,9 @@ class ExamRoomRepository {
     if (date != null) {
       rooms = rooms
           .where((room) =>
-              room.date.year == date.year &&
-              room.date.month == date.month &&
-              room.date.day == date.day)
+              room.date?.year == date.year &&
+              room.date?.month == date.month &&
+              room.date?.day == date.day)
           .toList();
     }
 
@@ -82,16 +82,17 @@ class ExamRoomRepository {
   }
 
   /// Get student exams by exam session ID (for seating plan)
-  Future<List<StudentExam>> getExamStudentsBySessionId(String examSessionId) async {
+  Future<List<StudentExam>> getExamStudentsBySessionId(
+      String examSessionId) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    
+
     // Mock data: Create student exams with seat numbers
     return [
       StudentExam(
         id: '1',
         examSessionId: examSessionId,
         studentId: 'S001',
-        seatNumber: 1,
+        seatNumber: '1',
         status: StudentExamStatus.checkedIn,
         currentLocation: 'Room 101',
         identityId: 'ID001',
@@ -106,7 +107,7 @@ class ExamRoomRepository {
         id: '2',
         examSessionId: examSessionId,
         studentId: 'S002',
-        seatNumber: 2,
+        seatNumber: '2',
         status: StudentExamStatus.registered,
         currentLocation: null,
         identityId: null,
@@ -121,7 +122,7 @@ class ExamRoomRepository {
         id: '3',
         examSessionId: examSessionId,
         studentId: 'S003',
-        seatNumber: 7,
+        seatNumber: '7',
         status: StudentExamStatus.checkedIn,
         currentLocation: 'Room 101',
         identityId: 'ID003',
@@ -136,7 +137,7 @@ class ExamRoomRepository {
         id: '4',
         examSessionId: examSessionId,
         studentId: 'S004',
-        seatNumber: 13,
+        seatNumber: '13',
         status: StudentExamStatus.removed,
         currentLocation: null,
         identityId: null,
@@ -151,7 +152,7 @@ class ExamRoomRepository {
         id: '5',
         examSessionId: examSessionId,
         studentId: 'S005',
-        seatNumber: 18,
+        seatNumber: '18',
         status: StudentExamStatus.checkedIn,
         currentLocation: 'Room 101',
         identityId: 'ID005',
@@ -166,7 +167,7 @@ class ExamRoomRepository {
         id: '6',
         examSessionId: examSessionId,
         studentId: 'S006',
-        seatNumber: 24,
+        seatNumber: '24',
         status: StudentExamStatus.registered,
         currentLocation: null,
         identityId: null,

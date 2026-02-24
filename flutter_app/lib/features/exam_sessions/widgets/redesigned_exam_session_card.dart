@@ -16,9 +16,10 @@ class RedesignedExamSessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor();
     final statusLabel = _getStatusLabel();
-    final duration = session.examCloseTime != null && session.examOpenTime != null
-        ? session.examCloseTime!.difference(session.examOpenTime!).inMinutes
-        : 0;
+    final duration =
+        session.examCloseTime != null && session.examOpenTime != null
+            ? session.examCloseTime!.difference(session.examOpenTime!).inMinutes
+            : 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -42,15 +43,21 @@ class RedesignedExamSessionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header: Tags
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  _buildTag('Final', const Color(0xFFFFE0E0), const Color(0xFFFF6B35)), // Mock "Final"
-                  const SizedBox(width: 8),
-                  _buildTag(statusLabel, statusColor.withOpacity(0.1), statusColor),
+                  ...session.examType.map((type) => _buildTag(
+                        type,
+                        const Color(0xFFFFE0E0),
+                        const Color(0xFFFF6B35),
+                      )),
+                  _buildTag(
+                      statusLabel, statusColor.withOpacity(0.1), statusColor),
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Title
               Text(
                 session.title,
@@ -83,7 +90,7 @@ class RedesignedExamSessionCard extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Notice Footer
-              if (session.status != ExamSessionStatus.ended)
+              if (!session.isEnded)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -92,11 +99,12 @@ class RedesignedExamSessionCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
+                      Icon(Icons.info_outline,
+                          size: 16, color: Colors.blue[700]),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          session.status == ExamSessionStatus.ongoing
+                          session.isOngoing
                               ? 'Exam is currently in progress'
                               : 'Check-in 15 minutes before exam starts',
                           style: TextStyle(
@@ -134,7 +142,9 @@ class RedesignedExamSessionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, Color iconBg, Color iconColor, String title, {String? subtitle}) {
+  Widget _buildInfoRow(
+      IconData icon, Color iconBg, Color iconColor, String title,
+      {String? subtitle}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -173,25 +183,17 @@ class RedesignedExamSessionCard extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    switch (session.status) {
-      case ExamSessionStatus.scheduled:
-        return const Color(0xFFFF9800); // Orange
-      case ExamSessionStatus.ongoing:
-        return const Color(0xFF4CAF50); // Green
-      case ExamSessionStatus.ended:
-        return Colors.grey;
-    }
+    if (session.isScheduled) return const Color(0xFFFF9800);
+    if (session.isOngoing) return const Color(0xFF4CAF50);
+    if (session.isEnded) return Colors.grey;
+    return Colors.black;
   }
 
   String _getStatusLabel() {
-    switch (session.status) {
-      case ExamSessionStatus.scheduled:
-        return 'Upcoming';
-      case ExamSessionStatus.ongoing:
-        return 'Ongoing';
-      case ExamSessionStatus.ended:
-        return 'Completed';
-    }
+    if (session.isScheduled) return 'Upcoming';
+    if (session.isOngoing) return 'Ongoing';
+    if (session.isEnded) return 'Completed';
+    return 'Unknown';
   }
 
   String _formatTime(DateTime? time) {

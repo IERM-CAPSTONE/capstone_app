@@ -19,6 +19,7 @@ class FaceAuthenticateState {
   final String? studentId;
   final String? studentCode;
   final String? studentName;
+  final String? examSessionId;
 
   const FaceAuthenticateState({
     this.cameraController,
@@ -29,6 +30,7 @@ class FaceAuthenticateState {
     this.studentId,
     this.studentCode,
     this.studentName,
+    this.examSessionId,
   });
 
   FaceAuthenticateState copyWith({
@@ -40,6 +42,7 @@ class FaceAuthenticateState {
     String? studentId,
     String? studentCode,
     String? studentName,
+    String? examSessionId,
   }) {
     return FaceAuthenticateState(
       cameraController: cameraController ?? this.cameraController,
@@ -50,6 +53,7 @@ class FaceAuthenticateState {
       studentId: studentId ?? this.studentId,
       studentCode: studentCode ?? this.studentCode,
       studentName: studentName ?? this.studentName,
+      examSessionId: examSessionId ?? this.examSessionId,
     );
   }
 }

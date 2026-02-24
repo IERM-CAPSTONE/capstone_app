@@ -34,31 +34,14 @@ class SeatWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            seat.displayNumber,
+            seat.studentExam?.studentCode ?? '',
             style: TextStyle(
               color: _getTextColor(),
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: 10, // Slightly smaller to fit student codes better
             ),
+            textAlign: TextAlign.center,
           ),
-          if (seat.status != SeatStatus.available) ...[
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: _getStatusBadgeColor(),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                _getStatusLabel(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -87,32 +70,6 @@ class SeatWidget extends StatelessWidget {
         return const Color(0xFF388E3C);
       case SeatStatus.absent:
         return const Color(0xFFD32F2F);
-    }
-  }
-
-  Color _getStatusBadgeColor() {
-    switch (seat.status) {
-      case SeatStatus.available:
-        return Colors.grey;
-      case SeatStatus.occupied:
-        return const Color(0xFF2196F3);
-      case SeatStatus.present:
-        return const Color(0xFF4CAF50);
-      case SeatStatus.absent:
-        return const Color(0xFFF44336);
-    }
-  }
-
-  String _getStatusLabel() {
-    switch (seat.status) {
-      case SeatStatus.available:
-        return 'Available';
-      case SeatStatus.occupied:
-        return 'Occupied';
-      case SeatStatus.present:
-        return 'Present';
-      case SeatStatus.absent:
-        return 'Absent';
     }
   }
 }

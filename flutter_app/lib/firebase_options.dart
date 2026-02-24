@@ -44,21 +44,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCyYorYRU0istmzJ_V3HRb4MycA6kuJurU',
-    appId: '1:904946824619:web:044eae411e9f7b47850eee',
-    messagingSenderId: '904946824619',
-    projectId: 'capstone-89804',
-    authDomain: 'capstone-89804.firebaseapp.com',
-    storageBucket: 'capstone-89804.firebasestorage.app',
-    measurementId: 'G-VZBENZKJL8',
-  );
+      apiKey: "AIzaSyB_lZgTfHI3IKssRGzOQI6_cEUI_61cGEY",
+      authDomain: "flrm-9b3a0.firebaseapp.com",
+      projectId: "flrm-9b3a0",
+      storageBucket: "flrm-9b3a0.firebasestorage.app",
+      messagingSenderId: "1090862722356",
+      appId: "1:1090862722356:web:14e7449068a12646e90961",
+      measurementId: "G-EMG2YN8XXK");
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCKnAUcjxv67dcjBFkCT_R8iTLdQPFMSO0',
-    appId: '1:904946824619:android:4810fe2d88b13921850eee',
-    messagingSenderId: '904946824619',
-    projectId: 'capstone-89804',
-    storageBucket: 'capstone-89804.firebasestorage.app',
+    apiKey: 'AIzaSyAg5F0xRLCr3OFDQ67qGSDDqjx4zWN6ElA',
+    appId: '1:1090862722356:android:e66b0e88c5be0daae90961',
+    messagingSenderId: '1090862722356',
+    projectId: 'flrm-9b3a0',
+    storageBucket: 'flrm-9b3a0.firebasestorage.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -72,11 +71,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBFHnd8qt3ZfX1cb-7ohat2LzOzqsDR50s',
-    appId: '1:904946824619:ios:11562ba4d2fad56e850eee',
-    messagingSenderId: '904946824619',
-    projectId: 'capstone-89804',
-    storageBucket: 'capstone-89804.firebasestorage.app',
+    apiKey: 'AIzaSyAg5F0xRLCr3OFDQ67qGSDDqjx4zWN6ElA',
+    appId: '1:1090862722356:android:e66b0e88c5be0daae90961',
+    messagingSenderId: '1090862722356',
+    projectId: 'flrm-9b3a0',
+    storageBucket: 'flrm-9b3a0.firebasestorage.app',
     iosBundleId: 'com.example.app',
   );
 }

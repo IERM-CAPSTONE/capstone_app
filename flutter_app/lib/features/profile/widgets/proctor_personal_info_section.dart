@@ -30,14 +30,12 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
               ),
             ),
           ),
-
           _buildInfoRow(
             icon: Icons.email,
             iconColor: Colors.blue,
             label: 'Email',
-            value: user.email,
+            value: user.email ?? '',
           ),
-
           const SizedBox(height: 12),
 
           /*
@@ -50,25 +48,20 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
           */
 
           const SizedBox(height: 12),
-
           _buildInfoRow(
             icon: Icons.badge,
             iconColor: Colors.purple,
             label: 'Employee ID',
-            value: user.code?.toUpperCase() ?? user.id,
+            value: user.code?.toUpperCase() ?? user.id ?? '',
           ),
-
           const SizedBox(height: 12),
-
           _buildInfoRow(
             icon: Icons.work,
             iconColor: const Color(0xFFFF6B35),
             label: 'Department',
             value: 'Examination Department',
           ),
-
           const SizedBox(height: 12),
-
           _buildInfoRow(
             icon: Icons.location_on,
             iconColor: Colors.red,

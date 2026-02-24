@@ -1,20 +1,16 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'student_exam.dart';
 
-part 'seat.g.dart';
-
 enum SeatStatus {
-  @JsonValue('available')
   available,
-  @JsonValue('occupied')
   occupied,
-  @JsonValue('present')
   present,
-  @JsonValue('absent')
-  absent,
+  absent;
+
+  String toJson() => name;
+  static SeatStatus fromJson(String json) => SeatStatus.values
+      .firstWhere((e) => e.name == json, orElse: () => SeatStatus.available);
 }
 
-@JsonSerializable()
 class Seat {
   final String id;
   final int row;
@@ -32,9 +28,25 @@ class Seat {
     this.studentExam,
   });
 
-  factory Seat.fromJson(Map<String, dynamic> json) => _$SeatFromJson(json);
+  factory Seat.fromJson(Map<String, dynamic> json) => Seat(
+        id: json['id'] as String,
+        row: json['row'] as int,
+        column: json['column'] as int,
+        seatNumber: json['seatNumber'] as String?,
+        status: SeatStatus.fromJson(json['status'] as String),
+        studentExam: json['studentExam'] != null
+            ? StudentExam.fromJson(json['studentExam'] as Map<String, dynamic>)
+            : null,
+      );
 
-  Map<String, dynamic> toJson() => _$SeatToJson(this);
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'row': row,
+        'column': column,
+        'seatNumber': seatNumber,
+        'status': status.toJson(),
+        'studentExam': studentExam?.toJson(),
+      };
 
   bool get isAvailable => status == SeatStatus.available;
   bool get isOccupied => status == SeatStatus.occupied;
@@ -44,7 +56,6 @@ class Seat {
   String get displayNumber => seatNumber ?? '${row + 1}-${column + 1}';
 }
 
-@JsonSerializable()
 class SeatingPlan {
   final int rows;
   final int columns;
@@ -58,10 +69,21 @@ class SeatingPlan {
     required this.seats,
   });
 
-  factory SeatingPlan.fromJson(Map<String, dynamic> json) =>
-      _$SeatingPlanFromJson(json);
+  factory SeatingPlan.fromJson(Map<String, dynamic> json) => SeatingPlan(
+        rows: json['rows'] as int,
+        columns: json['columns'] as int,
+        totalSeats: json['totalSeats'] as int,
+        seats: (json['seats'] as List<dynamic>)
+            .map((e) => Seat.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
 
-  Map<String, dynamic> toJson() => _$SeatingPlanToJson(this);
+  Map<String, dynamic> toJson() => {
+        'rows': rows,
+        'columns': columns,
+        'totalSeats': totalSeats,
+        'seats': seats.map((e) => e.toJson()).toList(),
+      };
 
   /// Create seating plan from exam session and student exams
   factory SeatingPlan.fromExamData({
@@ -76,7 +98,7 @@ class SeatingPlan {
     final Map<String, StudentExam> studentBySeat = {};
     for (var student in studentExams) {
       if (student.seatNumber != null) {
-        studentBySeat[student.seatNumber!] = student;  // seatNumber is now String
+        studentBySeat[student.seatNumber!] = student;
       }
     }
 
@@ -93,7 +115,7 @@ class SeatingPlan {
         // Try to find student by seat number
         if (studentBySeat.containsKey(seatNumber)) {
           studentExam = studentBySeat[seatNumber];
-          
+
           // Determine status based on student exam status
           if (studentExam != null) {
             if (studentExam.status == StudentExamStatus.checkedIn ||

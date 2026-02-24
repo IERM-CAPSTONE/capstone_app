@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/exam_session.dart';
 import '../../data/models/student_exam.dart';
+import '../../data/models/seat.dart';
 import '../../data/repositories/exam_session_repository.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
 import '../exam_rooms/seating_plan_page.dart';
+import '../exam_rooms/widgets/seat_widget.dart';
+import '../exam_rooms/widgets/seating_legend.dart';
 import 'package:intl/intl.dart';
+import '../auth/face_authenticate/face_authenticate_page.dart';
 
 final examSessionDetailProvider =
-    FutureProvider.family<Map<String, dynamic>?, String>((ref, examSessionId) async {
+    FutureProvider.family<Map<String, dynamic>?, String>(
+        (ref, examSessionId) async {
   print('🔍 DEBUG: Fetching exam session with ID: $examSessionId');
   final repository = DependencyInjection.get<ExamSessionRepository>();
   final result = await repository.getExamSessionById(examSessionId);
-  print('📊 DEBUG: API Response: ${result != null ? 'SUCCESS' : 'NULL (not found)'}');
+  print(
+      '📊 DEBUG: API Response: ${result != null ? 'SUCCESS' : 'NULL (not found)'}');
   if (result != null && result['session'] != null) {
     final session = result['session'] as ExamSession;
     print('📋 DEBUG: Exam Code: ${session.examCode}');
@@ -22,7 +28,8 @@ final examSessionDetailProvider =
 });
 
 final sessionStudentsProvider =
-    FutureProvider.family<List<StudentExam>, String>((ref, examSessionId) async {
+    FutureProvider.family<List<StudentExam>, String>(
+        (ref, examSessionId) async {
   final repository = DependencyInjection.get<ExamSessionRepository>();
   return repository.getExamStudents(examSessionId);
 });
@@ -36,12 +43,14 @@ class ExamSessionDetailPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ExamSessionDetailPage> createState() => _ExamSessionDetailPageState();
+  ConsumerState<ExamSessionDetailPage> createState() =>
+      _ExamSessionDetailPageState();
 }
 
 class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   String? _userRole;
   bool _isProctor = false;
+  Seat? _selectedSeat;
 
   @override
   void initState() {
@@ -54,14 +63,17 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     final user = await authService.getSavedUserData();
     setState(() {
       _userRole = user?.role?.toUpperCase();
-      _isProctor = _userRole == 'PROCTOR' || _userRole == 'ADMIN' || _userRole == 'EXAM_OFFICER';
+      _isProctor = _userRole == 'PROCTOR' ||
+          _userRole == 'ADMIN' ||
+          _userRole == 'EXAM_OFFICER';
     });
-    
+
     // If student somehow accessed this page, show warning and go back
     if (_userRole == 'STUDENT' && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Access denied. Students cannot view exam session details.'),
+          content:
+              Text('Access denied. Students cannot view exam session details.'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -74,8 +86,12 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final sessionAsync = ref.watch(examSessionDetailProvider(widget.examSessionId));
-    final studentsAsync = ref.watch(sessionStudentsProvider(widget.examSessionId));
+    final sessionAsync =
+        ref.watch(examSessionDetailProvider(widget.examSessionId));
+    final studentsAsync =
+        ref.watch(sessionStudentsProvider(widget.examSessionId));
+    final seatingPlanAsync =
+        ref.watch(seatingPlanProvider(widget.examSessionId));
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
@@ -94,21 +110,25 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 child: sessionAsync.when(
                   data: (sessionData) {
                     if (sessionData == null) {
-                      return const Center(child: Text('Exam session not found'));
+                      return const Center(
+                          child: Text('Exam session not found'));
                     }
                     final session = sessionData['session'] as ExamSession;
                     final totalStudents = sessionData['totalStudents'] as int;
-                    final presentStudents = sessionData['presentStudents'] as int;
-                    
+                    final presentStudents =
+                        sessionData['presentStudents'] as int;
+
                     return _buildContent(
                       context,
                       session,
                       totalStudents,
                       presentStudents,
                       studentsAsync,
+                      seatingPlanAsync,
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, stack) => Center(
                     child: Text('Error: $error'),
                   ),
@@ -135,7 +155,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _isProctor ? 'Proctor - Exam Session Detail' : 'Exam Session Detail',
+              _isProctor
+                  ? 'Proctor - Exam Session Detail'
+                  : 'Exam Session Detail',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -154,6 +176,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     int totalStudents,
     int presentStudents,
     AsyncValue<List<StudentExam>> studentsAsync,
+    AsyncValue<SeatingPlan?> seatingPlanAsync,
   ) {
     return SingleChildScrollView(
       child: Column(
@@ -161,8 +184,37 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         children: [
           _buildExamInfo(session),
           _buildActionButtons(context, session),
-          _buildStatsCards(session, totalStudents, presentStudents, studentsAsync),
-          _buildStudentList(studentsAsync),
+          _buildStatsCards(
+              session, totalStudents, presentStudents, studentsAsync),
+          const SizedBox(height: 8),
+          const SeatingLegend(),
+          const SizedBox(height: 16),
+          seatingPlanAsync.when(
+            data: (seatingPlan) {
+              if (seatingPlan == null) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text('Seating plan not available'),
+                  ),
+                );
+              }
+              return _buildSeatingPlanView(seatingPlan);
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (error, stack) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text('Error loading seating plan: $error'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -179,23 +231,21 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Exam Code
+          // Exam Status and Header
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.description, color: Colors.white, size: 24),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  session.examCode ?? 'N/A',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const Text(
+                'Session Details',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: _getStatusColor(session.status),
                   borderRadius: BorderRadius.circular(12),
@@ -214,7 +264,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(height: 12),
           const Divider(color: Colors.white24, height: 1),
           const SizedBox(height: 12),
-          
+
           // Subject & Semester
           _buildInfoRow(
             Icons.book,
@@ -228,7 +278,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             session.semester ?? 'N/A',
           ),
           const SizedBox(height: 8),
-          
+
           // Room Info
           _buildInfoRow(
             Icons.meeting_room,
@@ -236,7 +286,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             session.roomNumber ?? 'N/A',
           ),
           const SizedBox(height: 8),
-          
+
           // Exam Time
           if (session.examOpenTime != null) ...[
             _buildInfoRow(
@@ -246,14 +296,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             ),
             const SizedBox(height: 8),
           ],
-          
+
           // Proctor
           _buildInfoRow(
             Icons.person,
             'Proctor',
             session.proctorName ?? 'N/A',
           ),
-          
+
           // Note if exists
           if (session.note != null && session.note!.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -299,14 +349,21 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   }
 
   Color _getStatusColor(ExamSessionStatus status) {
-    switch (status) {
-      case ExamSessionStatus.scheduled:
-        return const Color(0xFF2196F3);
-      case ExamSessionStatus.ongoing:
-        return const Color(0xFF4CAF50);
-      case ExamSessionStatus.ended:
-        return const Color(0xFF757575);
+    // We cannot use session.isScheduled here easily since it takes status param
+    // But we can check values directly or use a dummy session
+    if (status == ExamSessionStatus.scheduled ||
+        status == ExamSessionStatus.scheduledLower) {
+      return const Color(0xFF2196F3);
     }
+    if (status == ExamSessionStatus.ongoing ||
+        status == ExamSessionStatus.ongoingLower) {
+      return const Color(0xFF4CAF50);
+    }
+    if (status == ExamSessionStatus.ended ||
+        status == ExamSessionStatus.endedLower) {
+      return const Color(0xFF757575);
+    }
+    return Colors.grey;
   }
 
   Widget _buildActionButtons(BuildContext context, ExamSession session) {
@@ -317,89 +374,48 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.camera_alt, size: 20),
-                  label: const Text(
-                    'FA Checkin',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.file_upload, size: 20),
-                  label: const Text(
-                    'Export',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.notifications, size: 20),
-                  label: const Text(
-                    'Notify',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
+          Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SeatingPlanPage(
-                      examSessionId: session.id,
-                      examSessionTitle: session.examCode ?? 'Seating Plan',
+                    builder: (context) => FaceAuthenticatePage(
+                      examSessionId: widget.examSessionId,
                     ),
                   ),
                 );
               },
-              icon: const Icon(Icons.event_seat, size: 20),
-              label: const Text('View Seating Plan'),
+              icon: const Icon(Icons.camera_alt, size: 20),
+              label: const Text(
+                'FA Checkin',
+                style: TextStyle(fontSize: 13),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6B35),
+                backgroundColor: const Color(0xFF4CAF50),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.confirmation_number_outlined, size: 20),
+              label: const Text(
+                'Create Ticket',
+                style: TextStyle(fontSize: 13),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -418,14 +434,17 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     AsyncValue<List<StudentExam>> studentsAsync,
   ) {
     final students = studentsAsync.valueOrNull ?? [];
-    final actualTotal = students.length;  // ✅ Calculate total from actual data
-    final actualPresent = students.where((s) => 
-      s.status == StudentExamStatus.checkedIn || 
-      s.status == StudentExamStatus.checkedOut
-    ).length;  // ✅ Calculate present count
-    final registeredCount = students.where((s) => s.status == StudentExamStatus.registered).length;
-    final absentCount = students.where((s) => s.status == StudentExamStatus.removed).length;
-    
+    final actualTotal = students.length; // ✅ Calculate total from actual data
+    final actualPresent = students
+        .where((s) =>
+            s.status == StudentExamStatus.checkedIn ||
+            s.status == StudentExamStatus.checkedOut)
+        .length; // ✅ Calculate present count
+    final registeredCount =
+        students.where((s) => s.status == StudentExamStatus.registered).length;
+    final absentCount =
+        students.where((s) => s.status == StudentExamStatus.removed).length;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -433,7 +452,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Expanded(
             child: _buildStatCard(
               icon: Icons.people,
-              value: '$actualTotal',  // ✅ Use calculated value instead of backend
+              value:
+                  '$actualTotal', // ✅ Use calculated value instead of backend
               label: 'Total',
               color: const Color(0xFF2196F3),
             ),
@@ -442,7 +462,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Expanded(
             child: _buildStatCard(
               icon: Icons.check_circle,
-              value: '$actualPresent',  // ✅ Use calculated value
+              value: '$actualPresent', // ✅ Use calculated value
               label: 'Present',
               color: const Color(0xFF4CAF50),
             ),
@@ -516,64 +536,37 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildStudentList(AsyncValue<List<StudentExam>> studentsAsync) {
+  Widget _buildSeatingPlanView(SeatingPlan seatingPlan) {
+    return Column(
+      children: [
+        _buildTeacherDesk(),
+        const SizedBox(height: 24),
+        _buildSeatingGrid(seatingPlan),
+      ],
+    );
+  }
+
+  Widget _buildTeacherDesk() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Student List',
+          Icon(Icons.desk, color: Colors.grey[600], size: 20),
+          const SizedBox(width: 8),
+          Text(
+            'TEACHER DESK / ENTRANCE',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          studentsAsync.when(
-            data: (students) {
-              if (students.isEmpty) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Text('No students found'),
-                  ),
-                );
-              }
-              
-              return Column(
-                children: [
-                  ...students.take(10).map((student) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildStudentRow(student),
-                  )),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Showing ${students.length > 10 ? '1-10' : '1-${students.length}'} of ${students.length} students',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              );
-            },
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            error: (error, stack) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text('Error loading students: $error'),
-              ),
+              color: Colors.grey[700],
+              letterSpacing: 1.2,
             ),
           ),
         ],
@@ -581,106 +574,200 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildStudentRow(StudentExam student) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
+  Widget _buildSeatingGrid(SeatingPlan seatingPlan) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double gridWidth = constraints.maxWidth;
+          final double cellWidth = gridWidth / seatingPlan.columns;
+
+          return Column(
+            children: [
+              for (int row = 0; row < seatingPlan.rows; row++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (int col = 0; col < seatingPlan.columns; col++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: SizedBox(
+                            width: cellWidth - 12,
+                            child: _buildSeatCell(
+                              seatingPlan.getSeatAt(row, col),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          );
+        },
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _getStudentStatusColor(student.status),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                student.seatNumber ?? '-',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+    );
+  }
+
+  Widget _buildSeatCell(Seat? seat) {
+    if (seat == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isSelected = _selectedSeat?.id == seat.id;
+
+    return GestureDetector(
+      onTap: () {
+        if (seat.status != SeatStatus.available) {
+          setState(() {
+            _selectedSeat = isSelected ? null : seat;
+          });
+          _showSeatDetails(seat);
+        }
+      },
+      child: SeatWidget(
+        seat: seat,
+        isSelected: isSelected,
+      ),
+    );
+  }
+
+  void _showSeatDetails(Seat seat) {
+    if (seat.studentExam == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(20),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  student.studentId,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _getSeatColor(seat.status)
+                        .withAlpha((0.1 * 255).round()),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      seat.displayNumber,
+                      style: TextStyle(
+                        color: _getSeatColor(seat.status),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _getStudentStatusLabel(student.status),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Seat ${seat.displayNumber}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        _getStatusLabel(seat.status),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _getSeatColor(seat.status),
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
                 ),
               ],
             ),
-          ),
-          Icon(
-            _getStudentStatusIcon(student.status),
-            color: _getStudentStatusColor(student.status),
-            size: 20,
-          ),
-        ],
+            const Divider(height: 32),
+            if (seat.studentExam != null) ...[
+              _buildDetailRow('Student ID', seat.studentExam!.studentId),
+              const SizedBox(height: 12),
+              _buildDetailRow(
+                  'Status', seat.studentExam!.status.name.toUpperCase()),
+              const SizedBox(height: 12),
+              if (seat.studentExam!.checkinTime != null)
+                _buildDetailRow(
+                  'Check-in Time',
+                  _formatDateTime(seat.studentExam!.checkinTime!),
+                ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Color _getStudentStatusColor(StudentExamStatus status) {
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getSeatColor(SeatStatus status) {
     switch (status) {
-      case StudentExamStatus.registered:
+      case SeatStatus.available:
+        return const Color(0xFFE0E0E0);
+      case SeatStatus.occupied:
         return const Color(0xFF2196F3);
-      case StudentExamStatus.checkedIn:
-      case StudentExamStatus.checkedOut:
+      case SeatStatus.present:
         return const Color(0xFF4CAF50);
-      case StudentExamStatus.moved:
-        return const Color(0xFFFFC107);
-      case StudentExamStatus.removed:
+      case SeatStatus.absent:
         return const Color(0xFFF44336);
     }
   }
 
-  IconData _getStudentStatusIcon(StudentExamStatus status) {
+  String _getStatusLabel(SeatStatus status) {
     switch (status) {
-      case StudentExamStatus.registered:
-        return Icons.pending;
-      case StudentExamStatus.checkedIn:
-      case StudentExamStatus.checkedOut:
-        return Icons.check_circle;
-      case StudentExamStatus.moved:
-        return Icons.swap_horiz;
-      case StudentExamStatus.removed:
-        return Icons.cancel;
+      case SeatStatus.available:
+        return 'Available';
+      case SeatStatus.occupied:
+        return 'Occupied';
+      case SeatStatus.present:
+        return 'Present';
+      case SeatStatus.absent:
+        return 'Absent';
     }
   }
 
-  String _getStudentStatusLabel(StudentExamStatus status) {
-    switch (status) {
-      case StudentExamStatus.registered:
-        return 'Registered';
-      case StudentExamStatus.checkedIn:
-        return 'Checked In';
-      case StudentExamStatus.checkedOut:
-        return 'Checked Out';
-      case StudentExamStatus.moved:
-        return 'Moved';
-      case StudentExamStatus.removed:
-        return 'Removed';
-    }
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')} ${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 }

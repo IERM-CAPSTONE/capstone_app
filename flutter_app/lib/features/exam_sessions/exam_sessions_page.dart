@@ -8,6 +8,7 @@ import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
 import 'exam_sessions_controller.dart';
 import 'exam_sessions_state.dart';
+import 'widgets/exam_session_filter_sheet.dart';
 import 'package:intl/intl.dart';
 import 'widgets/redesigned_exam_session_card.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
@@ -66,8 +67,11 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final state = ref.watch(examSessionsControllerProvider);
+    final controller = ref.read(examSessionsControllerProvider.notifier);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: Column(
         children: [
           Row(
@@ -90,17 +94,132 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
+              IconButton(
+                onPressed: () => _showFilterSheet(context, state, controller),
+                icon: Icon(
+                  Icons.filter_list,
+                  color: state.hasActiveFilters ? Colors.yellow : Colors.white,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 24),
-          _buildToggle(),
+          const SizedBox(height: 16),
+          _buildActiveFilters(state, controller),
+          const SizedBox(height: 16),
+          _buildToggle(controller),
         ],
       ),
     );
   }
 
-  Widget _buildToggle() {
+  Widget _buildActiveFilters(
+      ExamSessionsState state, ExamSessionsController controller) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // Date Filter
+          _buildFilterChip(
+            icon: Icons.calendar_today,
+            label: state.filterDate != null
+                ? DateFormat('MMM dd, yyyy').format(state.filterDate!)
+                : 'All Dates',
+            onTap: () => _selectDate(context, state, controller),
+            onClear: state.filterDate != null
+                ? () => controller.applyFilters(date: null)
+                : null,
+          ),
+          const SizedBox(width: 8),
+
+          // Subject Filter
+          if (state.filterSubjectCode != null) ...[
+            _buildFilterChip(
+              icon: Icons.book,
+              label: state.filterSubjectCode!,
+              onTap: () => _showFilterSheet(context, state, controller),
+              onClear: () => controller.applyFilters(subjectCode: null),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Proctor Filter
+          if (state.filterProctorId != null) ...[
+            _buildFilterChip(
+              icon: Icons.person,
+              label: 'Proctor: ${state.filterProctorId}',
+              onTap: () => _showFilterSheet(context, state, controller),
+              onClear: () => controller.applyFilters(proctorId: null),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Room Filter
+          if (state.filterExamRoomId != null) ...[
+            _buildFilterChip(
+              icon: Icons.meeting_room,
+              label: 'Room: ${state.filterExamRoomId}',
+              onTap: () => _showFilterSheet(context, state, controller),
+              onClear: () => controller.applyFilters(examRoomId: null),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Search Query
+          if (state.searchQuery.isNotEmpty) ...[
+            _buildFilterChip(
+              icon: Icons.search,
+              label: state.searchQuery,
+              onTap: () {},
+              onClear: () => controller.setSearchQuery(''),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    VoidCallback? onClear,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500),
+            ),
+            if (onClear != null) ...[
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close, color: Colors.white, size: 14),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggle(ExamSessionsController controller) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -111,7 +230,10 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = 0),
+              onTap: () {
+                setState(() => _selectedTab = 0);
+                controller.filterAll();
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
@@ -132,18 +254,21 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = 1),
+              onTap: () {
+                setState(() => _selectedTab = 1);
+                controller.filterByMe();
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: _selectedTab == 1 ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'All Exams',
+                child: Text(
+                  'My Exams',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: _selectedTab == 1 ? Colors.black87 : Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -156,7 +281,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  Widget _buildContent(ExamSessionsState state, ExamSessionsController controller) {
+  Widget _buildContent(
+      ExamSessionsState state, ExamSessionsController controller) {
     // Show skeleton loading instead of error
     if (state.isLoading || state.error != null) {
       return ListView.builder(
@@ -170,8 +296,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     final filteredSessions = state.examSessions.where((data) {
       final session = data['session'] as ExamSession;
       if (_selectedTab == 0) {
-        return session.status == ExamSessionStatus.scheduled || 
-               session.status == ExamSessionStatus.ongoing;
+        return session.status == ExamSessionStatus.scheduled ||
+            session.status == ExamSessionStatus.ongoing;
       }
       return true;
     }).toList();
@@ -192,7 +318,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
       final dateKey = session.examOpenTime != null
           ? DateFormat('MMM dd\nEEEE').format(session.examOpenTime!)
           : 'TBA';
-      
+
       if (!groupedSessions.containsKey(dateKey)) {
         groupedSessions[dateKey] = [];
       }
@@ -210,8 +336,9 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
         final dateKey = groupedSessions.keys.elementAt(index);
         final dateSessions = groupedSessions[dateKey]!;
 
-        final isToday = dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
-        final displayDate = isToday 
+        final isToday =
+            dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
+        final displayDate = isToday
             ? DateFormat('MMM dd').format(DateTime.now()) + '\nToday'
             : dateKey;
 
@@ -252,7 +379,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  Widget _buildPagination(ExamSessionsState state, ExamSessionsController controller) {
+  Widget _buildPagination(
+      ExamSessionsState state, ExamSessionsController controller) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -301,7 +429,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                           child: Text(
                             '$pageNumber',
                             style: TextStyle(
-                              color: isCurrentPage ? Colors.white : Colors.black87,
+                              color:
+                                  isCurrentPage ? Colors.white : Colors.black87,
                               fontWeight: isCurrentPage
                                   ? FontWeight.w600
                                   : FontWeight.normal,
@@ -316,9 +445,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
               ),
               const SizedBox(width: 16),
               IconButton(
-                onPressed: state.hasNextPage
-                    ? () => controller.goToNextPage()
-                    : null,
+                onPressed:
+                    state.hasNextPage ? () => controller.goToNextPage() : null,
                 icon: const Icon(Icons.chevron_right),
                 color: const Color(0xFFFF6B35),
                 disabledColor: Colors.grey[300],
@@ -330,32 +458,70 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
+  void _showFilterSheet(BuildContext context, ExamSessionsState state,
+      ExamSessionsController controller) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ExamSessionFilterSheet(
+        currentStatus: state.filterStatus,
+        currentDate: state.filterDate,
+        currentSubjectCode: state.filterSubjectCode,
+        currentProctorId: state.filterProctorId,
+        currentExamRoomId: state.filterExamRoomId,
+        onApply: ({status, date, subjectCode, proctorId, examRoomId}) {
+          controller.applyFilters(
+            status: status,
+            date: date,
+            subjectCode: subjectCode,
+            proctorId: proctorId,
+            examRoomId: examRoomId,
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _selectDate(BuildContext context, ExamSessionsState state,
+      ExamSessionsController controller) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: state.filterDate ?? DateTime.now(),
+      firstDate: DateTime(2023),
+      lastDate: DateTime(2026),
+    );
+    if (picked != null) {
+      controller.applyFilters(date: picked);
+    }
+  }
+
   Future<void> _navigateToDetail(String examSessionId) async {
-    print('🔍 DEBUG: Navigating to exam session ID: $examSessionId');
-    
     // Check user role - only proctor can view detail page
     final authService = DependencyInjection.get<AuthService>();
     final user = await authService.getSavedUserData();
     final role = user?.role?.toUpperCase();
-    
+
     if (role == 'STUDENT') {
       // Show message that students cannot view detail
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Students cannot view exam session details. Only proctors have access.'),
+          content: Text(
+              'Students cannot view exam session details. Only proctors have access.'),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 3),
         ),
       );
       return;
     }
-    
+
     if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ExamSessionDetailPage(examSessionId: examSessionId),
+        builder: (context) =>
+            ExamSessionDetailPage(examSessionId: examSessionId),
       ),
     );
   }

@@ -215,4 +215,52 @@ class AuthService {
   String? getToken() {
     return _prefs.getString(_tokenKey);
   }
+
+  /// Refresh tokens using refresh token
+  Future<String?> refreshToken() async {
+    try {
+      final refreshToken = _prefs.getString(_refreshTokenKey);
+      if (refreshToken == null) {
+        print('❌ No refresh token found');
+        return null;
+      }
+
+      print('🔄 Refreshing tokens...');
+      final response = await _dio.post(
+        '/auth/refresh',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $refreshToken',
+          },
+          extra: {'requiresAuth': false}, // Don't use standard auth interceptor
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Handle different response structures
+        var responseData = response.data;
+        if (responseData is Map && responseData.containsKey('data')) {
+          responseData = responseData['data'];
+        }
+
+        final accessToken = responseData['accessToken'] as String;
+        final newRefreshToken = responseData['refreshToken'] as String?;
+
+        await saveTokens(accessToken, newRefreshToken);
+        print('✅ Tokens refreshed successfully');
+        return accessToken;
+      } else {
+        print('❌ Failed to refresh tokens: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error refreshing tokens: $e');
+      // If refresh token is invalid/expired, we might want to sign out
+      if (e is DioException && e.response?.statusCode == 401) {
+        print('⚠️ Refresh token expired, signing out...');
+        await signOut();
+      }
+      return null;
+    }
+  }
 }

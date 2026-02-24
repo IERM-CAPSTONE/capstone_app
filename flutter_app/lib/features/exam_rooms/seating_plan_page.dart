@@ -3,40 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/seat.dart';
 import '../../data/models/exam_session.dart';
 import '../../config/dependency_injection.dart';
-import '../../data/repositories/exam_session_repository.dart';
-import '../../data/services/api_service.dart';
 import '../../data/services/auth_service.dart';
 import 'widgets/seat_widget.dart';
 import 'widgets/seating_legend.dart';
 
+import '../exam_sessions/exam_session_detail_page.dart';
+
 final seatingPlanProvider =
     FutureProvider.family<SeatingPlan?, String>((ref, examSessionId) async {
   try {
-    print('🪑 DEBUG Seating: Loading seating plan for session: $examSessionId');
-    
-    // Get exam session from API using DI
-    final apiService = DependencyInjection.get<ApiService>();
-    final examSessionRepo = ExamSessionRepository(apiService);
-    
-    final examSessionData = await examSessionRepo.getExamSessionById(examSessionId);
-    if (examSessionData == null) {
-      print('❌ DEBUG Seating: Exam session data is null');
-      return null;
-    }
-    
-    final examSession = examSessionData['session'] as ExamSession;
-    print('📋 DEBUG Seating: Exam session loaded: ${examSession.examCode}');
-    print('   - Rows: ${examSession.maxRows}, Columns: ${examSession.maxColumns}');
+    // Watch existing providers instead of calling API again
+    final sessionData =
+        await ref.watch(examSessionDetailProvider(examSessionId).future);
+    final studentExams =
+        await ref.watch(sessionStudentsProvider(examSessionId).future);
 
-    // Get student exams for this session (for seating plan)
-    final studentExams = await examSessionRepo.getExamStudents(examSessionId);
-    print('👥 DEBUG Seating: Loaded ${studentExams.length} students');
-    
-    // Print first few students with seat numbers
-    for (var i = 0; i < studentExams.length && i < 5; i++) {
-      final student = studentExams[i];
-      print('   Student $i: seat=${student.seatNumber}, status=${student.status}');
-    }
+    if (sessionData == null) return null;
+
+    final examSession = sessionData['session'] as ExamSession;
 
     // Create seating plan
     final seatingPlan = SeatingPlan.fromExamData(
@@ -45,17 +29,9 @@ final seatingPlanProvider =
       totalSeats: examSession.totalSeats ?? 30,
       studentExams: studentExams,
     );
-    
-    print('✅ DEBUG Seating: Seating plan created');
-    print('   - Available: ${seatingPlan.availableCount}');
-    print('   - Occupied: ${seatingPlan.occupiedCount}');
-    print('   - Present: ${seatingPlan.presentCount}');
-    print('   - Absent: ${seatingPlan.absentCount}');
 
     return seatingPlan;
-  } catch (e, stackTrace) {
-    print('❌ DEBUG Seating ERROR: $e');
-    print('📍 Stack: ${stackTrace.toString().split('\n').take(3).join('\n')}');
+  } catch (e) {
     return null;
   }
 });
@@ -88,16 +64,17 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
     final authService = DependencyInjection.get<AuthService>();
     final user = await authService.getSavedUserData();
     final role = user?.role?.toUpperCase();
-    
+
     setState(() {
       _isCheckingRole = false;
     });
-    
+
     // Block students from accessing seating plan
     if (role == 'STUDENT' && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Access denied. Only proctors can view the seating plan.'),
+          content:
+              Text('Access denied. Only proctors can view the seating plan.'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -118,7 +95,8 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
         ),
       );
     }
-    final seatingPlanAsync = ref.watch(seatingPlanProvider(widget.examSessionId));
+    final seatingPlanAsync =
+        ref.watch(seatingPlanProvider(widget.examSessionId));
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
@@ -343,7 +321,7 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
         builder: (context, constraints) {
           final double gridWidth = constraints.maxWidth;
           final double cellWidth = gridWidth / seatingPlan.columns;
-          
+
           return Column(
             children: [
               for (int row = 0; row < seatingPlan.rows; row++)
@@ -419,7 +397,8 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: _getSeatColor(seat.status).withAlpha((0.1 * 255).round()),
+                    color: _getSeatColor(seat.status)
+                        .withAlpha((0.1 * 255).round()),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -465,7 +444,8 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
             if (seat.studentExam != null) ...[
               _buildDetailRow('Student ID', seat.studentExam!.studentId),
               const SizedBox(height: 12),
-              _buildDetailRow('Status', seat.studentExam!.status.name.toUpperCase()),
+              _buildDetailRow(
+                  'Status', seat.studentExam!.status.name.toUpperCase()),
               const SizedBox(height: 12),
               if (seat.studentExam!.checkinTime != null)
                 _buildDetailRow(

@@ -9,31 +9,47 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
   final ExamSessionRepository _repository;
   final AuthService _authService;
 
-  ExamSessionsController(this._repository, this._authService) : super(const ExamSessionsState()) {
+  ExamSessionsController(this._repository, this._authService)
+      : super(const ExamSessionsState()) {
+    _initDefaults();
+  }
+
+  Future<void> _initDefaults() async {
+    // Fetch proctors
+    state = state.copyWith(isLoadingProctors: true, availableProctors: []);
+    try {
+      final proctors = await _repository.getProctors();
+      state = state.copyWith(
+        availableProctors: proctors,
+        isLoadingProctors: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoadingProctors: false);
+    }
+
+    // Fetch rooms
+    state = state.copyWith(isLoadingRooms: true);
+    try {
+      final rooms = await _repository.getRooms();
+      state = state.copyWith(availableRooms: rooms, isLoadingRooms: false);
+    } catch (e) {
+      state = state.copyWith(isLoadingRooms: false);
+    }
+
+    // Default filters removed - fetching all sessions by default
     loadExamSessions();
   }
 
   Future<void> loadExamSessions() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      print('📋 Loading exam sessions...');
-
-      // Get current user to filter by role
+      // Get current user to filter by student role if needed
       final currentUser = await _authService.getSavedUserData();
       String? filterStudentId;
-      String? filterProctorId;
-
-      if (currentUser != null) {
-        final userRole = currentUser.role?.toUpperCase();
-        if (userRole == 'STUDENT') {
-          filterStudentId = currentUser.id;
-          print('👤 Filtering as STUDENT: $filterStudentId');
-        } else if (userRole == 'PROCTOR') {
-          filterProctorId = currentUser.id;
-          print('👤 Filtering as PROCTOR: $filterProctorId');
-        }
+      if (currentUser != null && currentUser.role?.toUpperCase() == 'STUDENT') {
+        filterStudentId = currentUser.id;
       }
-      
+
       final result = await _repository.getExamSessions(
         search: state.searchQuery.isEmpty ? null : state.searchQuery,
         status: state.filterStatus,
@@ -42,19 +58,19 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         page: state.currentPage,
         itemsPerPage: state.itemsPerPage,
         studentId: filterStudentId,
-        proctorId: filterProctorId,
+        proctorId: state.filterProctorId,
+        subjectCode: state.filterSubjectCode,
+        examRoomId: state.filterExamRoomId,
       );
-      
+
       final items = result['items'] as List;
-      print('✅ Loaded ${items.length} sessions');
-      
+
       state = state.copyWith(
         examSessions: items.cast<Map<String, dynamic>>(),
         totalItems: result['totalItems'] as int,
         isLoading: false,
       );
     } catch (e) {
-      print('❌ Error loading exam sessions: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load exam sessions: $e',
@@ -71,17 +87,36 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
     String? status,
     DateTime? date,
     String? timeSlot,
+    String? subjectCode,
+    String? proctorId,
+    String? examRoomId,
+    bool clearFilters = false,
   }) {
     state = state.copyWith(
       filterStatus: status,
       filterDate: date,
       filterTimeSlot: timeSlot,
+      filterSubjectCode: subjectCode,
+      filterProctorId: proctorId,
+      filterExamRoomId: examRoomId,
+      clearFilters: clearFilters,
       currentPage: 1,
     );
     loadExamSessions();
   }
 
-  void clearFilters() {
+  Future<void> filterByMe() async {
+    final currentUser = await _authService.getSavedUserData();
+    if (currentUser != null) {
+      applyFilters(proctorId: currentUser.id, clearFilters: true);
+    }
+  }
+
+  void filterAll() {
+    applyFilters(proctorId: null, clearFilters: true);
+  }
+
+  Future<void> clearFilters() async {
     state = state.copyWith(clearFilters: true, currentPage: 1);
     loadExamSessions();
   }
@@ -114,13 +149,11 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
 }
 
 // Provider - gets shared ApiService from DependencyInjection
-final examSessionsControllerProvider =
-    StateNotifierProvider.autoDispose<ExamSessionsController, ExamSessionsState>((ref) {
+final examSessionsControllerProvider = StateNotifierProvider.autoDispose<
+    ExamSessionsController, ExamSessionsState>((ref) {
   final apiService = DependencyInjection.get<ApiService>();
   final authService = DependencyInjection.get<AuthService>();
   final repository = ExamSessionRepository(apiService);
-  
-  print('🏗️ Creating ExamSessionsController');
-  
+
   return ExamSessionsController(repository, authService);
 });

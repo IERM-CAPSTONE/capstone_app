@@ -21,6 +21,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
   Timer? _detectionTimer;
   bool _isProcessing = false;
   bool _isCapturing = false;
+  Timer? _timeoutTimer;
   CameraImage? _lastImage;
   int _frameCounter = 0;
   int _poseStableCount = 0;
@@ -39,13 +40,14 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
 
   @override
   void dispose() {
+    _timeoutTimer?.cancel();
     _detectionTimer?.cancel();
     _faceDetector?.close();
     state.cameraController?.dispose();
     super.dispose();
   }
 
-  Future<void> initializeCamera() async {
+  Future<void> initializeCamera({String? examSessionId}) async {
     try {
       _faceDetector = FaceDetector(
         options: FaceDetectorOptions(
@@ -75,7 +77,8 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       state = FaceAuthenticateState(
         cameraController: controller,
         status: FaceAuthenticateStatus.scanning,
-        instructionMessage: 'Nhìn thẳng vào camera',
+        instructionMessage: 'Look straight into the camera',
+        examSessionId: examSessionId,
       );
 
       controller.startImageStream((image) {
@@ -85,6 +88,8 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       _detectionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
         _processLatestImage();
       });
+
+      _startTimeout();
     } catch (e) {
       state = state.copyWith(
         status: FaceAuthenticateStatus.error,
@@ -116,7 +121,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       if (faces == null || faces.isEmpty) {
         state = state.copyWith(
           status: FaceAuthenticateStatus.scanning,
-          instructionMessage: 'Vui lòng đưa khuôn mặt vào khung hình',
+          instructionMessage: 'Please put your face in the frame',
         );
       } else {
         final face = faces.first;
@@ -132,14 +137,14 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           if (!_blinkDetected) {
             state = state.copyWith(
               status: FaceAuthenticateStatus.livenessCheck,
-              instructionMessage: '👁️ Hãy nháy mắt để xác thực',
+              instructionMessage: '👁️ Please blink to authenticate',
             );
           } else {
             _poseStableCount++;
             state = state.copyWith(
               status: FaceAuthenticateStatus.faceDetected,
               instructionMessage:
-                  '✓ Giữ yên... $_poseStableCount/$_requiredStableFrames',
+                  '✓ Hold still... $_poseStableCount/$_requiredStableFrames',
             );
 
             if (_poseStableCount >= _requiredStableFrames) {
@@ -150,7 +155,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           _poseStableCount = 0;
           state = state.copyWith(
             status: FaceAuthenticateStatus.faceDetected,
-            instructionMessage: 'Hãy nhìn thẳng vào camera',
+            instructionMessage: 'Please look straight into the camera',
           );
         }
       }
@@ -184,6 +189,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
 
     try {
       _detectionTimer?.cancel();
+      _timeoutTimer?.cancel();
 
       final XFile? photo = await state.cameraController?.takePicture();
       if (photo == null) {
@@ -194,7 +200,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
 
       state = state.copyWith(
         status: FaceAuthenticateStatus.authenticating,
-        instructionMessage: 'Đang xác thực khuôn mặt...',
+        instructionMessage: 'Authenticating face...',
       );
 
       final base64Image = await _processImage(photo.path);
@@ -202,6 +208,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       final service = DependencyInjection.get<FaceRegistrationService>();
       final result = await service.authenticateFace(
         imageBase64: base64Image,
+        examSessionId: state.examSessionId,
         isEncrypted: false,
       );
 
@@ -226,7 +233,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           studentId: level2Data['student_id'] ?? level2Data['studentId'],
           studentCode: level2Data['studentCode'],
           studentName: level2Data['studentName'],
-          instructionMessage: 'Xác thực thành công!',
+          instructionMessage: 'Authentication successful!',
         );
       } else {
         // RESET states so next attempt requires blink again
@@ -240,7 +247,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           studentName: null,
           instructionMessage: level2Data['message'] ??
               level1Data['message'] ??
-              'Xác thực thất bại',
+              'Authentication failed',
         );
       }
     } catch (e) {
@@ -300,12 +307,28 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
     _wasEyesOpen = true;
     state = state.copyWith(
       status: FaceAuthenticateStatus.scanning,
-      instructionMessage: 'Nhìn thẳng vào camera',
+      instructionMessage: 'Look straight into the camera',
       errorMessage: null,
       studentId: null,
       studentCode: null,
       studentName: null,
     );
+    _startTimeout();
     _startDetection();
+  }
+
+  void _startTimeout() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = Timer(const Duration(seconds: 30), () {
+      if (mounted &&
+          state.status != FaceAuthenticateStatus.authenticated &&
+          state.status != FaceAuthenticateStatus.authenticating) {
+        _detectionTimer?.cancel();
+        state = state.copyWith(
+          status: FaceAuthenticateStatus.error,
+          errorMessage: 'Timeout (30 seconds). Please try again.',
+        );
+      }
+    });
   }
 }

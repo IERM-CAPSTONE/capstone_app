@@ -49,11 +49,13 @@ class FaceRegistrationService {
   /// Xác thực khuôn mặt
   Future<Map<String, dynamic>> authenticateFace({
     required String imageBase64,
+    String? examSessionId,
     bool isEncrypted = false,
   }) async {
     try {
       final requestData = {
         'image': imageBase64,
+        'examSessionId': examSessionId,
         'isEncrypted': isEncrypted,
       };
 

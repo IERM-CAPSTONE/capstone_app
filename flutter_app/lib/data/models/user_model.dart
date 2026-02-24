@@ -4,8 +4,8 @@ part 'user_model.g.dart';
 
 @JsonSerializable()
 class UserModel {
-  final String id;
-  final String email;
+  final String? id;
+  final String? email;
   final String? fullName; // Renamed from name
   final String? username; // Added
   final String? avatarUrl; // Renamed from avatar
@@ -14,10 +14,10 @@ class UserModel {
   final bool isActive; // Added
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  
+
   UserModel({
-    required this.id,
-    required this.email,
+    this.id,
+    this.email,
     this.fullName,
     this.username,
     this.avatarUrl,
@@ -27,12 +27,12 @@ class UserModel {
     this.createdAt,
     this.updatedAt,
   });
-  
+
   factory UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
-  
+
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
-  
+
   UserModel copyWith({
     String? id,
     String? email,
@@ -60,3 +60,39 @@ class UserModel {
   }
 }
 
+@JsonSerializable()
+class PaginatedUserResponse {
+  final List<UserModel> data;
+  final int total;
+  final int page;
+  final int limit;
+  final int totalPages;
+
+  PaginatedUserResponse({
+    required this.data,
+    required this.total,
+    required this.page,
+    required this.limit,
+    required this.totalPages,
+  });
+
+  factory PaginatedUserResponse.fromJson(Map<String, dynamic> json) {
+    int parseToInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    return PaginatedUserResponse(
+      data: (json['data'] as List<dynamic>? ?? [])
+          .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      total: parseToInt(json['total']),
+      page: parseToInt(json['page']),
+      limit: parseToInt(json['limit']),
+      totalPages: parseToInt(json['totalPages']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => _$PaginatedUserResponseToJson(this);
+}
