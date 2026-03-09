@@ -10,7 +10,7 @@ class ProfileState {
     this.user,
     this.isLoading = false,
     this.error,
-    this.isFaceRegistered = true, // Default to true based on design
+    this.isFaceRegistered = false,
   });
 
   factory ProfileState.initial() {
@@ -18,7 +18,7 @@ class ProfileState {
       user: null,
       isLoading: true,
       error: null,
-      isFaceRegistered: true,
+      isFaceRegistered: false,
     );
   }
 

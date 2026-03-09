@@ -6,6 +6,7 @@ import '../../../config/dependency_injection.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../core/routes/app_routes.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 final loginControllerProvider =
     StateNotifierProvider<LoginController, LoginState>(
@@ -98,10 +99,10 @@ class LoginController extends StateNotifier<LoginState> {
       print('❌ Google sign-in error: $e');
       if (context.mounted) {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Đăng nhập thất bại. Vui lòng thử lại.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.authFailed),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }

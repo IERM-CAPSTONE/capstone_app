@@ -1,0 +1,174 @@
+{
+  "@@locale": "vi",
+  "profile": "Hồ sơ",
+  "personalInformation": "Thông tin cá nhân",
+  "email": "Email",
+  "faceRecognition": "Nhận diện khuôn mặt",
+  "faceRegistration": "Đăng ký khuôn mặt",
+  "registered": "Đã đăng ký",
+  "notRegistered": "Chưa đăng ký",
+  "faceRegisteredDesc": "Dữ liệu khuôn mặt của bạn đã được đăng ký. Bạn có thể điểm danh phòng thi bằng khuôn mặt.",
+  "faceNotRegisteredDesc": "Vui lòng đăng ký dữ liệu khuôn mặt để có thể điểm danh nhanh chóng.",
+  "updateFaceData": "Cập nhật khuôn mặt",
+  "enrollFaceIdentity": "Đăng ký khuôn mặt",
+  "logout": "Đăng xuất",
+  "logoutConfirm": "Bạn có chắc chắn muốn đăng xuất không?",
+  "cancel": "Hủy",
+  "settings": "Cài đặt",
+  "language": "Ngôn ngữ",
+  "vietnamese": "Tiếng Việt",
+  "english": "Tiếng Anh",
+  "studentHomepage": "Trang chủ Sinh viên",
+  "fptExamManagement": "Quản lý Phòng thi FPT",
+  "secureExamSystem": "Hệ thống Quản lý Thi Bảo mật",
+  "copyright": "© 2026 Đại học FPT. Bảo lưu mọi quyền.",
+  "loggingIn": "Đang đăng nhập...",
+  "welcomeBack": "Chào mừng trở lại",
+  "signInGoogle": "Đăng nhập bằng tài khoản Google để tiếp tục",
+  "loginWithGoogle": "Đăng nhập với Google",
+  "useFptEmail": "Vui lòng sử dụng email của Đại học FPT (@fpt.edu.vn)",
+  "examSchedule": "Lịch thi",
+  "upcoming": "Sắp tới",
+  "allExams": "Tất cả",
+  "noExamsFound": "Không tìm thấy lịch thi",
+  "pageOf": "Trang {currentPage} / {totalPages}",
+  "@pageOf": {
+    "placeholders": {
+      "currentPage": {
+        "type": "int"
+      },
+      "totalPages": {
+        "type": "int"
+      }
+    }
+  },
+  "today": "Hôm nay",
+  "verifyIdentity": "Xác minh danh tính (2 bước)",
+  "readyToVerify": "Sẵn sàng xác minh danh tính?",
+  "step1Title": "Quét khuôn mặt",
+  "step1Desc": "Đảm bảo khuôn mặt của bạn hiển thị rõ ràng.\n(Không đeo kính, mũ hoặc khẩu trang)",
+  "step2Title": "Chụp ảnh CMND/CCCD 2 mặt",
+  "step2Desc": "Chụp ảnh mặt trước và mặt sau thẻ ID của bạn.",
+  "continueText": "Tiếp tục",
+  "home": "Trang chủ",
+  "schedule": "Lịch thi",
+  "notification": "Thông báo",
+  "allDates": "Tất cả ngày",
+  "proctorLabel": "Giám thị: {name}",
+  "@proctorLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "roomLabel": "Phòng: {name}",
+  "@roomLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "myExams": "Bài thi của tôi",
+  "studentAccessDenied": "Sinh viên không thể xem chi tiết phòng thi. Chỉ giám thị mới có quyền truy cập.",
+  "tba": "Chưa xác định",
+  "filterExams": "Lọc lịch thi",
+  "subject": "Môn học",
+  "selectSubject": "Chọn môn học",
+  "loadingSubjects": "Đang tải môn học...",
+  "noSubjectsAvailable": "Không có môn học",
+  "examRoom": "Phòng thi",
+  "loadingRooms": "Đang tải phòng thi...",
+  "noRoomsAvailable": "Không có phòng thi",
+  "assigneeProctor": "Giám thị",
+  "assignee": "Giám thị",
+  "loadingProctors": "Đang tải giám thị...",
+  "noProctorsAvailable": "Không có giám thị",
+  "examDate": "Ngày thi",
+  "selectDate": "Chọn ngày",
+  "clearAll": "Xóa tất cả",
+  "applyResults": "Áp dụng",
+  "searchPlaceholder": "Tìm kiếm {title}...",
+  "@searchPlaceholder": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "noDataAvailable": "Không có dữ liệu",
+  "clearSelection": "Xóa chọn lựa",
+  "proctorExamDetail": "Giám thị - Chi tiết phòng thi",
+  "examDetail": "Chi tiết phòng thi",
+  "sessionNotFound": "Không tìm thấy phòng thi",
+  "sessionDetails": "Thông tin phòng thi",
+  "semester": "Học kỳ",
+  "total": "Tổng số",
+  "present": "Có mặt",
+  "absent": "Vắng mặt",
+  "seatingPlanNotAvailable": "Sơ đồ chỗ ngồi chưa sẵn sàng",
+  "teacherDesk": "BÀN GIÁM THỊ / CỬA RA VÀO",
+  "seatLabel": "Chỗ {number}",
+  "@seatLabel": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "studentId": "Mã sinh viên",
+  "status": "Trạng thái",
+  "checkinTime": "Giờ điểm danh",
+  "faCheckin": "Điểm danh FA",
+  "createTicket": "Tạo Ticket",
+  "available": "Trống",
+  "occupied": "Đã xếp chỗ",
+  "durationMins": "Thời lượng: {minutes} phút",
+  "@durationMins": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "campusExamination": "Thi tại trường",
+  "examInProgress": "Phòng thi đang diễn ra",
+  "checkinNote": "Điểm danh 15 phút trước khi bắt đầu",
+  "ongoing": "Đang diễn ra",
+  "completed": "Hoàn thành",
+  "unknown": "Chưa rõ",
+  "lookStraight": "Nhìn thẳng vào camera",
+  "putFaceInFrame": "Vui lòng đưa khuôn mặt vào khung hình",
+  "blinkToAuthenticate": "👁️ Vui lòng nháy mắt để xác thực",
+  "holdStill": "✓ Giữ nguyên... {count}/{total}",
+  "@holdStill": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "authenticatingFace": "Đang xác thực khuôn mặt...",
+  "authSuccessful": "Xác thực thành công!",
+  "authFailed": "Xác thực thất bại",
+  "authFailedTitle": "Xác thực thất bại!",
+  "timeoutTryAgain": "Hết thời gian (30 giây). Vui lòng thử lại.",
+  "confidenceLabel": "Độ tin cậy: {confidence}%",
+  "@confidenceLabel": {
+    "placeholders": {
+      "confidence": {
+        "type": "String"
+      }
+    }
+  },
+  "complete": "Hoàn tất",
+  "retry": "Thử lại",
+  "backToMenu": "Quay lại menu",
+  "blinkToContinue": "NHÁY MẮT ĐỂ TIẾP TỤC",
+  "notInExamRoom": "Sinh viên không thuộc phòng thi này!",
+  "faceNotRecognized": "Không nhận diện được khuôn mặt. Vui lòng thử lại."
+}

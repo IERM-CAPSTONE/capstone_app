@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../profile_controller.dart';
 import '../../auth/registerf_face/register_page.dart';
-import '../../auth/face_authenticate/face_authenticate_page.dart';
 
 class FaceRecognitionSection extends ConsumerWidget {
   const FaceRecognitionSection({super.key});
@@ -19,11 +18,11 @@ class FaceRecognitionSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              'Face Recognition',
-              style: TextStyle(
+              AppLocalizations.of(context)!.faceRecognition,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -33,10 +32,14 @@ class FaceRecognitionSection extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
+              color: profileState.isFaceRegistered
+                  ? Colors.green.shade50
+                  : Colors.orange.shade50,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Colors.green.shade200,
+                color: profileState.isFaceRegistered
+                    ? Colors.green.shade200
+                    : Colors.orange.shade200,
                 width: 1,
               ),
             ),
@@ -45,12 +48,16 @@ class FaceRecognitionSection extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade100,
+                    color: profileState.isFaceRegistered
+                        ? Colors.green.shade100
+                        : Colors.orange.shade100,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.face,
-                    color: Colors.green,
+                    color: profileState.isFaceRegistered
+                        ? Colors.green
+                        : Colors.orange,
                     size: 24,
                   ),
                 ),
@@ -61,9 +68,9 @@ class FaceRecognitionSection extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            'Face Registration',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.faceRegistration,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
@@ -76,12 +83,16 @@ class FaceRecognitionSection extends ConsumerWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green,
+                              color: profileState.isFaceRegistered
+                                  ? Colors.green
+                                  : Colors.orange,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              'Registered',
-                              style: TextStyle(
+                            child: Text(
+                              profileState.isFaceRegistered
+                                  ? AppLocalizations.of(context)!.registered
+                                  : AppLocalizations.of(context)!.notRegistered,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w500,
@@ -91,9 +102,12 @@ class FaceRecognitionSection extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Your face data is registered. You can check-in to exams using facial recognition.',
-                        style: TextStyle(
+                      Text(
+                        profileState.isFaceRegistered
+                            ? AppLocalizations.of(context)!.faceRegisteredDesc
+                            : AppLocalizations.of(context)!
+                                .faceNotRegisteredDesc,
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
                         ),
@@ -111,49 +125,29 @@ class FaceRecognitionSection extends ConsumerWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const FaceAuthenticatePage(),
-                  ),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                side: const BorderSide(color: Colors.blue, width: 1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Test Face Authentication',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
                     builder: (_) => const RegisterFaceStartPage(),
                   ),
                 );
               },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                side: const BorderSide(color: Colors.green, width: 1),
+                side: BorderSide(
+                    color: profileState.isFaceRegistered
+                        ? Colors.green
+                        : Colors.blue,
+                    width: 1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'Update Face Data',
+              child: Text(
+                profileState.isFaceRegistered
+                    ? AppLocalizations.of(context)!.updateFaceData
+                    : AppLocalizations.of(context)!.enrollFaceIdentity,
                 style: TextStyle(
-                  color: Colors.green,
+                  color: profileState.isFaceRegistered
+                      ? Colors.green
+                      : Colors.blue,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),

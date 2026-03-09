@@ -77,7 +77,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       state = FaceAuthenticateState(
         cameraController: controller,
         status: FaceAuthenticateStatus.scanning,
-        instructionMessage: 'Look straight into the camera',
+        instructionMessage: '',
         examSessionId: examSessionId,
       );
 
@@ -121,7 +121,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       if (faces == null || faces.isEmpty) {
         state = state.copyWith(
           status: FaceAuthenticateStatus.scanning,
-          instructionMessage: 'Please put your face in the frame',
+          instructionMessage: '',
         );
       } else {
         final face = faces.first;
@@ -137,14 +137,15 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           if (!_blinkDetected) {
             state = state.copyWith(
               status: FaceAuthenticateStatus.livenessCheck,
-              instructionMessage: '👁️ Please blink to authenticate',
+              instructionMessage: '',
             );
           } else {
             _poseStableCount++;
             state = state.copyWith(
               status: FaceAuthenticateStatus.faceDetected,
-              instructionMessage:
-                  '✓ Hold still... $_poseStableCount/$_requiredStableFrames',
+              poseStableCount: _poseStableCount,
+              requiredStableFrames: _requiredStableFrames,
+              instructionMessage: '',
             );
 
             if (_poseStableCount >= _requiredStableFrames) {
@@ -155,7 +156,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           _poseStableCount = 0;
           state = state.copyWith(
             status: FaceAuthenticateStatus.faceDetected,
-            instructionMessage: 'Please look straight into the camera',
+            instructionMessage: '',
           );
         }
       }
@@ -200,7 +201,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
 
       state = state.copyWith(
         status: FaceAuthenticateStatus.authenticating,
-        instructionMessage: 'Authenticating face...',
+        instructionMessage: '',
       );
 
       final base64Image = await _processImage(photo.path);
@@ -218,10 +219,18 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           ? level1Data['data']
           : level1Data;
 
-      if (level2Data is Map &&
-          level2Data['status'] == 'success' &&
-          (level2Data['student_id'] != null ||
-              level2Data['studentId'] != null)) {
+      // Improved response handling
+      final isSuccess = (result['status'] == 'success' ||
+          level1Data['status'] == 'success' ||
+          level2Data['status'] == 'success');
+      final studentId = level2Data['student_id'] ??
+          level2Data['studentId'] ??
+          level1Data['student_id'] ??
+          level1Data['studentId'];
+      final isCorrectRoom =
+          level2Data['isCorrectRoom'] ?? level1Data['isCorrectRoom'] ?? true;
+
+      if (isSuccess && studentId != null && isCorrectRoom != false) {
         // RESET all liveness flags immediately on success
         _blinkDetected = false;
         _blinkCount = 0;
@@ -229,11 +238,12 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
 
         state = state.copyWith(
           status: FaceAuthenticateStatus.authenticated,
-          confidence: level2Data['confidence']?.toDouble(),
-          studentId: level2Data['student_id'] ?? level2Data['studentId'],
-          studentCode: level2Data['studentCode'],
-          studentName: level2Data['studentName'],
-          instructionMessage: 'Authentication successful!',
+          confidence: level2Data['confidence']?.toDouble() ??
+              level1Data['confidence']?.toDouble(),
+          studentId: studentId,
+          studentCode: level2Data['studentCode'] ?? level1Data['studentCode'],
+          studentName: level2Data['studentName'] ?? level1Data['studentName'],
+          instructionMessage: '',
         );
       } else {
         // RESET states so next attempt requires blink again
@@ -245,10 +255,11 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
           studentId: null,
           studentCode: null,
           studentName: null,
-          instructionMessage: level2Data['message'] ??
+          errorMessage: result['message'] ??
               level1Data['message'] ??
-              'Authentication failed',
+              level2Data['message'],
         );
+        // Removed _startDetection() to wait for user to click "Retry"
       }
     } catch (e) {
       state = state.copyWith(
@@ -307,7 +318,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
     _wasEyesOpen = true;
     state = state.copyWith(
       status: FaceAuthenticateStatus.scanning,
-      instructionMessage: 'Look straight into the camera',
+      instructionMessage: '',
       errorMessage: null,
       studentId: null,
       studentCode: null,

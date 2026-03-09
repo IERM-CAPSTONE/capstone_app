@@ -14,6 +14,8 @@ import '../exam_sessions/widgets/redesigned_exam_session_card.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
 import 'exam_room_detail_page.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+
 class ExamRoomsPage extends ConsumerStatefulWidget {
   const ExamRoomsPage({super.key});
 
@@ -35,13 +37,14 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(examSessionsControllerProvider);
     final controller = ref.read(examSessionsControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, l10n),
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -55,7 +58,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(24),
                   ),
-                  child: _buildContent(state, controller),
+                  child: _buildContent(state, controller, l10n),
                 ),
               ),
             ),
@@ -66,7 +69,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
@@ -79,11 +82,11 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Text(
-                    'Exam Schedule',
-                    style: TextStyle(
+                    l10n.examSchedule,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -95,13 +98,13 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
             ],
           ),
           const SizedBox(height: 24),
-          _buildToggle(),
+          _buildToggle(l10n),
         ],
       ),
     );
   }
 
-  Widget _buildToggle() {
+  Widget _buildToggle(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -120,7 +123,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'Upcoming',
+                  l10n.upcoming,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _selectedTab == 0 ? Colors.black87 : Colors.white,
@@ -137,13 +140,15 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _selectedTab == 1 ? const Color(0xFFFF6B35) : Colors.transparent,
+                  color: _selectedTab == 1
+                      ? const Color(0xFFFF6B35)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'All Exams',
+                  l10n.allExams,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -157,9 +162,8 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     );
   }
 
-
-
-  Widget _buildContent(ExamSessionsState state, ExamSessionsController controller) {
+  Widget _buildContent(ExamSessionsState state,
+      ExamSessionsController controller, AppLocalizations l10n) {
     // Show skeleton loading instead of error
     if (state.isLoading || state.error != null) {
       return ListView.builder(
@@ -174,23 +178,23 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
       final session = data['session'] as ExamSession;
       if (_selectedTab == 0) {
         // Upcoming: Scheduled or Ongoing
-        return session.status == ExamSessionStatus.scheduled || 
-               session.status == ExamSessionStatus.ongoing;
+        return session.status == ExamSessionStatus.scheduled ||
+            session.status == ExamSessionStatus.ongoing;
       }
       return true; // All Exams
     }).toList();
 
     if (filteredSessions.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No exams found',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
+          l10n.noExamsFound,
+          style: const TextStyle(color: Colors.grey, fontSize: 16),
         ),
       );
     }
-    
+
     // Sort logic (if not already sorted by backend)
-    // filteredSessions.sort(...) 
+    // filteredSessions.sort(...)
 
     // Group by Date
     final Map<String, List<dynamic>> groupedSessions = {};
@@ -199,7 +203,7 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
       final dateKey = session.examOpenTime != null
           ? DateFormat('MMM dd\nEEEE').format(session.examOpenTime!)
           : 'TBA';
-      
+
       if (!groupedSessions.containsKey(dateKey)) {
         groupedSessions[dateKey] = [];
       }
@@ -211,16 +215,17 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
       itemCount: groupedSessions.length + 1, // +1 for pagination loader/buttons
       itemBuilder: (context, index) {
         if (index == groupedSessions.length) {
-          return _buildPagination(state, controller);
+          return _buildPagination(state, controller, l10n);
         }
 
         final dateKey = groupedSessions.keys.elementAt(index);
         final dateSessions = groupedSessions[dateKey]!;
 
         // Check if date is today
-        final isToday = dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
-        final displayDate = isToday 
-            ? DateFormat('MMM dd').format(DateTime.now()) + '\nToday'
+        final isToday =
+            dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
+        final displayDate = isToday
+            ? DateFormat('MMM dd').format(DateTime.now()) + '\n${l10n.today}'
             : dateKey;
 
         return Row(
@@ -262,13 +267,14 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
     );
   }
 
-  Widget _buildPagination(ExamSessionsState state, ExamSessionsController controller) {
+  Widget _buildPagination(ExamSessionsState state,
+      ExamSessionsController controller, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           Text(
-            'Page ${state.currentPage} of ${state.totalPages}',
+            l10n.pageOf(state.currentPage, state.totalPages),
             style: TextStyle(
               fontSize: 13,
               color: Colors.grey[600],
@@ -309,7 +315,8 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
                           child: Text(
                             '$pageNumber',
                             style: TextStyle(
-                              color: isCurrentPage ? Colors.white : Colors.black87,
+                              color:
+                                  isCurrentPage ? Colors.white : Colors.black87,
                               fontWeight: isCurrentPage
                                   ? FontWeight.w600
                                   : FontWeight.normal,
@@ -324,9 +331,8 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
               ),
               const SizedBox(width: 16),
               IconButton(
-                onPressed: state.hasNextPage
-                    ? () => controller.goToNextPage()
-                    : null,
+                onPressed:
+                    state.hasNextPage ? () => controller.goToNextPage() : null,
                 icon: const Icon(Icons.chevron_right),
                 color: const Color(0xFFFF6B35),
                 disabledColor: Colors.grey[300],
@@ -337,8 +343,6 @@ class _ExamRoomsPageState extends ConsumerState<ExamRoomsPage> {
       ),
     );
   }
-
-
 
   void _navigateToDetail(String examRoomId) {
     Navigator.push(

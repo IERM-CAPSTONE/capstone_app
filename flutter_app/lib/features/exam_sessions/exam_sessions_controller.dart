@@ -15,29 +15,27 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
   }
 
   Future<void> _initDefaults() async {
+    // Call loadExamSessions immediately in parallel with other initializations
+    loadExamSessions();
+
     // Fetch proctors
     state = state.copyWith(isLoadingProctors: true, availableProctors: []);
-    try {
-      final proctors = await _repository.getProctors();
+    _repository.getProctors().then((proctors) {
       state = state.copyWith(
         availableProctors: proctors,
         isLoadingProctors: false,
       );
-    } catch (e) {
+    }).catchError((e) {
       state = state.copyWith(isLoadingProctors: false);
-    }
+    });
 
     // Fetch rooms
     state = state.copyWith(isLoadingRooms: true);
-    try {
-      final rooms = await _repository.getRooms();
+    _repository.getRooms().then((rooms) {
       state = state.copyWith(availableRooms: rooms, isLoadingRooms: false);
-    } catch (e) {
+    }).catchError((e) {
       state = state.copyWith(isLoadingRooms: false);
-    }
-
-    // Default filters removed - fetching all sessions by default
-    loadExamSessions();
+    });
   }
 
   Future<void> loadExamSessions() async {

@@ -1,0 +1,174 @@
+{
+  "@@locale": "en",
+  "profile": "Profile",
+  "personalInformation": "Personal Information",
+  "email": "Email",
+  "faceRecognition": "Face Recognition",
+  "faceRegistration": "Face Registration",
+  "registered": "Registered",
+  "notRegistered": "Not Registered",
+  "faceRegisteredDesc": "Your face data is registered. You can check-in to exams using facial recognition.",
+  "faceNotRegisteredDesc": "Please register your face data to enable fast check-in for exams.",
+  "updateFaceData": "Update Face Data",
+  "enrollFaceIdentity": "Enroll Face Identity",
+  "logout": "Log out",
+  "logoutConfirm": "Are you sure you want to log out?",
+  "cancel": "Cancel",
+  "settings": "Settings",
+  "language": "Language",
+  "vietnamese": "Vietnamese",
+  "english": "English",
+  "studentHomepage": "Student Homepage",
+  "fptExamManagement": "FPT Exam Management",
+  "secureExamSystem": "Secure Examination Management System",
+  "copyright": "© 2026 FPT University. All rights reserved.",
+  "loggingIn": "Logging in...",
+  "welcomeBack": "Welcome Back",
+  "signInGoogle": "Sign in with your Google account to continue",
+  "loginWithGoogle": "Login with Google",
+  "useFptEmail": "Please use your FPT University email (@fpt.edu.vn)",
+  "examSchedule": "Exam Schedule",
+  "upcoming": "Upcoming",
+  "allExams": "All Exams",
+  "noExamsFound": "No exams found",
+  "pageOf": "Page {currentPage} of {totalPages}",
+  "@pageOf": {
+    "placeholders": {
+      "currentPage": {
+        "type": "int"
+      },
+      "totalPages": {
+        "type": "int"
+      }
+    }
+  },
+  "today": "Today",
+  "verifyIdentity": "Verify your identity (2 steps)",
+  "readyToVerify": "Ready to verify your identity?",
+  "step1Title": "Scan your face",
+  "step1Desc": "Make sure your face is clearly visible.\n(No glasses, hat, or mask)",
+  "step2Title": "Capture both sides of your ID",
+  "step2Desc": "Take photos of the front and back of your ID card.",
+  "continueText": "Continue",
+  "home": "Home",
+  "schedule": "Schedule",
+  "notification": "Notification",
+  "allDates": "All Dates",
+  "proctorLabel": "Proctor: {name}",
+  "@proctorLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "roomLabel": "Room: {name}",
+  "@roomLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "myExams": "My Exams",
+  "studentAccessDenied": "Students cannot view exam session details. Only proctors have access.",
+  "tba": "TBA",
+  "filterExams": "Filter Exams",
+  "subject": "Subject",
+  "selectSubject": "Select Subject",
+  "loadingSubjects": "Loading subjects...",
+  "noSubjectsAvailable": "No subjects available",
+  "examRoom": "Exam Room",
+  "loadingRooms": "Loading rooms...",
+  "noRoomsAvailable": "No rooms available",
+  "assigneeProctor": "Assignee (Proctor)",
+  "assignee": "Assignee",
+  "loadingProctors": "Loading proctors...",
+  "noProctorsAvailable": "No proctors available",
+  "examDate": "Exam Date",
+  "selectDate": "Select Date",
+  "clearAll": "Clear All",
+  "applyResults": "Apply Results",
+  "searchPlaceholder": "Search {title}...",
+  "@searchPlaceholder": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "noDataAvailable": "No data available",
+  "clearSelection": "Clear Selection",
+  "proctorExamDetail": "Proctor - Exam Session Detail",
+  "examDetail": "Exam Session Detail",
+  "sessionNotFound": "Exam session not found",
+  "sessionDetails": "Session Details",
+  "semester": "Semester",
+  "total": "Total",
+  "present": "Present",
+  "absent": "Absent",
+  "seatingPlanNotAvailable": "Seating plan not available",
+  "teacherDesk": "TEACHER DESK / ENTRANCE",
+  "seatLabel": "Seat {number}",
+  "@seatLabel": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "studentId": "Student ID",
+  "status": "Status",
+  "checkinTime": "Check-in Time",
+  "faCheckin": "FA Checkin",
+  "createTicket": "Create Ticket",
+  "available": "Available",
+  "occupied": "Occupied",
+  "durationMins": "Duration: {minutes} mins",
+  "@durationMins": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "campusExamination": "Campus examination",
+  "examInProgress": "Exam is currently in progress",
+  "checkinNote": "Check-in 15 minutes before exam starts",
+  "ongoing": "Ongoing",
+  "completed": "Completed",
+  "unknown": "Unknown",
+  "lookStraight": "Look straight into the camera",
+  "putFaceInFrame": "Please put your face in the frame",
+  "blinkToAuthenticate": "👁️ Please blink to authenticate",
+  "holdStill": "✓ Hold still... {count}/{total}",
+  "@holdStill": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "authenticatingFace": "Authenticating face...",
+  "authSuccessful": "Authentication successful!",
+  "authFailed": "Authentication failed",
+  "authFailedTitle": "Authentication failed!",
+  "timeoutTryAgain": "Timeout (30 seconds). Please try again.",
+  "confidenceLabel": "Confidence: {confidence}%",
+  "@confidenceLabel": {
+    "placeholders": {
+      "confidence": {
+        "type": "String"
+      }
+    }
+  },
+  "complete": "Complete",
+  "retry": "Retry",
+  "backToMenu": "Back to menu",
+  "blinkToContinue": "BLINK TO CONTINUE",
+  "notInExamRoom": "Student does not belong to this exam room!",
+  "faceNotRecognized": "Face not recognized. Please try again."
+}

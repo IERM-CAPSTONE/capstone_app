@@ -13,6 +13,9 @@ import 'package:intl/intl.dart';
 import 'widgets/redesigned_exam_session_card.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
 import 'exam_session_detail_page.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../core/providers/language_provider.dart';
+import '../../core/constants/app_colors.dart';
 
 class ExamSessionsPage extends ConsumerStatefulWidget {
   const ExamSessionsPage({super.key});
@@ -35,13 +38,14 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(examSessionsControllerProvider);
     final controller = ref.read(examSessionsControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, l10n),
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -55,7 +59,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(24),
                   ),
-                  child: _buildContent(state, controller),
+                  child: _buildContent(state, controller, l10n),
                 ),
               ),
             ),
@@ -66,7 +70,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     final state = ref.watch(examSessionsControllerProvider);
     final controller = ref.read(examSessionsControllerProvider.notifier);
 
@@ -82,17 +86,21 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Text(
-                    'Exam Schedule',
-                    style: TextStyle(
+                    l10n.examSchedule,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
+              ),
+              IconButton(
+                onPressed: () => _showLanguageBottomSheet(context, ref),
+                icon: const Icon(Icons.language, color: Colors.white),
               ),
               IconButton(
                 onPressed: () => _showFilterSheet(context, state, controller),
@@ -104,16 +112,68 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildActiveFilters(state, controller),
+          _buildActiveFilters(state, controller, l10n),
           const SizedBox(height: 16),
-          _buildToggle(controller),
+          _buildToggle(controller, l10n),
         ],
       ),
     );
   }
 
-  Widget _buildActiveFilters(
-      ExamSessionsState state, ExamSessionsController controller) {
+  void _showLanguageBottomSheet(BuildContext context, WidgetRef ref) {
+    final currentLocale = ref.read(languageProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.language,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
+                title: Text(l10n.vietnamese),
+                trailing: currentLocale.languageCode == 'vi'
+                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
+                    : null,
+                onTap: () {
+                  ref.read(languageProvider.notifier).setLanguage('vi');
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
+                title: Text(l10n.english),
+                trailing: currentLocale.languageCode == 'en'
+                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
+                    : null,
+                onTap: () {
+                  ref.read(languageProvider.notifier).setLanguage('en');
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveFilters(ExamSessionsState state,
+      ExamSessionsController controller, AppLocalizations l10n) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -123,7 +183,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
             icon: Icons.calendar_today,
             label: state.filterDate != null
                 ? DateFormat('MMM dd, yyyy').format(state.filterDate!)
-                : 'All Dates',
+                : l10n.allDates,
             onTap: () => _selectDate(context, state, controller),
             onClear: state.filterDate != null
                 ? () => controller.applyFilters(date: null)
@@ -146,7 +206,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
           if (state.filterProctorId != null) ...[
             _buildFilterChip(
               icon: Icons.person,
-              label: 'Proctor: ${state.filterProctorId}',
+              label: l10n.proctorLabel(state.filterProctorId!),
               onTap: () => _showFilterSheet(context, state, controller),
               onClear: () => controller.applyFilters(proctorId: null),
             ),
@@ -157,7 +217,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
           if (state.filterExamRoomId != null) ...[
             _buildFilterChip(
               icon: Icons.meeting_room,
-              label: 'Room: ${state.filterExamRoomId}',
+              label: l10n.roomLabel(state.filterExamRoomId!),
               onTap: () => _showFilterSheet(context, state, controller),
               onClear: () => controller.applyFilters(examRoomId: null),
             ),
@@ -219,7 +279,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  Widget _buildToggle(ExamSessionsController controller) {
+  Widget _buildToggle(
+      ExamSessionsController controller, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -241,7 +302,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'Upcoming',
+                  l10n.upcoming,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _selectedTab == 0 ? Colors.black87 : Colors.white,
@@ -265,7 +326,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'My Exams',
+                  l10n.myExams,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _selectedTab == 1 ? Colors.black87 : Colors.white,
@@ -281,8 +342,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  Widget _buildContent(
-      ExamSessionsState state, ExamSessionsController controller) {
+  Widget _buildContent(ExamSessionsState state,
+      ExamSessionsController controller, AppLocalizations l10n) {
     // Show skeleton loading instead of error
     if (state.isLoading || state.error != null) {
       return ListView.builder(
@@ -303,10 +364,10 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     }).toList();
 
     if (filteredSessions.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No exams found',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
+          l10n.noExamsFound,
+          style: const TextStyle(color: Colors.grey, fontSize: 16),
         ),
       );
     }
@@ -317,7 +378,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
       final session = data['session'] as ExamSession;
       final dateKey = session.examOpenTime != null
           ? DateFormat('MMM dd\nEEEE').format(session.examOpenTime!)
-          : 'TBA';
+          : l10n.tba;
 
       if (!groupedSessions.containsKey(dateKey)) {
         groupedSessions[dateKey] = [];
@@ -330,7 +391,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
       itemCount: groupedSessions.length + 1,
       itemBuilder: (context, index) {
         if (index == groupedSessions.length) {
-          return _buildPagination(state, controller);
+          return _buildPagination(state, controller, l10n);
         }
 
         final dateKey = groupedSessions.keys.elementAt(index);
@@ -339,7 +400,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
         final isToday =
             dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
         final displayDate = isToday
-            ? DateFormat('MMM dd').format(DateTime.now()) + '\nToday'
+            ? DateFormat('MMM dd').format(DateTime.now()) + '\n${l10n.today}'
             : dateKey;
 
         return Row(
@@ -368,7 +429,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   final session = data['session'] as ExamSession;
                   return RedesignedExamSessionCard(
                     session: session,
-                    onTap: () => _navigateToDetail(session.id),
+                    onTap: () => _navigateToDetail(session.id, l10n),
                   );
                 }).toList(),
               ),
@@ -379,14 +440,14 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  Widget _buildPagination(
-      ExamSessionsState state, ExamSessionsController controller) {
+  Widget _buildPagination(ExamSessionsState state,
+      ExamSessionsController controller, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           Text(
-            'Page ${state.currentPage} of ${state.totalPages}',
+            l10n.pageOf(state.currentPage, state.totalPages),
             style: TextStyle(
               fontSize: 13,
               color: Colors.grey[600],
@@ -405,17 +466,30 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                 disabledColor: Colors.grey[300],
               ),
               const SizedBox(width: 16),
-              ...List.generate(
-                state.totalPages.clamp(0, 5),
-                (index) {
-                  final pageNumber = index + 1;
-                  final isCurrentPage = pageNumber == state.currentPage;
+              ...() {
+                final totalPages = state.totalPages;
+                final currentPage = state.currentPage;
+
+                // Simple sliding window logic: show up to 5 pages around the current page
+                int startPage = (currentPage - 2).clamp(1, totalPages);
+                int endPage = (startPage + 4).clamp(1, totalPages);
+
+                // Adjust startPage if we're near the end to keep 5 items visible if possible
+                if (endPage - startPage < 4) {
+                  startPage = (endPage - 4).clamp(1, totalPages);
+                }
+
+                final List<int> pageNumbers = [];
+                for (int i = startPage; i <= endPage; i++) {
+                  pageNumbers.add(i);
+                }
+
+                return pageNumbers.map((pageNumber) {
+                  final isCurrentPage = pageNumber == currentPage;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: GestureDetector(
-                      onTap: () {
-                        // Add goToPage method if needed
-                      },
+                      onTap: () => controller.goToPage(pageNumber),
                       child: Container(
                         width: 32,
                         height: 32,
@@ -441,8 +515,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                       ),
                     ),
                   );
-                },
-              ),
+                });
+              }(),
               const SizedBox(width: 16),
               IconButton(
                 onPressed:
@@ -496,7 +570,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     }
   }
 
-  Future<void> _navigateToDetail(String examSessionId) async {
+  Future<void> _navigateToDetail(
+      String examSessionId, AppLocalizations l10n) async {
     // Check user role - only proctor can view detail page
     final authService = DependencyInjection.get<AuthService>();
     final user = await authService.getSavedUserData();
@@ -506,11 +581,10 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
       // Show message that students cannot view detail
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Students cannot view exam session details. Only proctors have access.'),
+        SnackBar(
+          content: Text(l10n.studentAccessDenied),
           backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
       return;

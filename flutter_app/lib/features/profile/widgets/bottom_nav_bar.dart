@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/routes/app_routes.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -12,6 +13,7 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -47,22 +49,22 @@ class BottomNavBar extends StatelessWidget {
         unselectedItemColor: Colors.grey,
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: const Icon(Icons.home),
+            label: l10n.home,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Schedule',
+            icon: const Icon(Icons.calendar_today),
+            label: l10n.schedule,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notification',
+            icon: const Icon(Icons.notifications),
+            label: l10n.notification,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person),
+            label: l10n.profile,
           ),
         ],
       ),

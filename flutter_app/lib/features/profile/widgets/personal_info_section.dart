@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../profile_controller.dart';
 
 class PersonalInfoSection extends ConsumerWidget {
@@ -19,11 +19,11 @@ class PersonalInfoSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              'Personal Information',
-              style: TextStyle(
+              AppLocalizations.of(context)!.personalInformation,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -33,7 +33,7 @@ class PersonalInfoSection extends ConsumerWidget {
           _buildInfoRow(
             icon: Icons.email,
             iconColor: Colors.blue,
-            label: 'Email',
+            label: AppLocalizations.of(context)!.email,
             value: user.email ?? '',
           ),
 

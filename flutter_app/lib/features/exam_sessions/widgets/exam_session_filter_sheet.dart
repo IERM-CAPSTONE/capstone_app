@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/models/exam_room.dart';
 import '../exam_sessions_controller.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class ExamSessionFilterSheet extends ConsumerStatefulWidget {
   final String? currentStatus;
@@ -70,6 +71,8 @@ class _ExamSessionFilterSheetState
     final availableRooms = state.availableRooms;
     final availableProctors = state.availableProctors;
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -84,9 +87,9 @@ class _ExamSessionFilterSheetState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Filter Exams',
-                  style: TextStyle(
+                Text(
+                  l10n.filterExams,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -99,51 +102,54 @@ class _ExamSessionFilterSheetState
               ],
             ),
             const SizedBox(height: 24),
-            _buildLabel('Subject'),
+            _buildLabel(l10n.subject),
             const SizedBox(height: 8),
             _buildSearchableField<Map<String, String>>(
               value: _selectedSubjectCode,
               items: _subjects,
               isLoading: false,
-              hint: 'Select Subject',
-              loadingHint: 'Loading subjects...',
-              emptyHint: 'No subjects available',
+              hint: l10n.selectSubject,
+              loadingHint: l10n.loadingSubjects,
+              emptyHint: l10n.noSubjectsAvailable,
               displayLabel: (s) => s['label'] ?? '',
               valueSelector: (s) => s['value'] ?? '',
               onChanged: (val) => setState(() => _selectedSubjectCode = val),
+              l10n: l10n,
             ),
             const SizedBox(height: 20),
-            _buildLabel('Exam Room'),
+            _buildLabel(l10n.examRoom),
             const SizedBox(height: 8),
             _buildSearchableField<ExamRoom>(
               value: _selectedExamRoomId,
               items: availableRooms,
               isLoading: state.isLoadingRooms,
-              hint: 'Exam Room',
-              loadingHint: 'Loading rooms...',
-              emptyHint: 'No rooms available',
+              hint: l10n.examRoom,
+              loadingHint: l10n.loadingRooms,
+              emptyHint: l10n.noRoomsAvailable,
               displayLabel: (r) => r.roomNumber ?? r.title ?? 'Room ${r.id}',
               valueSelector: (r) => r.id,
               onChanged: (id) => setState(() => _selectedExamRoomId = id),
+              l10n: l10n,
             ),
             const SizedBox(height: 20),
-            _buildLabel('Assignee (Proctor)'),
+            _buildLabel(l10n.assigneeProctor),
             const SizedBox(height: 8),
             _buildSearchableField<UserModel>(
               value: _selectedProctorId,
               items: availableProctors,
               isLoading: state.isLoadingProctors,
-              hint: 'Assignee',
-              loadingHint: 'Loading proctors...',
-              emptyHint: 'No proctors available',
+              hint: l10n.assignee,
+              loadingHint: l10n.loadingProctors,
+              emptyHint: l10n.noProctorsAvailable,
               displayLabel: (p) => p.username ?? p.fullName ?? 'Unknown',
               valueSelector: (p) => p.username ?? '',
               onChanged: (val) => setState(() => _selectedProctorId = val),
+              l10n: l10n,
             ),
             const SizedBox(height: 20),
-            _buildLabel('Exam Date'),
+            _buildLabel(l10n.examDate),
             const SizedBox(height: 8),
-            _buildDateField(),
+            _buildDateField(l10n),
             const SizedBox(height: 32),
             Row(
               children: [
@@ -156,8 +162,8 @@ class _ExamSessionFilterSheetState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Clear All',
-                        style: TextStyle(color: Color(0xFFFF6B35))),
+                    child: Text(l10n.clearAll,
+                        style: const TextStyle(color: Color(0xFFFF6B35))),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -170,8 +176,8 @@ class _ExamSessionFilterSheetState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Apply Results',
-                        style: TextStyle(color: Colors.white)),
+                    child: Text(l10n.applyResults,
+                        style: const TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
@@ -204,6 +210,7 @@ class _ExamSessionFilterSheetState
     required String Function(T) displayLabel,
     required String Function(T) valueSelector,
     required ValueChanged<String?> onChanged,
+    required AppLocalizations l10n,
   }) {
     final selectedItem = value != null && items.isNotEmpty
         ? items.where((item) => valueSelector(item) == value).firstOrNull
@@ -221,6 +228,7 @@ class _ExamSessionFilterSheetState
                 displayLabel: displayLabel,
                 valueSelector: valueSelector,
                 onChanged: onChanged,
+                l10n: l10n,
               ),
       child: Container(
         height: 56,
@@ -303,6 +311,7 @@ class _ExamSessionFilterSheetState
     required String Function(T) displayLabel,
     required String Function(T) valueSelector,
     required ValueChanged<String?> onChanged,
+    required AppLocalizations l10n,
   }) {
     showModalBottomSheet(
       context: context,
@@ -339,6 +348,7 @@ class _ExamSessionFilterSheetState
                     onChanged(val);
                     Navigator.pop(context);
                   },
+                  l10n: l10n,
                 ),
               ),
             ],
@@ -348,7 +358,7 @@ class _ExamSessionFilterSheetState
     );
   }
 
-  Widget _buildDateField() {
+  Widget _buildDateField(AppLocalizations l10n) {
     return InkWell(
       onTap: _selectDate,
       borderRadius: BorderRadius.circular(12),
@@ -365,7 +375,7 @@ class _ExamSessionFilterSheetState
             Text(
               _selectedDate != null
                   ? DateFormat('MMM dd, yyyy').format(_selectedDate!)
-                  : 'Select Date',
+                  : l10n.selectDate,
               style: TextStyle(
                 color:
                     _selectedDate != null ? Colors.black87 : Colors.grey[600],
@@ -419,6 +429,8 @@ class _SearchableList<T> extends StatefulWidget {
   final ScrollController scrollController;
   final ValueChanged<String?> onChanged;
 
+  final AppLocalizations l10n;
+
   const _SearchableList({
     required this.title,
     required this.items,
@@ -426,6 +438,7 @@ class _SearchableList<T> extends StatefulWidget {
     required this.valueSelector,
     required this.scrollController,
     required this.onChanged,
+    required this.l10n,
   });
 
   @override
@@ -512,7 +525,8 @@ class _SearchableListState<T> extends State<_SearchableList<T>> {
                 controller: _searchController,
                 onChanged: _filter,
                 decoration: InputDecoration(
-                  hintText: 'Search ${widget.title.toLowerCase()}...',
+                  hintText:
+                      widget.l10n.searchPlaceholder(widget.title.toLowerCase()),
                   hintStyle: TextStyle(color: Colors.grey.shade500),
                   prefixIcon:
                       Icon(Icons.search_rounded, color: Colors.grey.shade400),
@@ -533,7 +547,7 @@ class _SearchableListState<T> extends State<_SearchableList<T>> {
                         size: 48, color: Colors.grey.shade300),
                     const SizedBox(height: 16),
                     Text(
-                      'No data available',
+                      widget.l10n.noDataAvailable,
                       style:
                           TextStyle(color: Colors.grey.shade500, fontSize: 16),
                     ),
@@ -561,9 +575,9 @@ class _SearchableListState<T> extends State<_SearchableList<T>> {
                           child: const Icon(Icons.clear_rounded,
                               color: Colors.red, size: 20),
                         ),
-                        title: const Text(
-                          'Clear Selection',
-                          style: TextStyle(
+                        title: Text(
+                          widget.l10n.clearSelection,
+                          style: const TextStyle(
                               color: Colors.red, fontWeight: FontWeight.w500),
                         ),
                         onTap: () => widget.onChanged(null),

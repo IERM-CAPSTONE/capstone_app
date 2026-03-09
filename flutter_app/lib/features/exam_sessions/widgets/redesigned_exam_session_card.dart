@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/exam_session.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class RedesignedExamSessionCard extends StatelessWidget {
   final ExamSession session;
@@ -14,8 +15,9 @@ class RedesignedExamSessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final statusColor = _getStatusColor();
-    final statusLabel = _getStatusLabel();
+    final statusLabel = _getStatusLabel(l10n);
     final duration =
         session.examCloseTime != null && session.examOpenTime != null
             ? session.examCloseTime!.difference(session.examOpenTime!).inMinutes
@@ -74,8 +76,8 @@ class RedesignedExamSessionCard extends StatelessWidget {
                 Icons.access_time_filled,
                 Colors.blue[100]!,
                 Colors.blue,
-                '${_formatTime(session.examOpenTime)} - ${_formatTime(session.examCloseTime)}',
-                subtitle: 'Duration: $duration mins',
+                '${_formatTime(session.examOpenTime, l10n)} - ${_formatTime(session.examCloseTime, l10n)}',
+                subtitle: l10n.durationMins(duration),
               ),
               const SizedBox(height: 12),
 
@@ -84,8 +86,8 @@ class RedesignedExamSessionCard extends StatelessWidget {
                 Icons.location_on,
                 Colors.purple[100]!,
                 Colors.purple,
-                'Room ${session.roomNumber ?? session.examRoomId ?? "TBA"}',
-                subtitle: 'Campus examination',
+                '${l10n.examRoom} ${session.roomNumber ?? session.examRoomId ?? l10n.tba}',
+                subtitle: l10n.campusExamination,
               ),
               const SizedBox(height: 16),
 
@@ -105,8 +107,8 @@ class RedesignedExamSessionCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           session.isOngoing
-                              ? 'Exam is currently in progress'
-                              : 'Check-in 15 minutes before exam starts',
+                              ? l10n.examInProgress
+                              : l10n.checkinNote,
                           style: TextStyle(
                             color: Colors.blue[700],
                             fontSize: 12,
@@ -189,15 +191,15 @@ class RedesignedExamSessionCard extends StatelessWidget {
     return Colors.black;
   }
 
-  String _getStatusLabel() {
-    if (session.isScheduled) return 'Upcoming';
-    if (session.isOngoing) return 'Ongoing';
-    if (session.isEnded) return 'Completed';
-    return 'Unknown';
+  String _getStatusLabel(AppLocalizations l10n) {
+    if (session.isScheduled) return l10n.upcoming;
+    if (session.isOngoing) return l10n.ongoing;
+    if (session.isEnded) return l10n.completed;
+    return l10n.unknown;
   }
 
-  String _formatTime(DateTime? time) {
-    if (time == null) return 'TBA';
+  String _formatTime(DateTime? time, AppLocalizations l10n) {
+    if (time == null) return l10n.tba;
     return DateFormat('hh:mm a').format(time);
   }
 }

@@ -20,17 +20,21 @@ class FaceAuthenticateState {
   final String? studentCode;
   final String? studentName;
   final String? examSessionId;
+  final int poseStableCount;
+  final int requiredStableFrames;
 
   const FaceAuthenticateState({
     this.cameraController,
     this.status = FaceAuthenticateStatus.scanning,
-    this.instructionMessage = 'Vui lòng đưa mặt vào khung hình',
+    this.instructionMessage = '',
     this.errorMessage,
     this.confidence,
     this.studentId,
     this.studentCode,
     this.studentName,
     this.examSessionId,
+    this.poseStableCount = 0,
+    this.requiredStableFrames = 3,
   });
 
   FaceAuthenticateState copyWith({
@@ -43,6 +47,8 @@ class FaceAuthenticateState {
     String? studentCode,
     String? studentName,
     String? examSessionId,
+    int? poseStableCount,
+    int? requiredStableFrames,
   }) {
     return FaceAuthenticateState(
       cameraController: cameraController ?? this.cameraController,
@@ -54,6 +60,8 @@ class FaceAuthenticateState {
       studentCode: studentCode ?? this.studentCode,
       studentName: studentName ?? this.studentName,
       examSessionId: examSessionId ?? this.examSessionId,
+      poseStableCount: poseStableCount ?? this.poseStableCount,
+      requiredStableFrames: requiredStableFrames ?? this.requiredStableFrames,
     );
   }
 }

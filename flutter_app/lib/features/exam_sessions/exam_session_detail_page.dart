@@ -11,6 +11,7 @@ import '../exam_rooms/widgets/seat_widget.dart';
 import '../exam_rooms/widgets/seating_legend.dart';
 import 'package:intl/intl.dart';
 import '../auth/face_authenticate/face_authenticate_page.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 final examSessionDetailProvider =
     FutureProvider.family<Map<String, dynamic>?, String>(
@@ -70,12 +71,12 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
     // If student somehow accessed this page, show warning and go back
     if (_userRole == 'STUDENT' && mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Access denied. Students cannot view exam session details.'),
+        SnackBar(
+          content: Text(l10n.studentAccessDenied),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -92,13 +93,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         ref.watch(sessionStudentsProvider(widget.examSessionId));
     final seatingPlanAsync =
         ref.watch(seatingPlanProvider(widget.examSessionId));
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, l10n),
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -110,8 +112,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 child: sessionAsync.when(
                   data: (sessionData) {
                     if (sessionData == null) {
-                      return const Center(
-                          child: Text('Exam session not found'));
+                      return Center(child: Text(l10n.sessionNotFound));
                     }
                     final session = sessionData['session'] as ExamSession;
                     final totalStudents = sessionData['totalStudents'] as int;
@@ -125,6 +126,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       presentStudents,
                       studentsAsync,
                       seatingPlanAsync,
+                      l10n,
                     );
                   },
                   loading: () =>
@@ -141,7 +143,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -155,9 +157,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _isProctor
-                  ? 'Proctor - Exam Session Detail'
-                  : 'Exam Session Detail',
+              _isProctor ? l10n.proctorExamDetail : l10n.examDetail,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -177,29 +177,30 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     int presentStudents,
     AsyncValue<List<StudentExam>> studentsAsync,
     AsyncValue<SeatingPlan?> seatingPlanAsync,
+    AppLocalizations l10n,
   ) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExamInfo(session),
-          _buildActionButtons(context, session),
+          _buildExamInfo(session, l10n),
+          _buildActionButtons(context, session, l10n),
           _buildStatsCards(
-              session, totalStudents, presentStudents, studentsAsync),
+              session, totalStudents, presentStudents, studentsAsync, l10n),
           const SizedBox(height: 8),
           const SeatingLegend(),
           const SizedBox(height: 16),
           seatingPlanAsync.when(
             data: (seatingPlan) {
               if (seatingPlan == null) {
-                return const Center(
+                return Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Text('Seating plan not available'),
+                    padding: const EdgeInsets.all(32),
+                    child: Text(l10n.seatingPlanNotAvailable),
                   ),
                 );
               }
-              return _buildSeatingPlanView(seatingPlan);
+              return _buildSeatingPlanView(seatingPlan, l10n);
             },
             loading: () => const Center(
               child: Padding(
@@ -220,7 +221,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildExamInfo(ExamSession session) {
+  Widget _buildExamInfo(ExamSession session, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -235,9 +236,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Session Details',
-                style: TextStyle(
+              Text(
+                l10n.sessionDetails,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -268,22 +269,22 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           // Subject & Semester
           _buildInfoRow(
             Icons.book,
-            'Subject',
-            session.subjectCode ?? 'N/A',
+            l10n.subject,
+            session.subjectCode ?? l10n.tba,
           ),
           const SizedBox(height: 8),
           _buildInfoRow(
             Icons.calendar_month,
-            'Semester',
-            session.semester ?? 'N/A',
+            l10n.semester,
+            session.semester ?? l10n.tba,
           ),
           const SizedBox(height: 8),
 
           // Room Info
           _buildInfoRow(
             Icons.meeting_room,
-            'Room',
-            session.roomNumber ?? 'N/A',
+            l10n.examRoom,
+            session.roomNumber ?? l10n.tba,
           ),
           const SizedBox(height: 8),
 
@@ -291,8 +292,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           if (session.examOpenTime != null) ...[
             _buildInfoRow(
               Icons.access_time,
-              'Time',
-              '${DateFormat('MMM dd, yyyy HH:mm').format(session.examOpenTime!)} - ${session.examCloseTime != null ? DateFormat('HH:mm').format(session.examCloseTime!) : 'N/A'}',
+              l10n.examDate,
+              '${DateFormat('MMM dd, yyyy HH:mm').format(session.examOpenTime!)} - ${session.examCloseTime != null ? DateFormat('HH:mm').format(session.examCloseTime!) : l10n.tba}',
             ),
             const SizedBox(height: 8),
           ],
@@ -300,8 +301,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           // Proctor
           _buildInfoRow(
             Icons.person,
-            'Proctor',
-            session.proctorName ?? 'N/A',
+            l10n.assignee,
+            session.proctorName ?? l10n.tba,
           ),
 
           // Note if exists
@@ -366,7 +367,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     return Colors.grey;
   }
 
-  Widget _buildActionButtons(BuildContext context, ExamSession session) {
+  Widget _buildActionButtons(
+      BuildContext context, ExamSession session, AppLocalizations l10n) {
     // Only show action buttons for proctors
     if (!_isProctor) {
       return const SizedBox.shrink();
@@ -389,9 +391,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 );
               },
               icon: const Icon(Icons.camera_alt, size: 20),
-              label: const Text(
-                'FA Checkin',
-                style: TextStyle(fontSize: 13),
+              label: Text(
+                l10n.faCheckin,
+                style: const TextStyle(fontSize: 13),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4CAF50),
@@ -408,9 +410,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             child: ElevatedButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.confirmation_number_outlined, size: 20),
-              label: const Text(
-                'Create Ticket',
-                style: TextStyle(fontSize: 13),
+              label: Text(
+                l10n.createTicket,
+                style: const TextStyle(fontSize: 13),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),
@@ -432,6 +434,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     int totalStudents,
     int presentStudents,
     AsyncValue<List<StudentExam>> studentsAsync,
+    AppLocalizations l10n,
   ) {
     final students = studentsAsync.valueOrNull ?? [];
     final actualTotal = students.length; // ✅ Calculate total from actual data
@@ -454,7 +457,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               icon: Icons.people,
               value:
                   '$actualTotal', // ✅ Use calculated value instead of backend
-              label: 'Total',
+              label: l10n.total,
               color: const Color(0xFF2196F3),
             ),
           ),
@@ -463,7 +466,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             child: _buildStatCard(
               icon: Icons.check_circle,
               value: '$actualPresent', // ✅ Use calculated value
-              label: 'Present',
+              label: l10n.present,
               color: const Color(0xFF4CAF50),
             ),
           ),
@@ -472,7 +475,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             child: _buildStatCard(
               icon: Icons.pending,
               value: '$registeredCount',
-              label: 'Registered',
+              label: l10n.registered,
               color: const Color(0xFFFFC107),
             ),
           ),
@@ -481,7 +484,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             child: _buildStatCard(
               icon: Icons.cancel,
               value: '$absentCount',
-              label: 'Absent',
+              label: l10n.absent,
               color: const Color(0xFFF44336),
             ),
           ),
@@ -536,17 +539,17 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildSeatingPlanView(SeatingPlan seatingPlan) {
+  Widget _buildSeatingPlanView(SeatingPlan seatingPlan, AppLocalizations l10n) {
     return Column(
       children: [
-        _buildTeacherDesk(),
+        _buildTeacherDesk(l10n),
         const SizedBox(height: 24),
-        _buildSeatingGrid(seatingPlan),
+        _buildSeatingGrid(seatingPlan, l10n),
       ],
     );
   }
 
-  Widget _buildTeacherDesk() {
+  Widget _buildTeacherDesk(AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -561,7 +564,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Icon(Icons.desk, color: Colors.grey[600], size: 20),
           const SizedBox(width: 8),
           Text(
-            'TEACHER DESK / ENTRANCE',
+            l10n.teacherDesk,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -574,7 +577,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildSeatingGrid(SeatingPlan seatingPlan) {
+  Widget _buildSeatingGrid(SeatingPlan seatingPlan, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LayoutBuilder(
@@ -597,6 +600,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             width: cellWidth - 12,
                             child: _buildSeatCell(
                               seatingPlan.getSeatAt(row, col),
+                              l10n,
                             ),
                           ),
                         ),
@@ -610,7 +614,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildSeatCell(Seat? seat) {
+  Widget _buildSeatCell(Seat? seat, AppLocalizations l10n) {
     if (seat == null) {
       return const SizedBox.shrink();
     }
@@ -623,7 +627,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           setState(() {
             _selectedSeat = isSelected ? null : seat;
           });
-          _showSeatDetails(seat);
+          _showSeatDetails(seat, l10n);
         }
       },
       child: SeatWidget(
@@ -633,7 +637,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  void _showSeatDetails(Seat seat) {
+  void _showSeatDetails(Seat seat, AppLocalizations l10n) {
     if (seat.studentExam == null) return;
 
     showModalBottomSheet(
@@ -678,14 +682,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Seat ${seat.displayNumber}',
+                        l10n.seatLabel(seat.displayNumber),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        _getStatusLabel(seat.status),
+                        _getStatusLabel(seat.status, l10n),
                         style: TextStyle(
                           fontSize: 14,
                           color: _getSeatColor(seat.status),
@@ -702,14 +706,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             ),
             const Divider(height: 32),
             if (seat.studentExam != null) ...[
-              _buildDetailRow('Student ID', seat.studentExam!.studentId),
+              _buildDetailRow(l10n.studentId, seat.studentExam!.studentId),
               const SizedBox(height: 12),
               _buildDetailRow(
-                  'Status', seat.studentExam!.status.name.toUpperCase()),
+                  l10n.status, seat.studentExam!.status.name.toUpperCase()),
               const SizedBox(height: 12),
               if (seat.studentExam!.checkinTime != null)
                 _buildDetailRow(
-                  'Check-in Time',
+                  l10n.checkinTime,
                   _formatDateTime(seat.studentExam!.checkinTime!),
                 ),
             ],
@@ -754,16 +758,16 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     }
   }
 
-  String _getStatusLabel(SeatStatus status) {
+  String _getStatusLabel(SeatStatus status, AppLocalizations l10n) {
     switch (status) {
       case SeatStatus.available:
-        return 'Available';
+        return l10n.available;
       case SeatStatus.occupied:
-        return 'Occupied';
+        return l10n.occupied;
       case SeatStatus.present:
-        return 'Present';
+        return l10n.present;
       case SeatStatus.absent:
-        return 'Absent';
+        return l10n.absent;
     }
   }
 

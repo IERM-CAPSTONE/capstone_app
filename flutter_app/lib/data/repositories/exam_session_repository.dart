@@ -132,7 +132,7 @@ class ExamSessionRepository {
     try {
       final response = await _apiService.getStudentExams(
         1, // page
-        100, // limit - get all students for this session
+        1000, // limit - Increase from 100 to 1000 to ensure all students are fetched
         examSessionId,
         null, // studentId
         null, // status

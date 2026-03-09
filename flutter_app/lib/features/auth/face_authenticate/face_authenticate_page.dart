@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import 'face_authenticate_controller.dart';
 import 'face_authenticate_state.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class FaceAuthenticatePage extends ConsumerStatefulWidget {
   final String? examSessionId;
@@ -28,19 +29,20 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(faceAuthenticateControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     // If success/failed, show result screen like register_face
     if (state.status == FaceAuthenticateStatus.authenticated) {
-      return _buildSuccessScreen(context, state);
+      return _buildSuccessScreen(context, state, l10n);
     }
 
     if (state.status == FaceAuthenticateStatus.failed ||
         state.status == FaceAuthenticateStatus.error) {
-      return _buildErrorScreen(context, state);
+      return _buildErrorScreen(context, state, l10n);
     }
 
     if (state.status == FaceAuthenticateStatus.authenticating) {
-      return _buildProcessingScreen(context, state.instructionMessage);
+      return _buildProcessingScreen(context, l10n.authenticatingFace);
     }
 
     return Scaffold(
@@ -55,15 +57,15 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
 
             // Blink Animation (unique to authentication)
             if (state.status == FaceAuthenticateStatus.livenessCheck)
-              const Align(
+              Align(
                 alignment: Alignment.topCenter,
                 child: Padding(
-                  padding: EdgeInsets.only(top: 100),
-                  child: _BlinkGuidance(),
+                  padding: const EdgeInsets.only(top: 100),
+                  child: _BlinkGuidance(l10n: l10n),
                 ),
               ),
 
-            const _InstructionWidget(),
+            _InstructionWidget(l10n: l10n),
           ],
         ),
       ),
@@ -88,8 +90,8 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
     );
   }
 
-  Widget _buildSuccessScreen(
-      BuildContext context, FaceAuthenticateState state) {
+  Widget _buildSuccessScreen(BuildContext context, FaceAuthenticateState state,
+      AppLocalizations l10n) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -100,8 +102,9 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
             children: [
               const Icon(Icons.check_circle, color: Colors.green, size: 100),
               const SizedBox(height: 24),
-              const Text('Authentication successful!',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(l10n.authSuccessful,
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 32),
               Container(
                 padding: const EdgeInsets.all(24),
@@ -123,7 +126,7 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Student ID: ${state.studentCode ?? 'N/A'}',
+                      '${l10n.studentId}: ${state.studentCode ?? l10n.tba}',
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
@@ -133,7 +136,8 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
                     if (state.confidence != null) ...[
                       const SizedBox(height: 12),
                       Text(
-                        'Confidence: ${(state.confidence! * 100).toStringAsFixed(1)}%',
+                        l10n.confidenceLabel(
+                            (state.confidence! * 100).toStringAsFixed(1)),
                         style: TextStyle(
                           color: Colors.green[700],
                           fontSize: 14,
@@ -156,9 +160,9 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Complete',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: Text(l10n.complete,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -168,7 +172,8 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
     );
   }
 
-  Widget _buildErrorScreen(BuildContext context, FaceAuthenticateState state) {
+  Widget _buildErrorScreen(BuildContext context, FaceAuthenticateState state,
+      AppLocalizations l10n) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
@@ -179,11 +184,12 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
             children: [
               const Icon(Icons.error_outline, color: Colors.red, size: 100),
               const SizedBox(height: 24),
-              const Text('Authentication failed!',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(l10n.authFailedTitle,
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               Text(
-                state.errorMessage ?? state.instructionMessage,
+                _getLocalizedError(state.errorMessage, l10n),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.black54, fontSize: 16),
               ),
@@ -202,20 +208,35 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Retry'),
+                  child: Text(l10n.retry),
                 ),
               ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Back to menu',
-                    style: TextStyle(color: Colors.grey)),
+                child: Text(l10n.backToMenu,
+                    style: const TextStyle(color: Colors.grey)),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _getLocalizedError(String? error, AppLocalizations l10n) {
+    if (error == null) return l10n.authFailed;
+
+    // Check for specific backend error messages and map them
+    if (error.contains('does not belong to this exam room')) {
+      return l10n.notInExamRoom;
+    }
+
+    if (error.contains('Face not recognized')) {
+      return l10n.faceNotRecognized;
+    }
+
+    return error;
   }
 }
 
@@ -266,7 +287,8 @@ class _HeaderWidget extends StatelessWidget {
 }
 
 class _InstructionWidget extends ConsumerWidget {
-  const _InstructionWidget();
+  final AppLocalizations l10n;
+  const _InstructionWidget({required this.l10n});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(faceAuthenticateControllerProvider);
@@ -292,7 +314,7 @@ class _InstructionWidget extends ConsumerWidget {
           Icon(icon, color: color, size: 48),
           const SizedBox(height: 16),
           Text(
-            state.instructionMessage,
+            _getInstructionMessage(state, l10n),
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: color, fontSize: 22, fontWeight: FontWeight.bold),
@@ -300,6 +322,30 @@ class _InstructionWidget extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _getInstructionMessage(
+      FaceAuthenticateState state, AppLocalizations l10n) {
+    if (state.status == FaceAuthenticateStatus.scanning) {
+      return l10n.putFaceInFrame;
+    }
+    if (state.status == FaceAuthenticateStatus.faceDetected) {
+      if (state.poseStableCount > 0) {
+        return l10n.holdStill(
+            state.poseStableCount, state.requiredStableFrames);
+      }
+      return l10n.lookStraight;
+    }
+    if (state.status == FaceAuthenticateStatus.livenessCheck) {
+      return l10n.blinkToAuthenticate;
+    }
+    if (state.status == FaceAuthenticateStatus.authenticating) {
+      return l10n.authenticatingFace;
+    }
+    if (state.status == FaceAuthenticateStatus.authenticated) {
+      return l10n.authSuccessful;
+    }
+    return '';
   }
 }
 
@@ -334,7 +380,8 @@ class SimpleOvalPainter extends CustomPainter {
 }
 
 class _BlinkGuidance extends StatefulWidget {
-  const _BlinkGuidance();
+  final AppLocalizations l10n;
+  const _BlinkGuidance({required this.l10n});
 
   @override
   State<_BlinkGuidance> createState() => _BlinkGuidanceState();
@@ -372,12 +419,13 @@ class _BlinkGuidanceState extends State<_BlinkGuidance>
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.remove_red_eye, color: Colors.orangeAccent, size: 28),
-            SizedBox(width: 12),
+          children: [
+            const Icon(Icons.remove_red_eye,
+                color: Colors.orangeAccent, size: 28),
+            const SizedBox(width: 12),
             Text(
-              'BLINK TO CONTINUE',
-              style: TextStyle(
+              widget.l10n.blinkToContinue,
+              style: const TextStyle(
                 color: Colors.orangeAccent,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

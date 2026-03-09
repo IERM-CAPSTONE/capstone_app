@@ -4,6 +4,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
 import 'login_controller.dart';
 import 'login_state.dart';
+import '../../../core/providers/language_provider.dart';
+
+import '../../../l10n/generated/app_localizations.dart';
 
 class LoginPage extends ConsumerWidget {
   const LoginPage({super.key});
@@ -12,6 +15,7 @@ class LoginPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final loginState = ref.watch(loginControllerProvider);
     final loginController = ref.read(loginControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Stack(
@@ -29,43 +33,57 @@ class LoginPage extends ConsumerWidget {
               ),
             ),
             child: SafeArea(
-              child: Column(
+              child: Stack(
                 children: [
-                  const Spacer(flex: 2),
-                  // Logo
-                  _buildLogo(),
-                  const SizedBox(height: 16),
-                  // Title
-                  const Text(
-                    'FPT Exam Management',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Subtitle
-                  const Text(
-                    'Secure Examination Management System',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const Spacer(flex: 1),
-                  // Login Card
-                  _buildLoginCard(context, loginState, loginController),
-                  const Spacer(flex: 2),
-                  // Copyright
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 24),
-                    child: Text(
-                      '© 2026 FPT University. All rights reserved.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
+                  Column(
+                    children: [
+                      const Spacer(flex: 2),
+                      // Logo
+                      _buildLogo(),
+                      const SizedBox(height: 16),
+                      // Title
+                      Text(
+                        l10n.fptExamManagement,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
+                      const SizedBox(height: 8),
+                      // Subtitle
+                      Text(
+                        l10n.secureExamSystem,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const Spacer(flex: 1),
+                      // Login Card
+                      _buildLoginCard(
+                          context, loginState, loginController, l10n),
+                      const Spacer(flex: 2),
+                      // Copyright
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: Text(
+                          l10n.copyright,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Language Switcher Positioned
+                  Positioned(
+                    top: 10,
+                    right: 16,
+                    child: IconButton(
+                      icon: const Icon(Icons.language, color: Colors.white),
+                      onPressed: () => _showLanguageBottomSheet(context, ref),
                     ),
                   ),
                 ],
@@ -76,18 +94,18 @@ class LoginPage extends ConsumerWidget {
           if (loginState.isLoading)
             Container(
               color: Colors.black54,
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(
+                    const CircularProgressIndicator(
                       valueColor:
                           AlwaysStoppedAnimation<Color>(AppColors.appBarOrange),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      'Đang đăng nhập...',
-                      style: TextStyle(
+                      l10n.loggingIn,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -133,6 +151,7 @@ class LoginPage extends ConsumerWidget {
     BuildContext context,
     LoginState state,
     LoginController controller,
+    AppLocalizations l10n,
   ) {
     const isEnabled = true;
 
@@ -155,9 +174,9 @@ class LoginPage extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Welcome Back heading
-          const Text(
-            'Welcome Back',
-            style: TextStyle(
+          Text(
+            l10n.welcomeBack,
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
@@ -165,19 +184,16 @@ class LoginPage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           // Instruction text
-          const Text(
-            'Sign in with your Google account to continue',
-            style: TextStyle(
+          Text(
+            l10n.signInGoogle,
+            style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 24),
           // Login Button
-          _buildLoginButton(context, state, controller, isEnabled),
-          const SizedBox(height: 20),
-          // Information Box
-          _buildInfoBox(),
+          _buildLoginButton(context, state, controller, isEnabled, l10n),
         ],
       ),
     );
@@ -188,6 +204,7 @@ class LoginPage extends ConsumerWidget {
     LoginState state,
     LoginController controller,
     bool isEnabled,
+    AppLocalizations l10n,
   ) {
     return Opacity(
       opacity: isEnabled ? 1.0 : 0.6,
@@ -231,8 +248,8 @@ class LoginPage extends ConsumerWidget {
                   _buildGoogleLogo(),
                   const SizedBox(width: 12),
                   Text(
-                    'Login with Google',
-                    style: TextStyle(
+                    l10n.loginWithGoogle,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -247,27 +264,55 @@ class LoginPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoBox() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.loginInfoBox,
-        borderRadius: BorderRadius.circular(8),
+  void _showLanguageBottomSheet(BuildContext context, WidgetRef ref) {
+    final currentLocale = ref.read(languageProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Please use your FPT University email (@fpt.edu.vn)',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w500,
-            ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.language,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
+                title: Text(l10n.vietnamese),
+                trailing: currentLocale.languageCode == 'vi'
+                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
+                    : null,
+                onTap: () {
+                  ref.read(languageProvider.notifier).setLanguage('vi');
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
+                title: Text(l10n.english),
+                trailing: currentLocale.languageCode == 'en'
+                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
+                    : null,
+                onTap: () {
+                  ref.read(languageProvider.notifier).setLanguage('en');
+                  Navigator.pop(context);
+                },
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-        ],
-      ),
+        );
+      },
     );
   }
 }

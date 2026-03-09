@@ -103,4 +103,21 @@ class FaceRegistrationService {
       return {'status': 'error', 'message': e.toString()};
     }
   }
+
+  /// Kiểm tra trạng thái đăng ký của user
+  Future<Map<String, dynamic>> checkRegistrationStatus(String studentId) async {
+    try {
+      final response = await _dio.get(
+        '/face-recognition/check-registration/$studentId',
+      );
+      return response.data;
+    } on DioException catch (e) {
+      return {
+        'status': 'error',
+        'message': e.response?.data?['message'] ?? 'Lỗi kết nối Server',
+      };
+    } catch (e) {
+      return {'status': 'error', 'message': e.toString()};
+    }
+  }
 }

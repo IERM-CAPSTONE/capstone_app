@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../profile_controller.dart';
 
 class SecuritySection extends ConsumerWidget {
   const SecuritySection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileController = ref.read(profileControllerProvider.notifier);
-
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(16),
@@ -26,7 +23,8 @@ class SecuritySection extends ConsumerWidget {
               ),
             ),
           ),
-          
+
+          /*
           _buildSecurityCard(
             icon: Icons.lock,
             iconColor: Colors.purple,
@@ -34,69 +32,8 @@ class SecuritySection extends ConsumerWidget {
             subtitle: 'Update your account password',
             onTap: () => profileController.changePassword(),
           ),
+          */
         ],
-      ),
-    );
-  }
-
-  Widget _buildSecurityCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: iconColor, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey,
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/dialogs/data_consent_dialog.dart';
 import 'register_face_scan_page.dart';
@@ -11,9 +12,10 @@ class RegisterFaceStartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify your identity (2 steps)'),
+        title: Text(l10n.verifyIdentity),
         backgroundColor: AppColors.appBarOrange,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -36,9 +38,9 @@ class RegisterFaceStartPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-                const Text(
-                  'Ready to verify your identity?',
-                  style: TextStyle(
+                Text(
+                  l10n.readyToVerify,
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w700,
                   ),
@@ -46,17 +48,15 @@ class RegisterFaceStartPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 _StepCard(
                   stepNumber: 1,
-                  title: 'Scan your face',
-                  description:
-                      'Make sure your face is clearly visible.\n(No glasses, hat, or mask)',
+                  title: l10n.step1Title,
+                  description: l10n.step1Desc,
                   icon: Icons.face_retouching_natural,
                 ),
                 const SizedBox(height: 12),
                 _StepCard(
                   stepNumber: 2,
-                  title: 'Capture both sides of your ID',
-                  description:
-                      'Take photos of the front and back of your ID card.',
+                  title: l10n.step2Title,
+                  description: l10n.step2Desc,
                   icon: Icons.credit_card,
                 ),
                 const Spacer(),
@@ -83,7 +83,7 @@ class RegisterFaceStartPage extends StatelessWidget {
                       backgroundColor: AppColors.appBarOrange,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Continue'),
+                    child: Text(l10n.continueText),
                   ),
                 ),
               ],
