@@ -44,13 +44,14 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-      apiKey: "AIzaSyB_lZgTfHI3IKssRGzOQI6_cEUI_61cGEY",
-      authDomain: "flrm-9b3a0.firebaseapp.com",
-      projectId: "flrm-9b3a0",
-      storageBucket: "flrm-9b3a0.firebasestorage.app",
-      messagingSenderId: "1090862722356",
-      appId: "1:1090862722356:web:14e7449068a12646e90961",
-      measurementId: "G-EMG2YN8XXK");
+    apiKey: 'AIzaSyCyYorYRU0istmzJ_V3HRb4MycA6kuJurU',
+    appId: '1:904946824619:web:f97d6bf3a3c369a9850eee',
+    messagingSenderId: '904946824619',
+    projectId: 'capstone-89804',
+    authDomain: 'capstone-89804.firebaseapp.com',
+    storageBucket: 'capstone-89804.firebasestorage.app',
+    measurementId: 'G-13FGYH1KJY',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAg5F0xRLCr3OFDQ67qGSDDqjx4zWN6ElA',
