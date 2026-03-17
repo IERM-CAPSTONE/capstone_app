@@ -11,6 +11,10 @@ class ExamSessionsState {
   final DateTime? filterDate;
   final String? filterTimeSlot;
   final String? filterSubjectCode;
+  final String? filterExamType;
+  final String? filterCampus;
+  final DateTime? filterFromDate;
+  final DateTime? filterToDate;
   final String? filterProctorId;
   final String? filterExamRoomId;
   final List<UserModel> availableProctors;
@@ -30,6 +34,10 @@ class ExamSessionsState {
     this.filterDate,
     this.filterTimeSlot,
     this.filterSubjectCode,
+    this.filterExamType,
+    this.filterCampus,
+    this.filterFromDate,
+    this.filterToDate,
     this.filterProctorId,
     this.filterExamRoomId,
     this.availableProctors = const [],
@@ -50,6 +58,10 @@ class ExamSessionsState {
     DateTime? filterDate,
     String? filterTimeSlot,
     String? filterSubjectCode,
+    String? filterExamType,
+    String? filterCampus,
+    DateTime? filterFromDate,
+    DateTime? filterToDate,
     String? filterProctorId,
     String? filterExamRoomId,
     List<UserModel>? availableProctors,
@@ -61,6 +73,12 @@ class ExamSessionsState {
     bool? isLoadingRooms,
     bool clearError = false,
     bool clearFilters = false,
+    bool clearSubjectCode = false,
+    bool clearExamType = false,
+    bool clearCampus = false,
+    bool clearFromDate = false,
+    bool clearToDate = false,
+    bool clearExamRoomId = false,
   }) {
     return ExamSessionsState(
       examSessions: examSessions ?? this.examSessions,
@@ -71,12 +89,26 @@ class ExamSessionsState {
       filterDate: filterDate ?? (clearFilters ? null : this.filterDate),
       filterTimeSlot:
           filterTimeSlot ?? (clearFilters ? null : this.filterTimeSlot),
-      filterSubjectCode:
-          filterSubjectCode ?? (clearFilters ? null : this.filterSubjectCode),
+      filterSubjectCode: clearSubjectCode
+          ? null
+          : filterSubjectCode ?? (clearFilters ? null : this.filterSubjectCode),
+      filterExamType: clearExamType
+          ? null
+          : filterExamType ?? (clearFilters ? null : this.filterExamType),
+      filterCampus: clearCampus
+          ? null
+          : filterCampus ?? (clearFilters ? null : this.filterCampus),
+      filterFromDate: clearFromDate
+          ? null
+          : filterFromDate ?? (clearFilters ? null : this.filterFromDate),
+      filterToDate: clearToDate
+          ? null
+          : filterToDate ?? (clearFilters ? null : this.filterToDate),
       filterProctorId:
           filterProctorId ?? (clearFilters ? null : this.filterProctorId),
-      filterExamRoomId:
-          filterExamRoomId ?? (clearFilters ? null : this.filterExamRoomId),
+      filterExamRoomId: clearExamRoomId
+          ? null
+          : filterExamRoomId ?? (clearFilters ? null : this.filterExamRoomId),
       availableProctors: availableProctors ?? this.availableProctors,
       availableRooms: availableRooms ?? this.availableRooms,
       currentPage: currentPage ?? this.currentPage,
@@ -92,6 +124,10 @@ class ExamSessionsState {
       filterDate != null ||
       (filterTimeSlot?.isNotEmpty ?? false) ||
       filterSubjectCode != null ||
+      filterExamType != null ||
+      filterCampus != null ||
+      filterFromDate != null ||
+      filterToDate != null ||
       filterProctorId != null ||
       filterExamRoomId != null;
 

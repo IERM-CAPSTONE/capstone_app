@@ -45,6 +45,10 @@ abstract class ApiService {
     @Query('proctorId') String? proctorId,
     @Query('studentId') String? studentId,
     @Query('date') String? date,
+    @Query('fromDate') String? fromDate,
+    @Query('toDate') String? toDate,
+    @Query('examType') String? examType,
+    @Query('campus') String? campus,
   );
 
   @GET('/exam-sessions/{id}')

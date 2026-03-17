@@ -1,31 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../data/models/user_model.dart';
 import '../../../data/models/exam_room.dart';
 import '../exam_sessions_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class ExamSessionFilterSheet extends ConsumerStatefulWidget {
   final String? currentStatus;
+  final DateTime? currentFromDate;
+  final DateTime? currentToDate;
   final DateTime? currentDate;
   final String? currentSubjectCode;
-  final String? currentProctorId;
+  final String? currentExamType;
+  final String? currentCampus;
   final String? currentExamRoomId;
   final Function({
     String? status,
     DateTime? date,
+    DateTime? fromDate,
+    DateTime? toDate,
     String? subjectCode,
-    String? proctorId,
+    String? examType,
+    String? campus,
     String? examRoomId,
+    bool clearFilters,
   }) onApply;
 
   const ExamSessionFilterSheet({
     super.key,
     this.currentStatus,
+    this.currentFromDate,
+    this.currentToDate,
     this.currentDate,
     this.currentSubjectCode,
-    this.currentProctorId,
+    this.currentExamType,
+    this.currentCampus,
     this.currentExamRoomId,
     required this.onApply,
   });
@@ -40,7 +49,10 @@ class _ExamSessionFilterSheetState
   String? _selectedStatus;
   DateTime? _selectedDate;
   String? _selectedSubjectCode;
-  String? _selectedProctorId;
+  String? _selectedExamType;
+  String? _selectedCampus;
+  DateTime? _selectedFromDate;
+  DateTime? _selectedToDate;
   String? _selectedExamRoomId;
 
   // Mock subjects list similarly to web app
@@ -54,13 +66,31 @@ class _ExamSessionFilterSheetState
     {'label': 'MAE101', 'value': 'MAE101'},
   ];
 
+  static const List<Map<String, String>> _examTypes = [
+    {'label': 'PE', 'value': 'PE'},
+    {'label': 'FE', 'value': 'FE'},
+    {'label': 'TE', 'value': 'TE'},
+    {'label': 'RE', 'value': 'RE'},
+  ];
+
+  static const List<Map<String, String>> _campuses = [
+    {'label': 'HCM', 'value': 'HCM'},
+    {'label': 'HN', 'value': 'HN'},
+    {'label': 'DN', 'value': 'DN'},
+    {'label': 'QN', 'value': 'QN'},
+    {'label': 'CT', 'value': 'CT'},
+  ];
+
   @override
   void initState() {
     super.initState();
     _selectedStatus = widget.currentStatus;
     _selectedDate = widget.currentDate;
     _selectedSubjectCode = widget.currentSubjectCode;
-    _selectedProctorId = widget.currentProctorId;
+    _selectedExamType = widget.currentExamType;
+    _selectedCampus = widget.currentCampus;
+    _selectedFromDate = widget.currentFromDate;
+    _selectedToDate = widget.currentToDate;
     _selectedExamRoomId = widget.currentExamRoomId;
   }
 
@@ -69,7 +99,6 @@ class _ExamSessionFilterSheetState
     // Import controller provider to get live data
     final state = ref.watch(examSessionsControllerProvider);
     final availableRooms = state.availableRooms;
-    final availableProctors = state.availableProctors;
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -132,24 +161,39 @@ class _ExamSessionFilterSheetState
               l10n: l10n,
             ),
             const SizedBox(height: 20),
-            _buildLabel(l10n.assigneeProctor),
+            _buildLabel('Exam Type'),
             const SizedBox(height: 8),
-            _buildSearchableField<UserModel>(
-              value: _selectedProctorId,
-              items: availableProctors,
-              isLoading: state.isLoadingProctors,
-              hint: l10n.assignee,
-              loadingHint: l10n.loadingProctors,
-              emptyHint: l10n.noProctorsAvailable,
-              displayLabel: (p) => p.username ?? p.fullName ?? 'Unknown',
-              valueSelector: (p) => p.username ?? '',
-              onChanged: (val) => setState(() => _selectedProctorId = val),
+            _buildSearchableField<Map<String, String>>(
+              value: _selectedExamType,
+              items: _examTypes,
+              isLoading: false,
+              hint: 'Exam Type',
+              loadingHint: 'Loading exam types',
+              emptyHint: 'No exam types available',
+              displayLabel: (t) => t['label'] ?? '',
+              valueSelector: (t) => t['value'] ?? '',
+              onChanged: (val) => setState(() => _selectedExamType = val),
               l10n: l10n,
             ),
             const SizedBox(height: 20),
-            _buildLabel(l10n.examDate),
+            _buildLabel('Campus'),
             const SizedBox(height: 8),
-            _buildDateField(l10n),
+            _buildSearchableField<Map<String, String>>(
+              value: _selectedCampus,
+              items: _campuses,
+              isLoading: false,
+              hint: 'Campus',
+              loadingHint: 'Loading campuses',
+              emptyHint: 'No campuses available',
+              displayLabel: (c) => c['label'] ?? '',
+              valueSelector: (c) => c['value'] ?? '',
+              onChanged: (val) => setState(() => _selectedCampus = val),
+              l10n: l10n,
+            ),
+            const SizedBox(height: 20),
+            _buildLabel('Date Range'),
+            const SizedBox(height: 8),
+            _buildDateRangeField(l10n),
             const SizedBox(height: 32),
             Row(
               children: [
@@ -358,27 +402,65 @@ class _ExamSessionFilterSheetState
     );
   }
 
-  Widget _buildDateField(AppLocalizations l10n) {
+  Widget _buildDateRangeField(AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildDateField(
+            label: 'From',
+            value: _selectedFromDate,
+            onTap: () => _selectDate(
+              initialDate: _selectedFromDate,
+              onSelected: (date) => setState(() => _selectedFromDate = date),
+            ),
+            l10n: l10n,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildDateField(
+            label: 'To',
+            value: _selectedToDate,
+            onTap: () => _selectDate(
+              initialDate: _selectedToDate,
+              onSelected: (date) => setState(() => _selectedToDate = date),
+            ),
+            l10n: l10n,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+    required AppLocalizations l10n,
+  }) {
     return InkWell(
-      onTap: _selectDate,
+      onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, size: 20, color: Colors.grey[600]),
-            const SizedBox(width: 12),
-            Text(
-              _selectedDate != null
-                  ? DateFormat('MMM dd, yyyy').format(_selectedDate!)
-                  : l10n.selectDate,
-              style: TextStyle(
-                color:
-                    _selectedDate != null ? Colors.black87 : Colors.grey[600],
+            Icon(Icons.calendar_today, size: 18, color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                value != null
+                    ? DateFormat('MMM dd, yyyy').format(value)
+                    : label,
+                style: TextStyle(
+                  color: value != null ? Colors.black87 : Colors.grey[600],
+                  fontSize: 12,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -387,26 +469,45 @@ class _ExamSessionFilterSheetState
     );
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _selectDate({
+    required DateTime? initialDate,
+    required ValueChanged<DateTime> onSelected,
+  }) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
+      initialDate: initialDate ?? DateTime.now(),
       firstDate: DateTime(2023),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      onSelected(picked);
     }
   }
+
 
   void _clearFilters() {
     setState(() {
       _selectedStatus = null;
       _selectedDate = null;
       _selectedSubjectCode = null;
-      _selectedProctorId = null;
+      _selectedExamType = null;
+      _selectedCampus = null;
+      _selectedFromDate = null;
+      _selectedToDate = null;
       _selectedExamRoomId = null;
     });
+
+    widget.onApply(
+      status: null,
+      date: null,
+      subjectCode: null,
+      examType: null,
+      campus: null,
+      fromDate: null,
+      toDate: null,
+      examRoomId: null,
+      clearFilters: true,
+    );
   }
 
   void _applyFilters() {
@@ -414,8 +515,12 @@ class _ExamSessionFilterSheetState
       status: _selectedStatus,
       date: _selectedDate,
       subjectCode: _selectedSubjectCode,
-      proctorId: _selectedProctorId,
+      examType: _selectedExamType,
+      campus: _selectedCampus,
+      fromDate: _selectedFromDate,
+      toDate: _selectedToDate,
       examRoomId: _selectedExamRoomId,
+      clearFilters: false,
     );
     Navigator.pop(context);
   }

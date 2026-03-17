@@ -34,14 +34,26 @@ class SeatWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            seat.studentExam?.studentCode ?? '',
+            seat.displayNumber,
             style: TextStyle(
               color: _getTextColor(),
-              fontWeight: FontWeight.bold,
-              fontSize: 10, // Slightly smaller to fit student codes better
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
             ),
             textAlign: TextAlign.center,
           ),
+          if (seat.studentExam?.studentCode != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              seat.studentExam!.studentCode!,
+              style: TextStyle(
+                color: _getTextColor(),
+                fontWeight: FontWeight.bold,
+                fontSize: 9,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
       ),
     );
@@ -52,24 +64,24 @@ class SeatWidget extends StatelessWidget {
       case SeatStatus.available:
         return const Color(0xFFF5F5F5);
       case SeatStatus.occupied:
-        return const Color(0xFFE3F2FD); // Light blue
+        return const Color(0xFF2196F3); // Blue
       case SeatStatus.present:
-        return const Color(0xFFE8F5E9); // Light green
+        return const Color(0xFF4CAF50); // Green
       case SeatStatus.absent:
-        return const Color(0xFFFFEBEE); // Light red
+        return const Color(0xFFF44336); // Red
     }
   }
 
   Color _getTextColor() {
     switch (seat.status) {
       case SeatStatus.available:
-        return Colors.grey[400]!;
+        return Colors.grey[600]!;
       case SeatStatus.occupied:
-        return const Color(0xFF1976D2);
+        return Colors.white;
       case SeatStatus.present:
-        return const Color(0xFF388E3C);
+        return Colors.white;
       case SeatStatus.absent:
-        return const Color(0xFFD32F2F);
+        return Colors.white;
     }
   }
 }

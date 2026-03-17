@@ -666,14 +666,40 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text(
-                      seat.displayNumber,
-                      style: TextStyle(
-                        color: _getSeatColor(seat.status),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    child: seat.studentExam?.studentAvatarUrl?.isNotEmpty ==
+                            true
+                        ? GestureDetector(
+                            onTap: () => _showAvatarPreview(
+                              seat.studentExam!.studentAvatarUrl!,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                seat.studentExam!.studentAvatarUrl!,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Text(
+                                    seat.displayNumber,
+                                    style: TextStyle(
+                                      color: _getSeatColor(seat.status),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                        : Text(
+                            seat.displayNumber,
+                            style: TextStyle(
+                              color: _getSeatColor(seat.status),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -709,6 +735,11 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               _buildDetailRow(l10n.studentId, seat.studentExam!.studentId),
               const SizedBox(height: 12),
               _buildDetailRow(
+                'Student Name',
+                seat.studentExam!.studentName ?? '-',
+              ),
+              const SizedBox(height: 12),
+              _buildDetailRow(
                   l10n.status, seat.studentExam!.status.name.toUpperCase()),
               const SizedBox(height: 12),
               if (seat.studentExam!.checkinTime != null)
@@ -742,6 +773,28 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showAvatarPreview(String imageUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: InteractiveViewer(
+            child: Image.network(
+              imageUrl,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
