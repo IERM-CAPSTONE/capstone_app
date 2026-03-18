@@ -45,6 +45,7 @@ node_modules/
 # Private environment/secrets
 .env
 .env.*
+lib/config/env.dart
 *.jks
 *.keystore
 *.p12
