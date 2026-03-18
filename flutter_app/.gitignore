@@ -34,6 +34,8 @@ out/
 .pub-cache/
 .pub/
 /build/
+node_modules/
+.gradle/
 
 # Common generated files (using build_runner)
 *.g.dart
@@ -48,6 +50,10 @@ out/
 *.p12
 *.key
 *.pem
+firebase-credentials.json
+google-services.json
+tokens.json
+token.json
 
 # Android specific
 /android/local.properties
@@ -74,4 +80,3 @@ app.*.symbols
 
 # Obfuscation related
 app.*.map.json
-

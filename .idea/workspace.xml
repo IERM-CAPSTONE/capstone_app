@@ -6,26 +6,18 @@
   <component name="ChangeListManager">
     <list default="true" id="6d4d87ff-0edf-4bf4-a925-79277aca0f8e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deviceManager.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deviceManager.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/android/app/src/main/res/xml/network_security_config.xml" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/android/app/src/main/res/xml/network_security_config.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/config/dependency_injection.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/config/dependency_injection.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/config/env.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/config/env.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/core/routes/app_routes.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/core/routes/app_routes.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/data/models/exam_session.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/data/models/exam_session.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/data/models/student_exam.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/data/models/student_exam.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/data/models/user_model.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/data/models/user_model.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/data/repositories/exam_room_repository.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/data/repositories/exam_room_repository.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/data/repositories/exam_session_repository.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/data/repositories/exam_session_repository.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/data/services/auth_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/data/services/auth_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/features/auth/login/login_controller.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/features/auth/login/login_controller.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/features/auth/registerf_face/register_controller.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/features/auth/registerf_face/register_controller.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/features/auth/registerf_face/register_state.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/features/auth/registerf_face/register_state.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/features/exam_rooms/exam_room_detail_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/features/exam_rooms/exam_room_detail_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/features/exam_sessions/exam_sessions_controller.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/features/exam_sessions/exam_sessions_controller.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/features/exam_sessions/exam_sessions_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/features/exam_sessions/exam_sessions_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flutter_app/lib/features/home/home_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/features/home/home_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/android/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/android/app/google-services.json" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/android/app/google-services.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/android/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/android/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/firebase.json" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/firebase.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/lib/data/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/data/services/api_service.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/flutter_app/lib/firebase_options.dart" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/lib/firebase_options.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flutter_app/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/flutter_app/pubspec.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,20 +39,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "develop",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/do an/capstone_app"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/JIRA__DEV146&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/do an/capstone_app&quot;
   }
-}]]></component>
+}</component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="6d4d87ff-0edf-4bf4-a925-79277aca0f8e" name="Changes" comment="" />

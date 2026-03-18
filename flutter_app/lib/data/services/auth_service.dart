@@ -9,8 +9,14 @@ import '../models/user_model.dart';
 class AuthService {
   final _auth = FirebaseAuth.instance;
 
+  // Web OAuth client ID from Firebase project's google-services.json (client_type 3).
+  // Providing this explicitly helps GoogleSignIn resolve the correct OAuth config.
+  static const String _serverClientId =
+      '1002718928406-kaga5babk9pqk7n8hdla5b13tftajk8e.apps.googleusercontent.com';
+
   // GoogleSignIn without serverClientId - let it use default from google-services.json
   final _googleSignIn = GoogleSignIn(
+    serverClientId: _serverClientId,
     scopes: ['email', 'profile'],
   );
 
