@@ -11,6 +11,8 @@ import '../exam_rooms/widgets/seat_widget.dart';
 import '../exam_rooms/widgets/seating_legend.dart';
 import 'package:intl/intl.dart';
 import '../auth/face_authenticate/face_authenticate_page.dart';
+import '../profile/proctor_profile_controller.dart';
+import '../profile/proctor_profile_state.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 final examSessionDetailProvider =
@@ -374,13 +376,34 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       return const SizedBox.shrink();
     }
 
+    final profileState = ref.watch(proctorProfileControllerProvider);
+    final deviceIsActive =
+        profileState.deviceStatus == DeviceRegistrationStatus.active;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
+                if (!deviceIsActive) {
+                  final message = profileState.deviceStatus ==
+                          DeviceRegistrationStatus.none
+                      ? 'Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.'
+                      : 'Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.';
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(

@@ -90,4 +90,20 @@ abstract class ApiService {
     @Query('limit') int? limit,
     @Query('roomNumber') String? roomNumber,
   );
+
+  // Device Applications
+  @POST('/device-applications/register')
+  Future<Map<String, dynamic>> registerDeviceApplication(
+    @Body() Map<String, dynamic> payload,
+  );
+
+  @GET('/device-applications/me')
+  Future<List<Map<String, dynamic>>> getMyDeviceApplications();
+
+  @DELETE('/device-applications/{id}')
+  Future<void> deleteDeviceApplication(@Path('id') String id);
+
+  // Devices
+  @GET('/devices/me')
+  Future<List<Map<String, dynamic>>> getMyDevices();
 }

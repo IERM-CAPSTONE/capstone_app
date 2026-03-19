@@ -6,6 +6,7 @@ import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
 import '../../features/profile/profile_page.dart';
 import '../../features/profile/proctor_profile_page.dart';
+import '../../features/devices/my_devices_page.dart';
 import '../../features/exam_sessions/exam_sessions_page.dart';
 
 class AppRoutes {
@@ -15,6 +16,7 @@ class AppRoutes {
   static const String attendance = '/attendance';
   static const String profile = '/profile';
   static const String proctorProfile = '/proctor-profile';
+  static const String myDeviceList = '/proctor-profile/my-devices';
   static const String examSchedule = '/exam-schedule';
   static const String proctorDashboard = '/proctor-dashboard';
 
@@ -25,15 +27,25 @@ class AppRoutes {
         final authService = DependencyInjection.get<AuthService>();
         final isLoggedIn = authService.isLoggedIn();
 
-        if (isLoggedIn && state.matchedLocation == login) {
+        if (isLoggedIn) {
           final user = await authService.getSavedUserData();
           final role = user?.role?.toLowerCase();
-          print('Token found! Redirecting based on role: $role');
 
-          if (role == 'proctor') {
-            return proctorDashboard;
+          if (state.matchedLocation == login) {
+            print('Token found! Redirecting based on role: $role');
+            if (role == 'proctor') {
+              return proctorDashboard;
+            }
+            return home;
           }
-          return home;
+
+          if (state.matchedLocation == profile && role == 'proctor') {
+            return proctorProfile;
+          }
+
+          if (state.matchedLocation == proctorProfile && role != 'proctor') {
+            return profile;
+          }
         }
 
         if (!isLoggedIn && state.matchedLocation == home) {
@@ -65,6 +77,11 @@ class AppRoutes {
         path: proctorProfile,
         name: 'proctor-profile',
         builder: (context, state) => const ProctorProfilePage(),
+      ),
+      GoRoute(
+        path: myDeviceList,
+        name: 'proctor-my-devices',
+        builder: (context, state) => const MyDevicesPage(),
       ),
       GoRoute(
         path: examSchedule,
