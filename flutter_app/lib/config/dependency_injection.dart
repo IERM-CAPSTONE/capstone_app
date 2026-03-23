@@ -56,16 +56,21 @@ class DependencyInjection {
             if (data.containsKey('data') && data.containsKey('success')) {
               final innerData = data['data'];
 
-              // Check type of innerData
+              // Unwrap payload and preserve pagination meta if present
               if (innerData is Map) {
-                // innerData is Map - check if it's paginated
-                final innerMap = innerData as Map;
-                final isPaginated = innerMap.containsKey('data') &&
-                    innerMap.containsKey('total');
-
-                if (!isPaginated) {
-                  // Unwrap: {success, data: {id, ...}} → {id, ...}
-                  response.data = innerData;
+                response.data = innerData;
+              } else if (innerData is List) {
+                final meta = data['meta'];
+                if (meta is Map) {
+                  response.data = {
+                    'data': innerData,
+                    'total': meta['total'],
+                    'page': meta['page'],
+                    'limit': meta['limit'],
+                    'totalPages': meta['totalPages'],
+                  };
+                } else {
+                  response.data = {'data': innerData};
                 }
               }
             }

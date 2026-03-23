@@ -32,6 +32,8 @@ class StudentExam {
   final DateTime updatedAt;
   final String? studentName;
   final String? studentCode;
+  final String? studentAvatarUrl;
+  final Map<String, dynamic>? rawStudent;
 
   StudentExam({
     required this.id,
@@ -49,6 +51,8 @@ class StudentExam {
     required this.updatedAt,
     this.studentName,
     this.studentCode,
+    this.studentAvatarUrl,
+    this.rawStudent,
   });
 
   factory StudentExam.fromJson(Map<String, dynamic> json) {
@@ -57,6 +61,8 @@ class StudentExam {
       if (value is String) return DateTime.tryParse(value);
       return null;
     }
+
+    final student = json['student'] as Map<String, dynamic>?;
 
     return StudentExam(
       id: json['id'] as String? ?? '',
@@ -77,8 +83,14 @@ class StudentExam {
       isValid: json['isValid'] as bool? ?? true,
       createdAt: parseDate(json['createdAt']) ?? DateTime.now(),
       updatedAt: parseDate(json['updatedAt']) ?? DateTime.now(),
-      studentName: json['studentName'] as String?,
-      studentCode: json['studentCode'] as String?,
+      studentName: json['studentName'] as String? ??
+          student?['fullName'] as String?,
+      studentCode: json['studentCode'] as String? ??
+          student?['code'] as String?,
+      studentAvatarUrl: json['studentAvatarUrl'] as String? ??
+          json['avatarUrl'] as String? ??
+          student?['avatarUrl'] as String?,
+      rawStudent: student,
     );
   }
 

@@ -26,7 +26,7 @@ class ExamSessionsPage extends ConsumerStatefulWidget {
 
 class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedTab = 0; // 0: Upcoming, 1: All Exams
+  int _selectedTab = 0; // 0: Today, 1: This week, 2: All, 3: Past
 
   @override
   void dispose() {
@@ -178,18 +178,6 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // Date Filter
-          _buildFilterChip(
-            icon: Icons.calendar_today,
-            label: state.filterDate != null
-                ? DateFormat('MMM dd, yyyy').format(state.filterDate!)
-                : l10n.allDates,
-            onTap: () => _selectDate(context, state, controller),
-            onClear: state.filterDate != null
-                ? () => controller.applyFilters(date: null)
-                : null,
-          ),
-          const SizedBox(width: 8),
 
           // Subject Filter
           if (state.filterSubjectCode != null) ...[
@@ -197,18 +185,43 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
               icon: Icons.book,
               label: state.filterSubjectCode!,
               onTap: () => _showFilterSheet(context, state, controller),
-              onClear: () => controller.applyFilters(subjectCode: null),
+              onClear: () => controller.applyFilters(clearSubjectCode: true),
             ),
             const SizedBox(width: 8),
           ],
 
-          // Proctor Filter
-          if (state.filterProctorId != null) ...[
+          // Exam Type Filter
+          if (state.filterExamType != null) ...[
             _buildFilterChip(
-              icon: Icons.person,
-              label: l10n.proctorLabel(state.filterProctorId!),
+              icon: Icons.tag,
+              label: 'Type: ${state.filterExamType}',
               onTap: () => _showFilterSheet(context, state, controller),
-              onClear: () => controller.applyFilters(proctorId: null),
+              onClear: () => controller.applyFilters(clearExamType: true),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Campus Filter
+          if (state.filterCampus != null) ...[
+            _buildFilterChip(
+              icon: Icons.location_on,
+              label: 'Campus: ${state.filterCampus}',
+              onTap: () => _showFilterSheet(context, state, controller),
+              onClear: () => controller.applyFilters(clearCampus: true),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Date Range Filter
+          if (state.filterFromDate != null || state.filterToDate != null) ...[
+            _buildFilterChip(
+              icon: Icons.date_range,
+              label: _formatDateRange(state.filterFromDate, state.filterToDate),
+              onTap: () => _showFilterSheet(context, state, controller),
+              onClear: () => controller.applyFilters(
+                clearFromDate: true,
+                clearToDate: true,
+              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -219,7 +232,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
               icon: Icons.meeting_room,
               label: l10n.roomLabel(state.filterExamRoomId!),
               onTap: () => _showFilterSheet(context, state, controller),
-              onClear: () => controller.applyFilters(examRoomId: null),
+              onClear: () => controller.applyFilters(clearExamRoomId: true),
             ),
             const SizedBox(width: 8),
           ],
@@ -279,6 +292,20 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
+  String _formatDateRange(DateTime? from, DateTime? to) {
+    final formatter = DateFormat('MMM dd');
+    if (from != null && to != null) {
+      return '${formatter.format(from)} - ${formatter.format(to)}';
+    }
+    if (from != null) {
+      return 'From ${formatter.format(from)}';
+    }
+    if (to != null) {
+      return 'To ${formatter.format(to)}';
+    }
+    return 'Date Range';
+  }
+
   Widget _buildToggle(
       ExamSessionsController controller, AppLocalizations l10n) {
     return Container(
@@ -293,7 +320,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
             child: GestureDetector(
               onTap: () {
                 setState(() => _selectedTab = 0);
-                controller.filterAll();
+                controller.filterToday();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -302,7 +329,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  l10n.upcoming,
+                  l10n.today,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _selectedTab == 0 ? Colors.black87 : Colors.white,
@@ -317,7 +344,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
             child: GestureDetector(
               onTap: () {
                 setState(() => _selectedTab = 1);
-                controller.filterByMe();
+                controller.filterThisWeek();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -326,10 +353,58 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  l10n.myExams,
+                  'This Week',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _selectedTab == 1 ? Colors.black87 : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _selectedTab = 2);
+                controller.filterAll();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 2 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'All',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _selectedTab == 2 ? Colors.black87 : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _selectedTab = 3);
+                controller.filterPast();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 3 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Past',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _selectedTab == 3 ? Colors.black87 : Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -356,9 +431,25 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     // Filter and Group Data
     final filteredSessions = state.examSessions.where((data) {
       final session = data['session'] as ExamSession;
+      final examDate = session.examOpenTime;
+      final today = DateTime.now();
       if (_selectedTab == 0) {
-        return session.status == ExamSessionStatus.scheduled ||
-            session.status == ExamSessionStatus.ongoing;
+        if (examDate == null) return false;
+        return examDate.year == today.year &&
+            examDate.month == today.month &&
+            examDate.day == today.day;
+      }
+      if (_selectedTab == 1) {
+        if (examDate == null) return false;
+        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return examDate.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) &&
+            examDate.isBefore(endOfWeek.add(const Duration(days: 1)));
+      }
+      if (_selectedTab == 3) {
+        if (examDate == null) return false;
+        final todayStart = DateTime(today.year, today.month, today.day);
+        return examDate.isBefore(todayStart);
       }
       return true;
     }).toList();
@@ -400,7 +491,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
         final isToday =
             dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
         final displayDate = isToday
-            ? DateFormat('MMM dd').format(DateTime.now()) + '\n${l10n.today}'
+            ? '${DateFormat('MMM dd').format(DateTime.now())}\n${l10n.today}'
             : dateKey;
 
         return Row(
@@ -540,35 +631,39 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => ExamSessionFilterSheet(
         currentStatus: state.filterStatus,
-        currentDate: state.filterDate,
+        currentFromDate: state.filterFromDate,
+        currentToDate: state.filterToDate,
         currentSubjectCode: state.filterSubjectCode,
-        currentProctorId: state.filterProctorId,
+        currentExamType: state.filterExamType,
+        currentCampus: state.filterCampus,
         currentExamRoomId: state.filterExamRoomId,
-        onApply: ({status, date, subjectCode, proctorId, examRoomId}) {
+        onApply: ({
+          status,
+          date,
+          fromDate,
+          toDate,
+          subjectCode,
+          examType,
+          campus,
+          examRoomId,
+          clearFilters = false,
+        }) {
           controller.applyFilters(
             status: status,
             date: date,
+            fromDate: fromDate,
+            toDate: toDate,
             subjectCode: subjectCode,
-            proctorId: proctorId,
+            examType: examType,
+            campus: campus,
             examRoomId: examRoomId,
+            clearFilters: clearFilters,
           );
         },
       ),
     );
   }
 
-  Future<void> _selectDate(BuildContext context, ExamSessionsState state,
-      ExamSessionsController controller) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: state.filterDate ?? DateTime.now(),
-      firstDate: DateTime(2023),
-      lastDate: DateTime(2026),
-    );
-    if (picked != null) {
-      controller.applyFilters(date: picked);
-    }
-  }
 
   Future<void> _navigateToDetail(
       String examSessionId, AppLocalizations l10n) async {

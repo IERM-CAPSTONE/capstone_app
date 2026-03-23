@@ -94,11 +94,33 @@ class SeatingPlan {
   }) {
     final List<Seat> seats = [];
 
+    // Build ordered seat numbers (row-major) for numeric seatNumber mapping
+    final List<String> orderedSeatNumbers = [];
+    for (int row = 0; row < maxRows; row++) {
+      for (int col = 0; col < maxColumns; col++) {
+        orderedSeatNumbers.add('${row + 1}-${col + 1}');
+      }
+    }
+
+    String? normalizeSeatNumber(String? seatNumber) {
+      if (seatNumber == null || seatNumber.trim().isEmpty) return null;
+      final trimmed = seatNumber.trim();
+      final numeric = int.tryParse(trimmed);
+      if (numeric != null) {
+        final index = numeric - 1;
+        if (index >= 0 && index < orderedSeatNumbers.length) {
+          return orderedSeatNumbers[index];
+        }
+      }
+      return trimmed;
+    }
+
     // Create a map of seatNumber -> StudentExam for quick lookup
     final Map<String, StudentExam> studentBySeat = {};
     for (var student in studentExams) {
-      if (student.seatNumber != null) {
-        studentBySeat[student.seatNumber!] = student;
+      final normalizedSeat = normalizeSeatNumber(student.seatNumber);
+      if (normalizedSeat != null) {
+        studentBySeat[normalizedSeat] = student;
       }
     }
 

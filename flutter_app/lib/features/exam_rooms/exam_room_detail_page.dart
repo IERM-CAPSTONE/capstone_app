@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/exam_room.dart';
 import '../../data/models/exam_student.dart';
 import '../../data/repositories/exam_room_repository.dart' as repo;
+import '../../config/dependency_injection.dart';
+import '../../data/services/auth_service.dart';
+import '../../data/models/user_model.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'widgets/student_list_item.dart';
 import 'seating_plan_page.dart';
 
@@ -18,7 +22,7 @@ final examStudentsProvider =
   return repository.getExamStudents(examRoomId);
 });
 
-class ExamRoomDetailPage extends ConsumerWidget {
+class ExamRoomDetailPage extends ConsumerStatefulWidget {
   final String examRoomId;
 
   const ExamRoomDetailPage({
@@ -27,16 +31,94 @@ class ExamRoomDetailPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final examRoomAsync = ref.watch(examRoomDetailProvider(examRoomId));
-    final studentsAsync = ref.watch(examStudentsProvider(examRoomId));
+  ConsumerState<ExamRoomDetailPage> createState() =>
+      _ExamRoomDetailPageState();
+}
+
+class _ExamRoomDetailPageState extends ConsumerState<ExamRoomDetailPage> {
+  UserModel? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final authService = DependencyInjection.get<AuthService>();
+    final user = await authService.getSavedUserData();
+    if (!mounted) return;
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final examRoomAsync =
+        ref.watch(examRoomDetailProvider(widget.examRoomId));
+    final studentsAsync =
+        ref.watch(examStudentsProvider(widget.examRoomId));
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_currentUser != null && _currentUser?.role?.toUpperCase() == 'STUDENT') {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFF6B35),
+        body: SafeArea(
+          child: Center(
+            child: Container(
+              margin: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline,
+                      size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.studentAccessDenied,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Vui lòng liên hệ quản trị viên để được hỗ trợ.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF6B35),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Quay lại',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, l10n),
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -66,7 +148,7 @@ class ExamRoomDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -78,10 +160,10 @@ class ExamRoomDetailPage extends ConsumerWidget {
             constraints: const BoxConstraints(),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Proctor - Exam Room Detail',
-              style: TextStyle(
+              l10n.proctorExamDetail,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -218,7 +300,7 @@ class ExamRoomDetailPage extends ConsumerWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => SeatingPlanPage(
-                      examSessionId: examRoomId,
+                      examSessionId: widget.examRoomId,
                       examSessionTitle: 'Seating Plan',
                     ),
                   ),

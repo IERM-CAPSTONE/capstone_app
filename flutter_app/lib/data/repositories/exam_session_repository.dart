@@ -16,17 +16,25 @@ class ExamSessionRepository {
     String? search,
     String? status,
     DateTime? date,
+    DateTime? fromDate,
+    DateTime? toDate,
     String? timeSlot,
     String? proctorId,
     String? studentId,
     String? subjectCode,
     String? examRoomId,
+    String? examType,
+    String? campus,
     int page = 1,
     int itemsPerPage = 10,
   }) async {
     try {
       final dateStr =
           date != null ? DateFormat('yyyy-MM-dd').format(date) : null;
+      final fromDateStr =
+          fromDate != null ? DateFormat('yyyy-MM-dd').format(fromDate) : null;
+      final toDateStr =
+          toDate != null ? DateFormat('yyyy-MM-dd').format(toDate) : null;
 
       final response = await _apiService.getExamSessions(
         page,
@@ -36,6 +44,10 @@ class ExamSessionRepository {
         proctorId, // proctorId
         studentId, // studentId
         dateStr, // PASS DATE TO BACKEND
+        fromDateStr,
+        toDateStr,
+        examType,
+        campus,
       );
 
       // Apply additional client-side filters if needed

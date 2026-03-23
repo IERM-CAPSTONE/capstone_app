@@ -11,6 +11,8 @@ import '../exam_rooms/widgets/seat_widget.dart';
 import '../exam_rooms/widgets/seating_legend.dart';
 import 'package:intl/intl.dart';
 import '../auth/face_authenticate/face_authenticate_page.dart';
+import '../profile/proctor_profile_controller.dart';
+import '../profile/proctor_profile_state.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 final examSessionDetailProvider =
@@ -374,13 +376,34 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       return const SizedBox.shrink();
     }
 
+    final profileState = ref.watch(proctorProfileControllerProvider);
+    final deviceIsActive =
+        profileState.deviceStatus == DeviceRegistrationStatus.active;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
+                if (!deviceIsActive) {
+                  final message = profileState.deviceStatus ==
+                          DeviceRegistrationStatus.none
+                      ? 'Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.'
+                      : 'Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.';
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -666,14 +689,40 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text(
-                      seat.displayNumber,
-                      style: TextStyle(
-                        color: _getSeatColor(seat.status),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    child: seat.studentExam?.studentAvatarUrl?.isNotEmpty ==
+                            true
+                        ? GestureDetector(
+                            onTap: () => _showAvatarPreview(
+                              seat.studentExam!.studentAvatarUrl!,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                seat.studentExam!.studentAvatarUrl!,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Text(
+                                    seat.displayNumber,
+                                    style: TextStyle(
+                                      color: _getSeatColor(seat.status),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                        : Text(
+                            seat.displayNumber,
+                            style: TextStyle(
+                              color: _getSeatColor(seat.status),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -709,6 +758,11 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               _buildDetailRow(l10n.studentId, seat.studentExam!.studentId),
               const SizedBox(height: 12),
               _buildDetailRow(
+                'Student Name',
+                seat.studentExam!.studentName ?? '-',
+              ),
+              const SizedBox(height: 12),
+              _buildDetailRow(
                   l10n.status, seat.studentExam!.status.name.toUpperCase()),
               const SizedBox(height: 12),
               if (seat.studentExam!.checkinTime != null)
@@ -742,6 +796,28 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showAvatarPreview(String imageUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: InteractiveViewer(
+            child: Image.network(
+              imageUrl,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

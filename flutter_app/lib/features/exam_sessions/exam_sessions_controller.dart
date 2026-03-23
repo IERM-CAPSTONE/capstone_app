@@ -52,6 +52,8 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         search: state.searchQuery.isEmpty ? null : state.searchQuery,
         status: state.filterStatus,
         date: state.filterDate,
+        fromDate: state.filterFromDate,
+        toDate: state.filterToDate,
         timeSlot: state.filterTimeSlot,
         page: state.currentPage,
         itemsPerPage: state.itemsPerPage,
@@ -59,6 +61,8 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         proctorId: state.filterProctorId,
         subjectCode: state.filterSubjectCode,
         examRoomId: state.filterExamRoomId,
+        examType: state.filterExamType,
+        campus: state.filterCampus,
       );
 
       final items = result['items'] as List;
@@ -84,34 +88,59 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
   void applyFilters({
     String? status,
     DateTime? date,
+    DateTime? fromDate,
+    DateTime? toDate,
     String? timeSlot,
     String? subjectCode,
+    String? examType,
+    String? campus,
     String? proctorId,
     String? examRoomId,
     bool clearFilters = false,
+    bool clearSubjectCode = false,
+    bool clearExamType = false,
+    bool clearCampus = false,
+    bool clearFromDate = false,
+    bool clearToDate = false,
+    bool clearExamRoomId = false,
   }) {
     state = state.copyWith(
       filterStatus: status,
       filterDate: date,
+      filterFromDate: fromDate,
+      filterToDate: toDate,
       filterTimeSlot: timeSlot,
       filterSubjectCode: subjectCode,
+      filterExamType: examType,
+      filterCampus: campus,
       filterProctorId: proctorId,
       filterExamRoomId: examRoomId,
       clearFilters: clearFilters,
+      clearSubjectCode: clearSubjectCode,
+      clearExamType: clearExamType,
+      clearCampus: clearCampus,
+      clearFromDate: clearFromDate,
+      clearToDate: clearToDate,
+      clearExamRoomId: clearExamRoomId,
       currentPage: 1,
     );
     loadExamSessions();
   }
 
-  Future<void> filterByMe() async {
-    final currentUser = await _authService.getSavedUserData();
-    if (currentUser != null) {
-      applyFilters(proctorId: currentUser.id, clearFilters: true);
-    }
+  void filterToday() {
+    applyFilters(date: DateTime.now(), clearFilters: true);
+  }
+
+  void filterThisWeek() {
+    applyFilters(clearFilters: true);
+  }
+
+  void filterPast() {
+    applyFilters(clearFilters: true);
   }
 
   void filterAll() {
-    applyFilters(proctorId: null, clearFilters: true);
+    applyFilters(clearFilters: true);
   }
 
   Future<void> clearFilters() async {
