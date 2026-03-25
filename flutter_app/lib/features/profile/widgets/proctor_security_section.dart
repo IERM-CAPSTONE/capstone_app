@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../proctor_profile_controller.dart';
 
 class ProctorSecuritySection extends ConsumerWidget {
@@ -8,6 +9,7 @@ class ProctorSecuritySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileController = ref.read(proctorProfileControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       color: Colors.white,
@@ -15,11 +17,11 @@ class ProctorSecuritySection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              'Security',
-              style: TextStyle(
+              l10n.security,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -30,8 +32,8 @@ class ProctorSecuritySection extends ConsumerWidget {
           _buildSecurityCard(
             icon: Icons.lock,
             iconColor: Colors.purple,
-            title: 'Change Password',
-            subtitle: 'Update your account password',
+            title: l10n.changePassword,
+            subtitle: l10n.changePasswordDesc,
             onTap: () => profileController.changePassword(),
           ),
 
@@ -40,8 +42,8 @@ class ProctorSecuritySection extends ConsumerWidget {
           _buildSecurityCard(
             icon: Icons.security,
             iconColor: Colors.blue,
-            title: 'Two-Factor Authentication',
-            subtitle: 'Add an extra layer of security',
+            title: l10n.twoFactorAuth,
+            subtitle: l10n.twoFactorAuthDesc,
             onTap: () {
               // TODO: Implement 2FA
             },
@@ -52,8 +54,8 @@ class ProctorSecuritySection extends ConsumerWidget {
           _buildSecurityCard(
             icon: Icons.devices,
             iconColor: Colors.green,
-            title: 'Device Management',
-            subtitle: 'Manage trusted devices',
+            title: l10n.deviceManagement,
+            subtitle: l10n.deviceManagementDesc,
             onTap: () {
               // TODO: Implement device management
             },

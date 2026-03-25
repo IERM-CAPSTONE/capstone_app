@@ -33,14 +33,15 @@ class AppRoutes {
 
           if (state.matchedLocation == login) {
             print('Token found! Redirecting based on role: $role');
-            if (role == 'proctor') {
-              return proctorDashboard;
-            }
-            return home;
+            return examSchedule;
           }
 
           if (state.matchedLocation == profile && role == 'proctor') {
             return proctorProfile;
+          }
+
+          if (state.matchedLocation == home) {
+            return examSchedule;
           }
 
           if (state.matchedLocation == proctorProfile && role != 'proctor') {
@@ -48,12 +49,12 @@ class AppRoutes {
           }
         }
 
-        if (!isLoggedIn && state.matchedLocation == home) {
+        if (!isLoggedIn && state.matchedLocation == examSchedule) {
           print('No token found. Redirecting to login...');
           return login;
         }
       } catch (e) {
-        print('Error checking auth status: $e');
+        return null;
       }
       return null;
     },
@@ -66,7 +67,7 @@ class AppRoutes {
       GoRoute(
         path: home,
         name: 'home',
-        builder: (context, state) => const HomePage(),
+        builder: (context, state) => const ExamSessionsPage(),
       ),
       GoRoute(
         path: profile,

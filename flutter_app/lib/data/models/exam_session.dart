@@ -58,18 +58,19 @@ class ExamSession {
     this.examType = const [],
     this.semester,
     this.note,
-    required this.createdAt,
-    required this.updatedAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
     this.proctorName,
     this.hallInvigilatorName,
     this.maxRows,
     this.maxColumns,
     this.totalSeats,
     this.isArchived = false,
-  });
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   factory ExamSession.fromJson(Map<String, dynamic> json) {
-    // Helper to parse list of strings
+    // Helper to parse list of strings or single string into a list
     List<String> parseList(dynamic value) {
       if (value == null) return [];
       if (value is List) return value.map((e) => e.toString()).toList();
@@ -77,40 +78,79 @@ class ExamSession {
       return [];
     }
 
-    // Capture the generated result first
-    final session = _$ExamSessionFromJson(json);
-
-    // Manually override examType to ensure it's captured from 'examType' or 'examTypes'
-    final rawExamType = json['examType'] ?? json['examTypes'];
-
-    if (rawExamType != null) {
-      return ExamSession(
-        id: session.id,
-        examRoomId: session.examRoomId,
-        proctorId: session.proctorId,
-        hallInvigilatorId: session.hallInvigilatorId,
-        subjectCode: session.subjectCode,
-        examCode: session.examCode,
-        openCode: session.openCode,
-        roomNumber: session.roomNumber,
-        examOpenTime: session.examOpenTime,
-        examCloseTime: session.examCloseTime,
-        status: session.status,
-        examType: parseList(rawExamType),
-        semester: session.semester,
-        note: session.note,
-        createdAt: session.createdAt,
-        updatedAt: session.updatedAt,
-        proctorName: session.proctorName,
-        hallInvigilatorName: session.hallInvigilatorName,
-        maxRows: session.maxRows,
-        maxColumns: session.maxColumns,
-        totalSeats: session.totalSeats,
-        isArchived: session.isArchived,
-      );
+    // Helper to parse DateTime safely
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      if (value is DateTime) return value;
+      try {
+        return DateTime.parse(value.toString());
+      } catch (e) {
+        return null;
+      }
     }
 
-    return session;
+    // Capture the generated result safely if possible, but manually parse critical fields
+    final String id = json['id']?.toString() ?? '';
+    final ExamSessionStatus status = $enumDecodeNullable(
+          _$ExamSessionStatusEnumMap, 
+          json['status'],
+          unknownValue: ExamSessionStatus.scheduled,
+        ) ?? ExamSessionStatus.scheduled;
+
+    return ExamSession(
+      id: id,
+      examRoomId: json['examRoomId']?.toString(),
+      proctorId: json['proctorId']?.toString() ??
+          (json['proctor'] as Map<String, dynamic>?)?['id']?.toString(),
+      hallInvigilatorId: json['hallInvigilatorId']?.toString() ??
+          (json['hallInvigilator'] as Map<String, dynamic>?)?['id']?.toString(),
+      subjectCode: json['subjectCode']?.toString(),
+      examCode: json['examCode']?.toString(),
+      openCode: json['openCode']?.toString(),
+      roomNumber: json['roomNumber']?.toString(),
+      examOpenTime: parseDate(json['examOpenTime']),
+      examCloseTime: parseDate(json['examCloseTime']),
+      status: status,
+      examType: parseList(json['examType'] ?? json['examTypes'] ?? json['examPart']),
+      semester: _parseSemester(json),
+      note: json['note']?.toString(),
+      createdAt: parseDate(json['createdAt']),
+      updatedAt: parseDate(json['updatedAt']),
+      proctorName: _parseUserName(json['proctor']) ?? json['proctorName']?.toString(),
+      hallInvigilatorName: _parseUserName(json['hallInvigilator']) ?? json['hallInvigilatorName']?.toString(),
+      maxRows: (json['maxRows'] as num?)?.toInt(),
+      maxColumns: (json['maxColumns'] as num?)?.toInt(),
+      totalSeats: (json['totalSeats'] as num?)?.toInt(),
+      isArchived: json['isArchived'] as bool? ?? false,
+    );
+  }
+
+  static String? _parseUserName(dynamic userObj) {
+    if (userObj == null) return null;
+    if (userObj is Map<String, dynamic>) {
+      return (userObj['fullName'] ?? userObj['name'] ?? userObj['username'])
+          ?.toString();
+    }
+    return null;
+  }
+ 
+  static String? _parseSemester(Map<String, dynamic> json) {
+    // 1. Check direct field names
+    final value = json['semesterName'] ??
+        json['semester_name'] ??
+        json['semesterNameEn'] ??
+        json['semesterId'];
+
+    if (value != null) return value.toString();
+
+    // 2. Check if 'semester' is an object and has a 'name' field
+    final semesterObj = json['semester'];
+    if (semesterObj is Map<String, dynamic>) {
+      return (semesterObj['name'] ?? semesterObj['id'])?.toString();
+    }
+
+    // 3. Fallback to raw field
+    return semesterObj?.toString();
   }
 
   Map<String, dynamic> toJson() => _$ExamSessionToJson(this);

@@ -31,23 +31,23 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get faceRegisteredDesc =>
-      'Dữ liệu khuôn mặt của bạn đã được đăng ký. Bạn có thể điểm danh phòng thi bằng khuôn mặt.';
+      'Dữ liệu khuôn mặt của bạn đã được đăng ký. Bạn có thể điểm danh vào thi bằng nhận diện khuôn mặt.';
 
   @override
   String get faceNotRegisteredDesc =>
-      'Vui lòng đăng ký dữ liệu khuôn mặt để có thể điểm danh nhanh chóng.';
+      'Vui lòng đăng ký dữ liệu khuôn mặt để cho phép điểm danh vào thi nhanh chóng.';
 
   @override
-  String get updateFaceData => 'Cập nhật khuôn mặt';
+  String get updateFaceData => 'Cập nhật dữ liệu khuôn mặt';
 
   @override
-  String get enrollFaceIdentity => 'Đăng ký khuôn mặt';
+  String get enrollFaceIdentity => 'Đăng ký nhận diện khuôn mặt';
 
   @override
   String get logout => 'Đăng xuất';
 
   @override
-  String get logoutConfirm => 'Bạn có chắc chắn muốn đăng xuất không?';
+  String get logoutConfirm => 'Bạn có chắc chắn muốn đăng xuất?';
 
   @override
   String get cancel => 'Hủy';
@@ -65,13 +65,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get english => 'Tiếng Anh';
 
   @override
-  String get studentHomepage => 'Trang chủ Sinh viên';
+  String get studentHomepage => 'Trang chủ sinh viên';
 
   @override
-  String get fptExamManagement => 'Quản lý Phòng thi FPT';
+  String get fptExamManagement => 'Quản lý thi FPT';
 
   @override
-  String get secureExamSystem => 'Hệ thống Quản lý Thi Bảo mật';
+  String get secureExamSystem => 'Hệ thống Quản lý thi Bảo mật';
 
   @override
   String get copyright => '© 2026 Đại học FPT. Bảo lưu mọi quyền.';
@@ -89,8 +89,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get loginWithGoogle => 'Đăng nhập với Google';
 
   @override
-  String get useFptEmail =>
-      'Vui lòng sử dụng email của Đại học FPT (@fpt.edu.vn)';
+  String get useFptEmail => 'Vui lòng sử dụng email Đại học FPT (@fpt.edu.vn)';
 
   @override
   String get examSchedule => 'Lịch thi';
@@ -99,14 +98,14 @@ class AppLocalizationsVi extends AppLocalizations {
   String get upcoming => 'Sắp tới';
 
   @override
-  String get allExams => 'Tất cả';
+  String get allExams => 'Tất cả kỳ thi';
 
   @override
-  String get noExamsFound => 'Không tìm thấy lịch thi';
+  String get noExamsFound => 'Không tìm thấy kỳ thi nào';
 
   @override
   String pageOf(int currentPage, int totalPages) {
-    return 'Trang $currentPage / $totalPages';
+    return 'Trang $currentPage trên $totalPages';
   }
 
   @override
@@ -123,13 +122,13 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get step1Desc =>
-      'Đảm bảo khuôn mặt của bạn hiển thị rõ ràng.\n(Không đeo kính, mũ hoặc khẩu trang)';
+      'Đảm bảo khuôn mặt của bạn hiển thị rõ ràng.\n(Không đeo kính, mũ, hoặc khẩu trang)';
 
   @override
-  String get step2Title => 'Chụp ảnh CMND/CCCD 2 mặt';
+  String get step2Title => 'Chụp hai mặt của ID';
 
   @override
-  String get step2Desc => 'Chụp ảnh mặt trước và mặt sau thẻ ID của bạn.';
+  String get step2Desc => 'Chụp hình mặt trước và mặt sau thẻ ID của bạn.';
 
   @override
   String get continueText => 'Tiếp tục';
@@ -144,7 +143,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get notification => 'Thông báo';
 
   @override
-  String get allDates => 'Tất cả ngày';
+  String get allDates => 'Tất cả các ngày';
 
   @override
   String proctorLabel(String name) {
@@ -157,17 +156,17 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get myExams => 'Bài thi của tôi';
+  String get myExams => 'Lịch thi của tôi';
 
   @override
   String get studentAccessDenied =>
-      'Sinh viên không thể xem chi tiết phòng thi. Chỉ giám thị mới có quyền truy cập.';
+      'Học sinh không được xem chi tiết ca thi. Chỉ giám thị mới có quyền truy cập.';
 
   @override
-  String get tba => 'Chưa xác định';
+  String get tba => 'Chưa có';
 
   @override
-  String get filterExams => 'Lọc lịch thi';
+  String get filterExams => 'Lọc kỳ thi';
 
   @override
   String get subject => 'Môn học';
@@ -179,7 +178,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get loadingSubjects => 'Đang tải môn học...';
 
   @override
-  String get noSubjectsAvailable => 'Không có môn học';
+  String get noSubjectsAvailable => 'Không có môn học khả dụng';
 
   @override
   String get examRoom => 'Phòng thi';
@@ -188,19 +187,19 @@ class AppLocalizationsVi extends AppLocalizations {
   String get loadingRooms => 'Đang tải phòng thi...';
 
   @override
-  String get noRoomsAvailable => 'Không có phòng thi';
+  String get noRoomsAvailable => 'Không có phòng thi khả dụng';
 
   @override
-  String get assigneeProctor => 'Giám thị';
+  String get assigneeProctor => 'Người phân công (Giám thị)';
 
   @override
-  String get assignee => 'Giám thị';
+  String get assignee => 'Người phân công';
 
   @override
   String get loadingProctors => 'Đang tải giám thị...';
 
   @override
-  String get noProctorsAvailable => 'Không có giám thị';
+  String get noProctorsAvailable => 'Không có giám thị khả dụng';
 
   @override
   String get examDate => 'Ngày thi';
@@ -212,7 +211,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get clearAll => 'Xóa tất cả';
 
   @override
-  String get applyResults => 'Áp dụng';
+  String get applyResults => 'Áp dụng kết quả';
 
   @override
   String searchPlaceholder(String title) {
@@ -223,25 +222,25 @@ class AppLocalizationsVi extends AppLocalizations {
   String get noDataAvailable => 'Không có dữ liệu';
 
   @override
-  String get clearSelection => 'Xóa chọn lựa';
+  String get clearSelection => 'Xóa lựa chọn';
 
   @override
-  String get proctorExamDetail => 'Giám thị - Chi tiết phòng thi';
+  String get proctorExamDetail => 'Giám thị - Chi tiết ca thi';
 
   @override
-  String get examDetail => 'Chi tiết phòng thi';
+  String get examDetail => 'Chi tiết ca thi';
 
   @override
-  String get sessionNotFound => 'Không tìm thấy phòng thi';
+  String get sessionNotFound => 'Không tìm thấy ca thi';
 
   @override
-  String get sessionDetails => 'Thông tin phòng thi';
+  String get sessionDetails => 'Chi tiết phiên';
 
   @override
   String get semester => 'Học kỳ';
 
   @override
-  String get total => 'Tổng số';
+  String get total => 'Tổng cộng';
 
   @override
   String get present => 'Có mặt';
@@ -250,10 +249,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get absent => 'Vắng mặt';
 
   @override
-  String get seatingPlanNotAvailable => 'Sơ đồ chỗ ngồi chưa sẵn sàng';
+  String get seatingPlanNotAvailable => 'Sơ đồ chỗ ngồi không khả dụng';
 
   @override
-  String get teacherDesk => 'BÀN GIÁM THỊ / CỬA RA VÀO';
+  String get teacherDesk => 'BÀN GIÁO VIÊN / LỐI VÀO';
 
   @override
   String seatLabel(String number) {
@@ -261,16 +260,16 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get studentId => 'Mã sinh viên';
+  String get studentId => 'Mã số sinh viên';
 
   @override
   String get status => 'Trạng thái';
 
   @override
-  String get checkinTime => 'Giờ điểm danh';
+  String get checkinTime => 'Thời gian check-in';
 
   @override
-  String get faCheckin => 'Điểm danh FA';
+  String get faCheckin => 'FA Checkin';
 
   @override
   String get createTicket => 'Tạo Ticket';
@@ -279,7 +278,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get available => 'Trống';
 
   @override
-  String get occupied => 'Đã xếp chỗ';
+  String get occupied => 'Đã ngồi';
 
   @override
   String durationMins(int minutes) {
@@ -287,35 +286,35 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get campusExamination => 'Thi tại trường';
+  String get campusExamination => 'Kỳ thi tại cơ sở';
 
   @override
-  String get examInProgress => 'Phòng thi đang diễn ra';
+  String get examInProgress => 'Kỳ thi đang diễn ra';
 
   @override
-  String get checkinNote => 'Điểm danh 15 phút trước khi bắt đầu';
+  String get checkinNote => 'Check-in 15 phút trước khi bắt đầu';
 
   @override
   String get ongoing => 'Đang diễn ra';
 
   @override
-  String get completed => 'Hoàn thành';
+  String get completed => 'Đã hoàn thành';
 
   @override
-  String get unknown => 'Chưa rõ';
+  String get unknown => 'Không xác định';
 
   @override
   String get lookStraight => 'Nhìn thẳng vào camera';
 
   @override
-  String get putFaceInFrame => 'Vui lòng đưa khuôn mặt vào khung hình';
+  String get putFaceInFrame => 'Vui lòng để khuôn mặt vào khung hình';
 
   @override
   String get blinkToAuthenticate => '👁️ Vui lòng nháy mắt để xác thực';
 
   @override
   String holdStill(int count, int total) {
-    return '✓ Giữ nguyên... $count/$total';
+    return '✓ Giữ yên... $count/$total';
   }
 
   @override
@@ -339,7 +338,7 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get complete => 'Hoàn tất';
+  String get complete => 'Hoàn thành';
 
   @override
   String get retry => 'Thử lại';
@@ -355,5 +354,137 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get faceNotRecognized =>
-      'Không nhận diện được khuôn mặt. Vui lòng thử lại.';
+      'Khuôn mặt không được nhận diện. Vui lòng thử lại.';
+
+  @override
+  String get thisWeek => 'Tuần này';
+
+  @override
+  String get all => 'Tất cả';
+
+  @override
+  String get past => 'Quá khứ';
+
+  @override
+  String get notAssigned => 'Chưa được phân công';
+
+  @override
+  String get proctorOfficer => 'Cán bộ coi thi';
+
+  @override
+  String get generalSchedule => 'Lịch thi chung';
+
+  @override
+  String get proctorProfile => 'Hồ sơ Giám thị';
+
+  @override
+  String get department => 'Phòng ban';
+
+  @override
+  String get campus => 'Cơ sở';
+
+  @override
+  String get deviceRegistration => 'Đăng ký thiết bị';
+
+  @override
+  String get deviceRegistrationDesc =>
+      'Đăng ký thiết bị để kích hoạt giám sát thi an toàn.';
+
+  @override
+  String get security => 'Bảo mật';
+
+  @override
+  String get helpSupport => 'Trợ giúp & Hỗ trợ';
+
+  @override
+  String get examinationDepartment => 'Phòng Khảo thí';
+
+  @override
+  String get hoChiMinhCampus => 'ĐH FPT - Cơ sở TP. Hồ Chí Minh';
+
+  @override
+  String get active => 'Đang hoạt động';
+
+  @override
+  String get pending => 'Chờ duyệt';
+
+  @override
+  String get deviceActiveDesc => 'Thiết bị đã được đăng ký và đang hoạt động.';
+
+  @override
+  String get devicePendingDesc => 'Thiết bị đã được đăng ký và đang chờ duyệt.';
+
+  @override
+  String get myDeviceList => 'Danh sách thiết bị của tôi';
+
+  @override
+  String get confirm => 'Xác nhận';
+
+  @override
+  String get registerDeviceTitle => 'Đăng ký thiết bị';
+
+  @override
+  String get registerDeviceConfirm => 'Bạn muốn đăng ký thiết bị này?';
+
+  @override
+  String get deviceRegisteredSuccess => 'Đã gửi đơn đăng ký thiết bị.';
+
+  @override
+  String registerDeviceFailed(String error) {
+    return 'Đăng ký thiết bị thất bại: $error';
+  }
+
+  @override
+  String get changePassword => 'Đổi mật khẩu';
+
+  @override
+  String get changePasswordDesc => 'Cập nhật mật khẩu tài khoản';
+
+  @override
+  String get twoFactorAuth => 'Xác thực hai yếu tố';
+
+  @override
+  String get twoFactorAuthDesc => 'Thêm lớp bảo mật bổ sung';
+
+  @override
+  String get deviceManagement => 'Quản lý thiết bị';
+
+  @override
+  String get deviceManagementDesc => 'Quản lý các thiết bị tin cậy';
+
+  @override
+  String get helpCenter => 'Trung tâm hỗ trợ';
+
+  @override
+  String get helpCenterDesc => 'Trợ giúp sử dụng ứng dụng';
+
+  @override
+  String get privacyPolicy => 'Chính sách bảo mật';
+
+  @override
+  String get privacyPolicyDesc => 'Đọc chính sách bảo mật của chúng tôi';
+
+  @override
+  String get contactUs => 'Liên hệ chúng tôi';
+
+  @override
+  String get contactUsDesc => 'Liên hệ đội ngũ hỗ trợ';
+
+  @override
+  String get technicalSupport => 'Hỗ trợ kỹ thuật';
+
+  @override
+  String get technicalSupportDesc => 'Nhận hỗ trợ về các vấn đề hệ thống';
+
+  @override
+  String get proctorGuidelines => 'Hướng dẫn Giám thị';
+
+  @override
+  String get proctorGuidelinesDesc => 'Xem xét quy trình thi';
+
+  @override
+  String get reportIssue => 'Báo cáo sự cố';
+
+  @override
+  String get reportIssueDesc => 'Báo cáo vấn đề kỹ thuật hoặc quy trình';
 }

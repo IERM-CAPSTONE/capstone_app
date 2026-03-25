@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
@@ -19,18 +20,16 @@ class ProctorProfilePage extends ConsumerWidget {
     final profileState = ref.watch(proctorProfileControllerProvider);
     final profileController =
         ref.read(proctorProfileControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.appBarOrange,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go(AppRoutes.home),
-        ),
-        title: const Text(
-          'Proctor Profile',
-          style: TextStyle(
+        automaticallyImplyLeading: false,
+        title: Text(
+          l10n.proctorProfile,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -100,7 +99,7 @@ class ProctorProfilePage extends ConsumerWidget {
                     ),
                   ),
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
     );
   }
 }

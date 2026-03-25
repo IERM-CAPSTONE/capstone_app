@@ -76,7 +76,7 @@ class RedesignedExamSessionCard extends StatelessWidget {
                 Icons.access_time_filled,
                 Colors.blue[100]!,
                 Colors.blue,
-                '${_formatTime(session.examOpenTime, l10n)} - ${_formatTime(session.examCloseTime, l10n)}',
+                '${_formatTime(session.examOpenTime, l10n, context)} - ${_formatTime(session.examCloseTime, l10n, context)}',
                 subtitle: l10n.durationMins(duration),
               ),
               const SizedBox(height: 12),
@@ -88,6 +88,16 @@ class RedesignedExamSessionCard extends StatelessWidget {
                 Colors.purple,
                 '${l10n.examRoom} ${session.roomNumber ?? session.examRoomId ?? l10n.tba}',
                 subtitle: l10n.campusExamination,
+              ),
+              const SizedBox(height: 12),
+
+              // Proctor (Giám thị)
+              _buildInfoRow(
+                Icons.person,
+                Colors.orange[100]!,
+                Colors.orange,
+                l10n.proctorLabel(session.proctorName ?? l10n.notAssigned),
+                subtitle: l10n.proctorOfficer,
               ),
               const SizedBox(height: 16),
 
@@ -198,8 +208,9 @@ class RedesignedExamSessionCard extends StatelessWidget {
     return l10n.unknown;
   }
 
-  String _formatTime(DateTime? time, AppLocalizations l10n) {
+  String _formatTime(DateTime? time, AppLocalizations l10n, BuildContext context) {
     if (time == null) return l10n.tba;
-    return DateFormat('hh:mm a').format(time);
+    final locale = Localizations.localeOf(context).languageCode;
+    return DateFormat('hh:mm a', locale).format(time);
   }
 }

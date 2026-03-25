@@ -412,19 +412,19 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
                               height: 48,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
-                                return Text(
-                                  seat.displayNumber,
-                                  style: TextStyle(
-                                    color: _getSeatColor(seat.status),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                );
+                                  return Text(
+                                    seat.stt.toString(),
+                                    style: TextStyle(
+                                      color: _getSeatColor(seat.status),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  );
                               },
                             ),
                           )
                         : Text(
-                            seat.displayNumber,
+                            (seat.studentExam?.stt ?? seat.stt).toString(),
                             style: TextStyle(
                               color: _getSeatColor(seat.status),
                               fontWeight: FontWeight.bold,
@@ -439,7 +439,7 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Seat ${seat.displayNumber}',
+                        'STT ${seat.studentExam?.stt ?? seat.stt}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

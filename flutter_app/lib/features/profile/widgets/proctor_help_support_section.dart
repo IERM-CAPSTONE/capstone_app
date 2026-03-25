@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../proctor_profile_controller.dart';
 
 class ProctorHelpSupportSection extends ConsumerWidget {
@@ -12,7 +13,8 @@ class ProctorHelpSupportSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileController = ref.read(proctorProfileControllerProvider.notifier);
+    ref.read(proctorProfileControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       color: Colors.white,
@@ -20,11 +22,11 @@ class ProctorHelpSupportSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              'Help & Support',
-              style: TextStyle(
+              l10n.helpSupport,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -35,9 +37,11 @@ class ProctorHelpSupportSection extends ConsumerWidget {
           _buildSupportCard(
             icon: Icons.headset_mic,
             iconColor: Colors.blue,
-            title: 'Technical Support',
-            subtitle: 'Get help with system issues',
-            onTap: () => profileController.requestSupport(),
+            title: l10n.technicalSupport,
+            subtitle: l10n.technicalSupportDesc,
+            onTap: () {
+              // TODO: Implement tech support
+            },
           ),
 
           const SizedBox(height: 12),
@@ -45,8 +49,8 @@ class ProctorHelpSupportSection extends ConsumerWidget {
           _buildSupportCard(
             icon: Icons.book,
             iconColor: Colors.green,
-            title: 'Proctor Guidelines',
-            subtitle: 'Review examination procedures',
+            title: l10n.proctorGuidelines,
+            subtitle: l10n.proctorGuidelinesDesc,
             onTap: () {
               // TODO: Open guidelines
             },
@@ -57,8 +61,8 @@ class ProctorHelpSupportSection extends ConsumerWidget {
           _buildSupportCard(
             icon: Icons.report_problem,
             iconColor: Colors.orange,
-            title: 'Report Issue',
-            subtitle: 'Report technical or procedural issues',
+            title: l10n.reportIssue,
+            subtitle: l10n.reportIssueDesc,
             onTap: () {
               // TODO: Report issue
             },
@@ -71,12 +75,12 @@ class ProctorHelpSupportSection extends ConsumerWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () {
-                _showLogoutDialog(context);
+                _showLogoutDialog(context, l10n);
               },
               icon: const Icon(Icons.logout, color: Colors.red),
-              label: const Text(
-                'Log out',
-                style: TextStyle(
+              label: Text(
+                l10n.logout,
+                style: const TextStyle(
                   color: Colors.red,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -158,26 +162,26 @@ class ProctorHelpSupportSection extends ConsumerWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Log out'),
-          content: const Text('Are you sure you want to log out?'),
+          title: Text(l10n.logout),
+          content: Text(l10n.logoutConfirm),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 onLogout();
               },
-              child: const Text(
-                'Log out',
-                style: TextStyle(color: Colors.red),
+              child: Text(
+                l10n.logout,
+                style: const TextStyle(color: Colors.red),
               ),
             ),
           ],

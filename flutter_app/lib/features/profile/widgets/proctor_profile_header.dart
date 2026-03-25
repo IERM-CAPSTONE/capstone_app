@@ -60,15 +60,17 @@ class ProctorProfileHeader extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Proctor ID
-          Text(
-            user.code?.toUpperCase() ?? user.id ?? '',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
+          if (user.code != null && user.code!.isNotEmpty) ...[
+            Text(
+              user.code!.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+          ],
 
           const SizedBox(height: 12),
 

@@ -10,13 +10,24 @@ import 'firebase_options.dart';
 import 'package:dio/dio.dart';
 import 'core/routes/app_routes.dart';
 import 'data/services/auth_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+  await initializeDateFormatting('vi', null);
+  await initializeDateFormatting('en', null);
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    if (e is FirebaseException && e.code == 'duplicate-app') {
+      debugPrint('Firebase already initialized: $e');
+    } else {
+      rethrow;
+    }
   }
 
   // Initialize environment

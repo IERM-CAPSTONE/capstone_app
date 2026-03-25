@@ -13,7 +13,15 @@ class MyDeviceApplicationsController
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final apiService = DependencyInjection.get<ApiService>();
-      final applications = await apiService.getMyDeviceApplications();
+      final result = await apiService.getMyDeviceApplications();
+      List<Map<String, dynamic>> applications = [];
+      if (result is List) {
+        applications = List<Map<String, dynamic>>.from(result);
+      } else if (result is Map && result['deviceApplications'] != null) {
+        applications = List<Map<String, dynamic>>.from(result['deviceApplications']);
+      } else if (result is Map && result['applications'] != null) {
+        applications = List<Map<String, dynamic>>.from(result['applications']);
+      }
       state = state.copyWith(
         applications: applications,
         isLoading: false,

@@ -87,13 +87,34 @@ class LoginController extends StateNotifier<LoginState> {
 
       await authService.saveUserData(userModel);
 
-      // 7. Navigate to home
+      // 7. Validate role and Navigate
       if (context.mounted) {
-        if (userModel.role == 'PROCTOR' || userModel.role == 'proctor') {
-          context.go(AppRoutes.proctorDashboard);
-        } else {
-          context.go(AppRoutes.home);
+        final upperRole = userModel.role?.toUpperCase() ?? 'STUDENT';
+        final allowedRoles = [
+          'STUDENT',
+          'PROCTOR',
+          'HALL_INVIGILATOR',
+          'IT_SUPPORT'
+        ];
+
+        if (!allowedRoles.contains(upperRole)) {
+          // Deny access, sign out, and show warning
+          await authService.signOut();
+          if (context.mounted) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Bạn không có quyền truy cập ứng dụng này!'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            state = state.copyWith(isLoading: false);
+            return;
+          }
         }
+
+        // Staff roles go to exam schedule, others (students) also go to exam schedule
+        // as per your previous requirement to skip home
+        context.go(AppRoutes.examSchedule);
       }
     } catch (e) {
       print('❌ Google sign-in error: $e');

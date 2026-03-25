@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../proctor_profile_controller.dart';
 import '../proctor_profile_state.dart';
 
@@ -12,6 +13,7 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
     final profileState = ref.watch(proctorProfileControllerProvider);
     final profileController =
         ref.read(proctorProfileControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       color: Colors.white,
@@ -19,11 +21,11 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              'Device Registration',
-              style: TextStyle(
+              l10n.deviceRegistration,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -91,12 +93,15 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            'Device Registration',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                          Expanded(
+                            child: Text(
+                              l10n.deviceRegistration,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -118,11 +123,11 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
                             child: Text(
                               profileState.deviceStatus ==
                                       DeviceRegistrationStatus.active
-                                  ? 'Active'
+                                  ? l10n.active
                                   : profileState.deviceStatus ==
                                           DeviceRegistrationStatus.pending
-                                      ? 'Pending'
-                                      : 'Not Registered',
+                                      ? l10n.pending
+                                      : l10n.notRegistered,
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.white,
@@ -136,11 +141,11 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
                       Text(
                         profileState.deviceStatus ==
                                 DeviceRegistrationStatus.active
-                            ? 'Thiết bị đã được đăng ký và đang hoạt động.'
+                            ? l10n.deviceActiveDesc
                             : profileState.deviceStatus ==
                                     DeviceRegistrationStatus.pending
-                                ? 'Thiết bị đã được đăng ký và đang chờ duyệt.'
-                                : 'Register your device to enable secure proctoring and monitoring.',
+                                ? l10n.devicePendingDesc
+                                : l10n.deviceRegistrationDesc,
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
@@ -169,8 +174,8 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
 
                   if (status != DeviceRegistrationStatus.none) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Thiết bị này đã được đăng ký.'),
+                      SnackBar(
+                        content: Text(l10n.deviceActiveDesc),
                       ),
                     );
                     return;
@@ -179,18 +184,18 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (dialogContext) => AlertDialog(
-                      title: const Text('Register Device'),
-                      content: const Text('Bạn muốn đăng ký thiết bị này?'),
+                      title: Text(l10n.registerDeviceTitle),
+                      content: Text(l10n.registerDeviceConfirm),
                       actions: [
                         TextButton(
                           onPressed: () =>
                               Navigator.of(dialogContext).pop(false),
-                          child: const Text('Cancel'),
+                          child: Text(l10n.cancel),
                         ),
                         ElevatedButton(
                           onPressed: () =>
                               Navigator.of(dialogContext).pop(true),
-                          child: const Text('Confirm'),
+                          child: Text(l10n.confirm),
                         ),
                       ],
                     ),
@@ -204,8 +209,8 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
                     await profileController.verifyNewDevice();
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Device registration submitted.'),
+                        SnackBar(
+                          content: Text(l10n.deviceRegisteredSuccess),
                         ),
                       );
                     }
@@ -213,16 +218,16 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Register device failed: $e'),
+                          content: Text(l10n.registerDeviceFailed(e.toString())),
                         ),
                       );
                     }
                   }
                 },
                 icon: const Icon(Icons.add, color: Colors.blue),
-                label: const Text(
-                  'Register Device',
-                  style: TextStyle(
+                label: Text(
+                  l10n.registerDeviceTitle,
+                  style: const TextStyle(
                     color: Colors.blue,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -247,9 +252,9 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
             child: OutlinedButton.icon(
               onPressed: () => profileController.openMyDeviceList(context),
               icon: const Icon(Icons.list, color: AppColors.appBarOrange),
-              label: const Text(
-                'My Device List',
-                style: TextStyle(
+              label: Text(
+                l10n.myDeviceList,
+                style: const TextStyle(
                   color: AppColors.appBarOrange,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,

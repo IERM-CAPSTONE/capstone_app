@@ -25,10 +25,7 @@ class ProfilePage extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: AppColors.appBarOrange,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go(AppRoutes.home),
-        ),
+        automaticallyImplyLeading: false,
         title: Text(
           AppLocalizations.of(context)!.profile,
           style: const TextStyle(
@@ -103,7 +100,7 @@ class ProfilePage extends ConsumerWidget {
                     ),
                   ),
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
     );
   }
 

@@ -5,7 +5,7 @@ class Env {
   // API Configuration
   static const String apiBaseUrl = String.fromEnvironment(
     'apiBaseUrl',
-    defaultValue: 'https://raggedly-postmedial-angeles.ngrok-free.dev/api',
+    defaultValue: 'https://4891-171-231-192-153.ngrok-free.app/api',
   );
 
   // Redis Configuration (if needed for direct access)

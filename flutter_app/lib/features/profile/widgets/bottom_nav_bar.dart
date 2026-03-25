@@ -31,15 +31,12 @@ class BottomNavBar extends StatelessWidget {
         onTap: (index) {
           switch (index) {
             case 0:
-              context.go(AppRoutes.home);
-              break;
-            case 1:
               context.go(AppRoutes.examSchedule);
               break;
-            case 2:
+            case 1:
               // TODO: Navigate to notification
               break;
-            case 3:
+            case 2:
               context.go(AppRoutes.profile);
               break;
           }
@@ -50,10 +47,6 @@ class BottomNavBar extends StatelessWidget {
         selectedFontSize: 12,
         unselectedFontSize: 12,
         items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: l10n.home,
-          ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.calendar_today),
             label: l10n.schedule,

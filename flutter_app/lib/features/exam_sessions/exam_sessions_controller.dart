@@ -41,11 +41,23 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
   Future<void> loadExamSessions() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      // Get current user to filter by student role if needed
       final currentUser = await _authService.getSavedUserData();
       String? filterStudentId;
-      if (currentUser != null && currentUser.role?.toUpperCase() == 'STUDENT') {
-        filterStudentId = currentUser.id;
+      String? defaultProctorId = state.filterProctorId;
+ 
+      if (currentUser != null) {
+        final role = currentUser.role?.toUpperCase();
+        if (role == 'STUDENT') {
+          // Students ALWAYS see their own, but maybe they want to see all too?
+          // User said 'cho phép xem session của tất cả và của mình'.
+          if (state.onlyMyExams) {
+            filterStudentId = currentUser.id;
+          }
+        } else if (role == 'PROCTOR' || role == 'HALL_INVIGILATOR') {
+          if (state.onlyMyExams) {
+            defaultProctorId ??= currentUser.id;
+          }
+        }
       }
 
       final result = await _repository.getExamSessions(
@@ -58,7 +70,7 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         page: state.currentPage,
         itemsPerPage: state.itemsPerPage,
         studentId: filterStudentId,
-        proctorId: state.filterProctorId,
+        proctorId: defaultProctorId,
         subjectCode: state.filterSubjectCode,
         examRoomId: state.filterExamRoomId,
         examType: state.filterExamType,
@@ -66,7 +78,8 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
       );
 
       final items = result['items'] as List;
-
+      print('🔍 Loaded ${items.length} sessions (Total: ${result['totalItems']})');
+ 
       state = state.copyWith(
         examSessions: items.cast<Map<String, dynamic>>(),
         totalItems: result['totalItems'] as int,
@@ -96,6 +109,7 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
     String? campus,
     String? proctorId,
     String? examRoomId,
+    bool? onlyMyExams,
     bool clearFilters = false,
     bool clearSubjectCode = false,
     bool clearExamType = false,
@@ -115,6 +129,7 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
       filterCampus: campus,
       filterProctorId: proctorId,
       filterExamRoomId: examRoomId,
+      onlyMyExams: onlyMyExams,
       clearFilters: clearFilters,
       clearSubjectCode: clearSubjectCode,
       clearExamType: clearExamType,
@@ -128,19 +143,23 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
   }
 
   void filterToday() {
-    applyFilters(date: DateTime.now(), clearFilters: true);
+    applyFilters(date: DateTime.now(), clearFilters: true, onlyMyExams: false);
   }
-
+ 
+  void filterMine() {
+    applyFilters(clearFilters: true, onlyMyExams: true);
+  }
+ 
   void filterThisWeek() {
-    applyFilters(clearFilters: true);
+    applyFilters(clearFilters: true, onlyMyExams: false);
   }
-
+ 
   void filterPast() {
-    applyFilters(clearFilters: true);
+    applyFilters(clearFilters: true, onlyMyExams: false);
   }
-
+ 
   void filterAll() {
-    applyFilters(clearFilters: true);
+    applyFilters(clearFilters: true, onlyMyExams: false);
   }
 
   Future<void> clearFilters() async {

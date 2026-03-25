@@ -26,7 +26,8 @@ class ExamSessionsPage extends ConsumerStatefulWidget {
 
 class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedTab = 0; // 0: Today, 1: This week, 2: All, 3: Past
+  int _selectedParentTab = 0; // 0: My Exams, 1: All Exams
+  int _selectedChildTab = 1; // 0: Today, 1: This Week, 2: All, 3: Past
 
   @override
   void dispose() {
@@ -66,7 +67,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 0),
     );
   }
 
@@ -80,12 +81,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
         children: [
           Row(
             children: [
-              IconButton(
-                onPressed: () => context.go(AppRoutes.home),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Center(
                   child: Text(
@@ -112,12 +108,83 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildActiveFilters(state, controller, l10n),
-          const SizedBox(height: 16),
+          _buildParentToggle(controller, l10n),
+          const SizedBox(height: 12),
           _buildToggle(controller, l10n),
+          const SizedBox(height: 16),
+          _buildActiveFilters(state, controller, l10n),
         ],
       ),
     );
+  }
+
+  Widget _buildParentToggle(
+      ExamSessionsController controller, AppLocalizations l10n) {
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          _buildParentTabItem(0, l10n.myExams, () {
+            setState(() => _selectedParentTab = 0);
+            _applyCurrentFilters(controller);
+          }),
+          _buildParentTabItem(1, l10n.generalSchedule, () {
+            setState(() => _selectedParentTab = 1);
+            _applyCurrentFilters(controller);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParentTabItem(int index, String label, VoidCallback onTap) {
+    final bool isSelected = _selectedParentTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? const Color(0xFFFF6B35) : Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _applyCurrentFilters(ExamSessionsController controller) {
+    final bool onlyMy = _selectedParentTab == 0;
+    switch (_selectedChildTab) {
+      case 0:
+        controller.applyFilters(
+            date: DateTime.now(), clearFilters: true, onlyMyExams: onlyMy);
+        break;
+      case 1:
+        // This Week
+        controller.applyFilters(clearFilters: true, onlyMyExams: onlyMy);
+        break;
+      case 2:
+        // All
+        controller.applyFilters(clearFilters: true, onlyMyExams: onlyMy);
+        break;
+      case 3:
+        // Past
+        controller.applyFilters(clearFilters: true, onlyMyExams: onlyMy);
+        break;
+    }
   }
 
   void _showLanguageBottomSheet(BuildContext context, WidgetRef ref) {
@@ -194,7 +261,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
           if (state.filterExamType != null) ...[
             _buildFilterChip(
               icon: Icons.tag,
-              label: 'Type: ${state.filterExamType}',
+              label: '${l10n.status}: ${state.filterExamType}',
               onTap: () => _showFilterSheet(context, state, controller),
               onClear: () => controller.applyFilters(clearExamType: true),
             ),
@@ -308,119 +375,61 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
 
   Widget _buildToggle(
       ExamSessionsController controller, AppLocalizations l10n) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(25),
-      ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _selectedTab = 0);
-                controller.filterToday();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _selectedTab == 0 ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  l10n.today,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _selectedTab == 0 ? Colors.black87 : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _selectedTab = 1);
-                controller.filterThisWeek();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _selectedTab == 1 ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'This Week',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _selectedTab == 1 ? Colors.black87 : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _selectedTab = 2);
-                controller.filterAll();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _selectedTab == 2 ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'All',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _selectedTab == 2 ? Colors.black87 : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _selectedTab = 3);
-                controller.filterPast();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _selectedTab == 3 ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Past',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _selectedTab == 3 ? Colors.black87 : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _buildTabItem(0, l10n.today, () {
+            setState(() => _selectedChildTab = 0);
+            _applyCurrentFilters(controller);
+          }),
+          _buildTabItem(1, l10n.thisWeek, () {
+            setState(() => _selectedChildTab = 1);
+            _applyCurrentFilters(controller);
+          }),
+          _buildTabItem(2, l10n.all, () {
+            setState(() => _selectedChildTab = 2);
+            _applyCurrentFilters(controller);
+          }),
+          _buildTabItem(3, l10n.past, () {
+            setState(() => _selectedChildTab = 3);
+            _applyCurrentFilters(controller);
+          }),
         ],
+      ),
+    );
+  }
+ 
+  Widget _buildTabItem(int index, String label, VoidCallback onTap) {
+    final bool isSelected = _selectedChildTab == index;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? null
+              : Border.all(color: Colors.white.withOpacity(0.3)),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isSelected ? const Color(0xFFFF6B35) : Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildContent(ExamSessionsState state,
       ExamSessionsController controller, AppLocalizations l10n) {
-    // Show skeleton loading instead of error
-    if (state.isLoading || state.error != null) {
+    if (state.isLoading) {
       return ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 5,
@@ -428,31 +437,33 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
       );
     }
 
+    if (state.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 60),
+              const SizedBox(height: 16),
+              Text(
+                state.error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => controller.refresh(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Filter and Group Data
-    final filteredSessions = state.examSessions.where((data) {
-      final session = data['session'] as ExamSession;
-      final examDate = session.examOpenTime;
-      final today = DateTime.now();
-      if (_selectedTab == 0) {
-        if (examDate == null) return false;
-        return examDate.year == today.year &&
-            examDate.month == today.month &&
-            examDate.day == today.day;
-      }
-      if (_selectedTab == 1) {
-        if (examDate == null) return false;
-        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
-        final endOfWeek = startOfWeek.add(const Duration(days: 6));
-        return examDate.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) &&
-            examDate.isBefore(endOfWeek.add(const Duration(days: 1)));
-      }
-      if (_selectedTab == 3) {
-        if (examDate == null) return false;
-        final todayStart = DateTime(today.year, today.month, today.day);
-        return examDate.isBefore(todayStart);
-      }
-      return true;
-    }).toList();
+    final filteredSessions = state.examSessions;
 
     if (filteredSessions.isEmpty) {
       return Center(
@@ -464,11 +475,12 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     }
 
     // Group by Date
+    final locale = Localizations.localeOf(context).languageCode;
     final Map<String, List<dynamic>> groupedSessions = {};
     for (var data in filteredSessions) {
       final session = data['session'] as ExamSession;
       final dateKey = session.examOpenTime != null
-          ? DateFormat('MMM dd\nEEEE').format(session.examOpenTime!)
+          ? DateFormat('MMM dd\nEEEE', locale).format(session.examOpenTime!)
           : l10n.tba;
 
       if (!groupedSessions.containsKey(dateKey)) {
@@ -488,10 +500,10 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
         final dateKey = groupedSessions.keys.elementAt(index);
         final dateSessions = groupedSessions[dateKey]!;
 
-        final isToday =
-            dateKey.contains(DateFormat('MMM dd').format(DateTime.now()));
+        final isToday = dateKey.contains(
+            DateFormat('MMM dd', locale).format(DateTime.now()));
         final displayDate = isToday
-            ? '${DateFormat('MMM dd').format(DateTime.now())}\n${l10n.today}'
+            ? '${DateFormat('MMM dd', locale).format(DateTime.now())}\n${l10n.today}'
             : dateKey;
 
         return Row(

@@ -34,6 +34,7 @@ class StudentExam {
   final String? studentCode;
   final String? studentAvatarUrl;
   final Map<String, dynamic>? rawStudent;
+  final int? stt;
 
   StudentExam({
     required this.id,
@@ -53,6 +54,7 @@ class StudentExam {
     this.studentCode,
     this.studentAvatarUrl,
     this.rawStudent,
+    this.stt,
   });
 
   factory StudentExam.fromJson(Map<String, dynamic> json) {
@@ -91,6 +93,7 @@ class StudentExam {
           json['avatarUrl'] as String? ??
           student?['avatarUrl'] as String?,
       rawStudent: student,
+      stt: json['stt'] as int?,
     );
   }
 

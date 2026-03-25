@@ -52,7 +52,8 @@ class ExamSessionDetailPage extends ConsumerStatefulWidget {
 
 class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   String? _userRole;
-  bool _isProctor = false;
+  String? _userId;
+  bool _isStaff = false;
   Seat? _selectedSeat;
 
   @override
@@ -65,10 +66,16 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     final authService = DependencyInjection.get<AuthService>();
     final user = await authService.getSavedUserData();
     setState(() {
-      _userRole = user?.role?.toUpperCase();
-      _isProctor = _userRole == 'PROCTOR' ||
-          _userRole == 'ADMIN' ||
-          _userRole == 'EXAM_OFFICER';
+      _userId = user?.id;
+      _userRole = user?.role?.toUpperCase() ?? 'STUDENT';
+      // User is staff if role is any of these (all staff-related roles)
+      _isStaff = [
+        'PROCTOR',
+        'HALL_INVIGILATOR',
+        'IT_SUPPORT',
+        'ADMIN',
+        'EXAM_OFFICER'
+      ].contains(_userRole);
     });
 
     // If student somehow accessed this page, show warning and go back
@@ -159,7 +166,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _isProctor ? l10n.proctorExamDetail : l10n.examDetail,
+              _isStaff ? l10n.proctorExamDetail : l10n.examDetail,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -371,8 +378,38 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
   Widget _buildActionButtons(
       BuildContext context, ExamSession session, AppLocalizations l10n) {
-    // Only show action buttons for proctors
-    if (!_isProctor) {
+    // Only show action buttons for assigned proctors of this session
+    final isAssignedProctor = _userId != null &&
+        (_userId == session.proctorId || _userId == session.hallInvigilatorId);
+ 
+    if (!isAssignedProctor) {
+      if (_isStaff) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange[200]!),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Chỉ Giám thị được phân công mới có quyền thực hiện các tác vụ trong ca thi này.',
+                  style: TextStyle(
+                    color: Colors.orange[900],
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return const SizedBox.shrink();
     }
 
@@ -704,7 +741,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Text(
-                                    seat.displayNumber,
+                                    seat.stt.toString(),
                                     style: TextStyle(
                                       color: _getSeatColor(seat.status),
                                       fontWeight: FontWeight.bold,
@@ -716,7 +753,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             ),
                           )
                         : Text(
-                            seat.displayNumber,
+                            (seat.studentExam?.stt ?? seat.stt).toString(),
                             style: TextStyle(
                               color: _getSeatColor(seat.status),
                               fontWeight: FontWeight.bold,
@@ -731,7 +768,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l10n.seatLabel(seat.displayNumber),
+                        'STT ${seat.studentExam?.stt ?? seat.stt}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

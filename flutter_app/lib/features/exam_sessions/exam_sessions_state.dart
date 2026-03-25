@@ -24,6 +24,7 @@ class ExamSessionsState {
   final int totalItems;
   final bool isLoadingProctors;
   final bool isLoadingRooms;
+  final bool onlyMyExams;
 
   const ExamSessionsState({
     this.examSessions = const [],
@@ -47,6 +48,7 @@ class ExamSessionsState {
     this.totalItems = 0,
     this.isLoadingProctors = false,
     this.isLoadingRooms = false,
+    this.onlyMyExams = true,
   });
 
   ExamSessionsState copyWith({
@@ -71,6 +73,7 @@ class ExamSessionsState {
     int? totalItems,
     bool? isLoadingProctors,
     bool? isLoadingRooms,
+    bool? onlyMyExams,
     bool clearError = false,
     bool clearFilters = false,
     bool clearSubjectCode = false,
@@ -116,6 +119,7 @@ class ExamSessionsState {
       totalItems: totalItems ?? this.totalItems,
       isLoadingProctors: isLoadingProctors ?? this.isLoadingProctors,
       isLoadingRooms: isLoadingRooms ?? this.isLoadingRooms,
+      onlyMyExams: onlyMyExams ?? this.onlyMyExams,
     );
   }
 

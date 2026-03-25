@@ -751,6 +751,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Face not recognized. Please try again.'**
   String get faceNotRecognized;
+
+  /// No description provided for @thisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get thisWeek;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @past.
+  ///
+  /// In en, this message translates to:
+  /// **'Past'**
+  String get past;
+
+  /// No description provided for @notAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Assigned'**
+  String get notAssigned;
+
+  /// No description provided for @proctorOfficer.
+  ///
+  /// In en, this message translates to:
+  /// **'Exam Officer'**
+  String get proctorOfficer;
+
+  /// No description provided for @generalSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Exam Schedule'**
+  String get generalSchedule;
+
+  /// No description provided for @proctorProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Proctor Profile'**
+  String get proctorProfile;
+
+  /// No description provided for @department.
+  ///
+  /// In en, this message translates to:
+  /// **'Department'**
+  String get department;
+
+  /// No description provided for @campus.
+  ///
+  /// In en, this message translates to:
+  /// **'Campus'**
+  String get campus;
+
+  /// No description provided for @deviceRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Registration'**
+  String get deviceRegistration;
+
+  /// No description provided for @deviceRegistrationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Register your device to enable secure proctoring and monitoring.'**
+  String get deviceRegistrationDesc;
+
+  /// No description provided for @security.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get security;
+
+  /// No description provided for @helpSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & Support'**
+  String get helpSupport;
+
+  /// No description provided for @examinationDepartment.
+  ///
+  /// In en, this message translates to:
+  /// **'Examination Department'**
+  String get examinationDepartment;
+
+  /// No description provided for @hoChiMinhCampus.
+  ///
+  /// In en, this message translates to:
+  /// **'FPT University - Ho Chi Minh Campus'**
+  String get hoChiMinhCampus;
+
+  /// No description provided for @active.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get active;
+
+  /// No description provided for @pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pending;
+
+  /// No description provided for @deviceActiveDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Device is registered and active.'**
+  String get deviceActiveDesc;
+
+  /// No description provided for @devicePendingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Device is registered and pending approval.'**
+  String get devicePendingDesc;
+
+  /// No description provided for @myDeviceList.
+  ///
+  /// In en, this message translates to:
+  /// **'My Device List'**
+  String get myDeviceList;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @registerDeviceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Register Device'**
+  String get registerDeviceTitle;
+
+  /// No description provided for @registerDeviceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to register this device?'**
+  String get registerDeviceConfirm;
+
+  /// No description provided for @deviceRegisteredSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Device registration submitted.'**
+  String get deviceRegisteredSuccess;
+
+  /// No description provided for @registerDeviceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Register device failed: {error}'**
+  String registerDeviceFailed(String error);
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePassword;
+
+  /// No description provided for @changePasswordDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your account password'**
+  String get changePasswordDesc;
+
+  /// No description provided for @twoFactorAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-Factor Authentication'**
+  String get twoFactorAuth;
+
+  /// No description provided for @twoFactorAuthDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an extra layer of security'**
+  String get twoFactorAuthDesc;
+
+  /// No description provided for @deviceManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Management'**
+  String get deviceManagement;
+
+  /// No description provided for @deviceManagementDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage trusted devices'**
+  String get deviceManagementDesc;
+
+  /// No description provided for @helpCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Help Center'**
+  String get helpCenter;
+
+  /// No description provided for @helpCenterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Get help with using the app'**
+  String get helpCenterDesc;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @privacyPolicyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Read our privacy policy'**
+  String get privacyPolicyDesc;
+
+  /// No description provided for @contactUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Us'**
+  String get contactUs;
+
+  /// No description provided for @contactUsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact our support team'**
+  String get contactUsDesc;
+
+  /// No description provided for @technicalSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical Support'**
+  String get technicalSupport;
+
+  /// No description provided for @technicalSupportDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Get help with system issues'**
+  String get technicalSupportDesc;
+
+  /// No description provided for @proctorGuidelines.
+  ///
+  /// In en, this message translates to:
+  /// **'Proctor Guidelines'**
+  String get proctorGuidelines;
+
+  /// No description provided for @proctorGuidelinesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Review examination procedures'**
+  String get proctorGuidelinesDesc;
+
+  /// No description provided for @reportIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Issue'**
+  String get reportIssue;
+
+  /// No description provided for @reportIssueDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Report technical or procedural issues'**
+  String get reportIssueDesc;
 }
 
 class _AppLocalizationsDelegate

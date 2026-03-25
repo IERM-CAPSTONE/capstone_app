@@ -34,11 +34,11 @@ class SeatWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            seat.displayNumber,
+            (seat.studentExam?.stt ?? seat.stt).toString(),
             style: TextStyle(
               color: _getTextColor(),
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
             ),
             textAlign: TextAlign.center,
           ),

@@ -13,10 +13,10 @@ abstract class ApiService {
 
   // Auth endpoints
   @POST('/auth/login')
-  Future<Map<String, dynamic>> login(@Body() Map<String, dynamic> credentials);
+  Future<dynamic> login(@Body() Map<String, dynamic> credentials);
 
   @POST('/auth/register')
-  Future<Map<String, dynamic>> register(@Body() Map<String, dynamic> userData);
+  Future<dynamic> register(@Body() Map<String, dynamic> userData);
 
   @POST('/auth/logout')
   Future<void> logout();
@@ -30,10 +30,10 @@ abstract class ApiService {
 
   // Attendance endpoints
   @POST('/attendance/check-in')
-  Future<Map<String, dynamic>> checkIn(@Body() Map<String, dynamic> data);
+  Future<dynamic> checkIn(@Body() Map<String, dynamic> data);
 
   @GET('/attendance/history')
-  Future<List<Map<String, dynamic>>> getAttendanceHistory();
+  Future<dynamic> getAttendanceHistory();
 
   // Exam Sessions endpoints
   @GET('/exam-sessions')
@@ -93,17 +93,17 @@ abstract class ApiService {
 
   // Device Applications
   @POST('/device-applications/register')
-  Future<Map<String, dynamic>> registerDeviceApplication(
+  Future<dynamic> registerDeviceApplication(
     @Body() Map<String, dynamic> payload,
   );
 
   @GET('/device-applications/me')
-  Future<List<Map<String, dynamic>>> getMyDeviceApplications();
+  Future<dynamic> getMyDeviceApplications();
 
   @DELETE('/device-applications/{id}')
   Future<void> deleteDeviceApplication(@Path('id') String id);
 
   // Devices
   @GET('/devices/me')
-  Future<List<Map<String, dynamic>>> getMyDevices();
+  Future<dynamic> getMyDevices();
 }

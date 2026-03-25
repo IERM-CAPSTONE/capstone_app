@@ -53,6 +53,14 @@ class ExamSessionRepository {
       // Apply additional client-side filters if needed
       var sessions = response.data;
 
+      // Filter by proctor/hall invigilator if provided (Client-side fallback)
+      if (proctorId != null && proctorId.isNotEmpty) {
+        sessions = sessions.where((session) {
+          return session.proctorId == proctorId ||
+              session.hallInvigilatorId == proctorId;
+        }).toList();
+      }
+ 
       // Filter by status if provided
       if (status != null && status.isNotEmpty) {
         sessions = sessions.where((session) {
@@ -94,7 +102,7 @@ class ExamSessionRepository {
 
       return {
         'items': sessionsWithCounts,
-        'totalItems': response.total,
+        'totalItems': sessions.length, // Reflect filtered results
         'currentPage': response.page,
         'itemsPerPage': response.limit,
       };

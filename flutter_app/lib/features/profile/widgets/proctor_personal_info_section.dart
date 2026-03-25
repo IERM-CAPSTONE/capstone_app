@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../proctor_profile_controller.dart';
 
 class ProctorPersonalInfoSection extends ConsumerWidget {
@@ -10,6 +11,7 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(proctorProfileControllerProvider);
     final user = profileState.user;
+    final l10n = AppLocalizations.of(context)!;
 
     if (user == null) return const SizedBox.shrink();
 
@@ -19,11 +21,11 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              'Personal Information',
-              style: TextStyle(
+              l10n.personalInformation,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -33,40 +35,22 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
           _buildInfoRow(
             icon: Icons.email,
             iconColor: Colors.blue,
-            label: 'Email',
+            label: l10n.email,
             value: user.email ?? '',
-          ),
-          const SizedBox(height: 12),
-
-          /*
-          _buildInfoRow(
-            icon: Icons.phone,
-            iconColor: Colors.green,
-            label: 'Phone Number',
-            value: 'Not Provided',
-          ),
-          */
-
-          const SizedBox(height: 12),
-          _buildInfoRow(
-            icon: Icons.badge,
-            iconColor: Colors.purple,
-            label: 'Employee ID',
-            value: user.code?.toUpperCase() ?? user.id ?? '',
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
             icon: Icons.work,
             iconColor: const Color(0xFFFF6B35),
-            label: 'Department',
-            value: 'Examination Department',
+            label: l10n.department,
+            value: l10n.examinationDepartment,
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
             icon: Icons.location_on,
             iconColor: Colors.red,
-            label: 'Campus',
-            value: 'FPT University - Ho Chi Minh Campus',
+            label: l10n.campus,
+            value: l10n.hoChiMinhCampus,
           ),
         ],
       ),

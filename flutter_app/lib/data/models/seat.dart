@@ -15,6 +15,7 @@ class Seat {
   final String id;
   final int row;
   final int column;
+  final int stt;
   final String? seatNumber;
   final SeatStatus status;
   final StudentExam? studentExam;
@@ -23,6 +24,7 @@ class Seat {
     required this.id,
     required this.row,
     required this.column,
+    required this.stt,
     this.seatNumber,
     required this.status,
     this.studentExam,
@@ -32,6 +34,7 @@ class Seat {
         id: json['id'] as String,
         row: json['row'] as int,
         column: json['column'] as int,
+        stt: json['stt'] as int? ?? 0,
         seatNumber: json['seatNumber'] as String?,
         status: SeatStatus.fromJson(json['status'] as String),
         studentExam: json['studentExam'] != null
@@ -151,10 +154,13 @@ class SeatingPlan {
           }
         }
 
+        final stt = (row * maxColumns) + col + 1;
+
         seats.add(Seat(
           id: id,
           row: row,
           column: col,
+          stt: stt,
           seatNumber: seatNumber,
           status: status,
           studentExam: studentExam,

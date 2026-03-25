@@ -1,49 +1,50 @@
 {
   "project_info": {
-    "project_number": "904946824619",
-    "project_id": "capstone-89804",
-    "storage_bucket": "capstone-89804.firebasestorage.app"
+    "project_number": "1090862722356",
+    "project_id": "flrm-9b3a0",
+    "storage_bucket": "flrm-9b3a0.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:904946824619:android:4810fe2d88b13921850eee",
+        "mobilesdk_app_id": "1:1090862722356:android:e66b0e88c5be0daae90961",
         "android_client_info": {
           "package_name": "com.example.flutter_app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "904946824619-tof7i5eojuu6p9kp9mpu2c58kgb97s1o.apps.googleusercontent.com",
+          "client_id": "1090862722356-3irqmc8egkb1gr32dj0i178icth37med.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.flutter_app",
-            "certificate_hash": "ca9643e8de5f41628005e7a9861638ca022d9f63"
+            "certificate_hash": "ef36b10e00532a1801b58bd7c7aab8041078e533"
           }
         },
         {
-          "client_id": "904946824619-q23s04pvolkgqucc3u9ma0fkisgduo40.apps.googleusercontent.com",
+          "client_id": "1090862722356-4quqlo4h50mmbvq0mrh1db5785g69m69.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.flutter_app",
+            "certificate_hash": "6252adc8a5bc47ed10695fee1b82ded1a87002c3"
+          }
+        },
+        {
+          "client_id": "1090862722356-inbujal2kr2a3lg3go3gui5uh91ppqfg.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCKnAUcjxv67dcjBFkCT_R8iTLdQPFMSO0"
+          "current_key": "AIzaSyAg5F0xRLCr3OFDQ67qGSDDqjx4zWN6ElA"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "904946824619-q23s04pvolkgqucc3u9ma0fkisgduo40.apps.googleusercontent.com",
+              "client_id": "1090862722356-inbujal2kr2a3lg3go3gui5uh91ppqfg.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "904946824619-9gb466ho1t6lhqo0ntmgvedrqgj5nml4.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.app"
-              }
             }
           ]
         }

@@ -355,4 +355,136 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faceNotRecognized => 'Face not recognized. Please try again.';
+
+  @override
+  String get thisWeek => 'This Week';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get past => 'Past';
+
+  @override
+  String get notAssigned => 'Not Assigned';
+
+  @override
+  String get proctorOfficer => 'Exam Officer';
+
+  @override
+  String get generalSchedule => 'Exam Schedule';
+
+  @override
+  String get proctorProfile => 'Proctor Profile';
+
+  @override
+  String get department => 'Department';
+
+  @override
+  String get campus => 'Campus';
+
+  @override
+  String get deviceRegistration => 'Device Registration';
+
+  @override
+  String get deviceRegistrationDesc =>
+      'Register your device to enable secure proctoring and monitoring.';
+
+  @override
+  String get security => 'Security';
+
+  @override
+  String get helpSupport => 'Help & Support';
+
+  @override
+  String get examinationDepartment => 'Examination Department';
+
+  @override
+  String get hoChiMinhCampus => 'FPT University - Ho Chi Minh Campus';
+
+  @override
+  String get active => 'Active';
+
+  @override
+  String get pending => 'Pending';
+
+  @override
+  String get deviceActiveDesc => 'Device is registered and active.';
+
+  @override
+  String get devicePendingDesc => 'Device is registered and pending approval.';
+
+  @override
+  String get myDeviceList => 'My Device List';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get registerDeviceTitle => 'Register Device';
+
+  @override
+  String get registerDeviceConfirm => 'Do you want to register this device?';
+
+  @override
+  String get deviceRegisteredSuccess => 'Device registration submitted.';
+
+  @override
+  String registerDeviceFailed(String error) {
+    return 'Register device failed: $error';
+  }
+
+  @override
+  String get changePassword => 'Change Password';
+
+  @override
+  String get changePasswordDesc => 'Update your account password';
+
+  @override
+  String get twoFactorAuth => 'Two-Factor Authentication';
+
+  @override
+  String get twoFactorAuthDesc => 'Add an extra layer of security';
+
+  @override
+  String get deviceManagement => 'Device Management';
+
+  @override
+  String get deviceManagementDesc => 'Manage trusted devices';
+
+  @override
+  String get helpCenter => 'Help Center';
+
+  @override
+  String get helpCenterDesc => 'Get help with using the app';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get privacyPolicyDesc => 'Read our privacy policy';
+
+  @override
+  String get contactUs => 'Contact Us';
+
+  @override
+  String get contactUsDesc => 'Contact our support team';
+
+  @override
+  String get technicalSupport => 'Technical Support';
+
+  @override
+  String get technicalSupportDesc => 'Get help with system issues';
+
+  @override
+  String get proctorGuidelines => 'Proctor Guidelines';
+
+  @override
+  String get proctorGuidelinesDesc => 'Review examination procedures';
+
+  @override
+  String get reportIssue => 'Report Issue';
+
+  @override
+  String get reportIssueDesc => 'Report technical or procedural issues';
 }
