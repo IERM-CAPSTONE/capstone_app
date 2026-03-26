@@ -12,13 +12,7 @@ class MyDevicesController extends StateNotifier<MyDevicesState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final apiService = DependencyInjection.get<ApiService>();
-      final result = await apiService.getMyDevices();
-      List<Map<String, dynamic>> devices = [];
-      if (result is List) {
-        devices = List<Map<String, dynamic>>.from(result);
-      } else if (result is Map && result['devices'] != null) {
-        devices = List<Map<String, dynamic>>.from(result['devices']);
-      }
+      final devices = await apiService.getMyDevices();
       state = state.copyWith(
         devices: devices,
         isLoading: false,
