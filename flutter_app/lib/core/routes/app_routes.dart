@@ -1,13 +1,16 @@
 import 'package:go_router/go_router.dart';
-import '../../features/auth/login/login_page.dart';
-import '../../features/home/home_page.dart';
-import '../../features/home/proctor_dashboard_page.dart';
+
 import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
-import '../../features/profile/profile_page.dart';
-import '../../features/profile/proctor_profile_page.dart';
+import '../../features/auth/login/login_page.dart';
 import '../../features/devices/my_devices_page.dart';
 import '../../features/exam_sessions/exam_sessions_page.dart';
+import '../../features/home/proctor_dashboard_page.dart';
+import '../../features/notifications/notifications_page.dart';
+import '../../features/profile/proctor_profile_page.dart';
+import '../../features/profile/profile_page.dart';
+import '../../features/tickets/ticket_detail_page.dart';
+import '../../features/tickets/tickets_page.dart';
 
 class AppRoutes {
   static const String login = '/login';
@@ -19,6 +22,8 @@ class AppRoutes {
   static const String myDeviceList = '/proctor-profile/my-devices';
   static const String examSchedule = '/exam-schedule';
   static const String proctorDashboard = '/proctor-dashboard';
+  static const String tickets = '/tickets';
+  static const String notifications = '/notifications';
 
   static final GoRouter router = GoRouter(
     initialLocation: login,
@@ -32,11 +37,13 @@ class AppRoutes {
           final role = user?.role?.toLowerCase();
 
           if (state.matchedLocation == login) {
-            print('Token found! Redirecting based on role: $role');
             return examSchedule;
           }
 
-          if (state.matchedLocation == profile && role == 'proctor') {
+          if (state.matchedLocation == profile &&
+              (role == 'proctor' ||
+                  role == 'it_support' ||
+                  role == 'hall_invigilator')) {
             return proctorProfile;
           }
 
@@ -44,16 +51,18 @@ class AppRoutes {
             return examSchedule;
           }
 
-          if (state.matchedLocation == proctorProfile && role != 'proctor') {
+          if (state.matchedLocation == proctorProfile &&
+              role != 'proctor' &&
+              role != 'it_support' &&
+              role != 'hall_invigilator') {
             return profile;
           }
         }
 
         if (!isLoggedIn && state.matchedLocation == examSchedule) {
-          print('No token found. Redirecting to login...');
           return login;
         }
-      } catch (e) {
+      } catch (_) {
         return null;
       }
       return null;
@@ -93,6 +102,26 @@ class AppRoutes {
         path: proctorDashboard,
         name: 'proctor-dashboard',
         builder: (context, state) => const ProctorDashboardPage(),
+      ),
+      GoRoute(
+        path: tickets,
+        name: 'tickets',
+        builder: (context, state) => const TicketsPage(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            name: 'ticket-detail',
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return TicketDetailPage(ticketId: id);
+            },
+          ),
+        ],
+      ),
+      GoRoute(
+        path: notifications,
+        name: 'notifications',
+        builder: (context, state) => const NotificationsPage(),
       ),
     ],
   );

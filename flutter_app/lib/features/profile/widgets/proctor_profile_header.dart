@@ -85,14 +85,25 @@ class ProctorProfileHeader extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: const Text(
-              'Proctor - FPT University',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFFFF6B35),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Builder(
+              builder: (context) {
+                final role = user.role?.toLowerCase() ?? 'proctor';
+                String roleDisplay = 'Proctor';
+                if (role == 'it_support') roleDisplay = 'IT Support';
+                else if (role == 'hall_invigilator') roleDisplay = 'Hall Invigilator';
+                else if (role == 'proctor') roleDisplay = 'Proctor';
+                else if (role == 'student') roleDisplay = 'Student';
+
+                return Text(
+                  '$roleDisplay - FPT University',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFFFF6B35),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                );
+              }
             ),
           ),
         ],

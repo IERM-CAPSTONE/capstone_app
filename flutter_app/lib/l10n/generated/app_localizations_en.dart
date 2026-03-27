@@ -487,4 +487,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportIssueDesc => 'Report technical or procedural issues';
+
+  @override
+  String profileTitle(String roleDisplayName) {
+    return '$roleDisplayName Profile';
+  }
+
+  @override
+  String get ticketsTitle => 'Tickets';
+
+  @override
+  String get allTickets => 'All';
+
+  @override
+  String get openTickets => 'Open';
+
+  @override
+  String get inProgressTickets => 'In Progress';
+
+  @override
+  String get solvedTickets => 'Solved';
+
+  @override
+  String get noTickets => 'No tickets found.';
+
+  @override
+  String failedLoadTickets(String error) {
+    return 'Failed to load tickets: $error';
+  }
+
+  @override
+  String get onlyAssignedProctorAction =>
+      'Only the assigned Proctor can perform actions in this exam session.';
+
+  @override
+  String get deviceNotRegistered =>
+      'Device is not registered. Please register before FA Checkin.';
+
+  @override
+  String get devicePending =>
+      'Device is pending approval. Please wait for confirmation.';
+
+  @override
+  String get ticketDetail => 'Ticket Detail';
+
+  @override
+  String get issue => 'Issue';
+
+  @override
+  String get issueType => 'Issue Type';
+
+  @override
+  String get priority => 'Priority';
+
+  @override
+  String get description => 'Description';
+
+  @override
+  String get resolveNote => 'Resolve Note';
+
+  @override
+  String get techNote => 'Tech Note';
+
+  @override
+  String get studentCode => 'Student Code';
+
+  @override
+  String get createdAt => 'Created At';
+
+  @override
+  String get updatedAt => 'Updated At';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get tapToViewDetail => 'Tap to view detail →';
+
+  @override
+  String get createOneTicket => 'Create 1 ticket';
+
+  @override
+  String get issueName => 'Issue Name';
+
+  @override
+  String get student => 'Student';
+
+  @override
+  String get attachmentOptional => 'Attachment (optional)';
+
+  @override
+  String get takePhoto => 'Take Photo';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get noNotifications => 'No notifications.';
 }

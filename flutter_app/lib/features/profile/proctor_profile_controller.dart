@@ -83,7 +83,9 @@ class ProctorProfileController extends StateNotifier<ProctorProfileState> {
       final apiService = DependencyInjection.get<ApiService>();
       final currentSerial = await _getCurrentDeviceSerial();
 
-      final devices = await apiService.getMyDevices();
+      final devicesResponse = await apiService.getMyDevices();
+      final devices = (devicesResponse.data as List).cast<Map<String, dynamic>>();
+
       final currentDevice = devices.firstWhere(
         (device) =>
             device['serial']?.toString().toLowerCase() ==
@@ -101,7 +103,9 @@ class ProctorProfileController extends StateNotifier<ProctorProfileState> {
           return DeviceRegistrationStatus.active;
         }
 
-        final applications = await apiService.getMyDeviceApplications();
+        final applicationsResponse = await apiService.getMyDeviceApplications();
+        final applications = (applicationsResponse.data as List).cast<Map<String, dynamic>>();
+
         final relatedApplications = applications.where(
           (app) => app['deviceId'] == currentDevice['id'],
         );

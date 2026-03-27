@@ -4,6 +4,8 @@ import '../models/user_model.dart';
 import '../models/exam_session.dart';
 import '../models/exam_room.dart';
 import '../models/student_exam.dart';
+import '../models/ticket_model.dart';
+import '../models/api_response.dart';
 
 part 'api_service.g.dart';
 
@@ -13,10 +15,10 @@ abstract class ApiService {
 
   // Auth endpoints
   @POST('/auth/login')
-  Future<Map<String, dynamic>> login(@Body() Map<String, dynamic> credentials);
+  Future<ApiResponse> login(@Body() Map<String, dynamic> credentials);
 
   @POST('/auth/register')
-  Future<Map<String, dynamic>> register(@Body() Map<String, dynamic> userData);
+  Future<ApiResponse> register(@Body() Map<String, dynamic> userData);
 
   @POST('/auth/logout')
   Future<void> logout();
@@ -26,14 +28,14 @@ abstract class ApiService {
   Future<UserModel> getCurrentUser();
 
   @PUT('/users/me')
-  Future<UserModel> updateUser(@Body() Map<String, dynamic> userData);
+  Future<ApiResponse> updateUser(@Body() Map<String, dynamic> userData);
 
   // Attendance endpoints
   @POST('/attendance/check-in')
-  Future<Map<String, dynamic>> checkIn(@Body() Map<String, dynamic> data);
+  Future<ApiResponse> checkIn(@Body() Map<String, dynamic> data);
 
   @GET('/attendance/history')
-  Future<List<Map<String, dynamic>>> getAttendanceHistory();
+  Future<ApiResponse> getAttendanceHistory();
 
   // Exam Sessions endpoints
   @GET('/exam-sessions')
@@ -49,6 +51,7 @@ abstract class ApiService {
     @Query('toDate') String? toDate,
     @Query('examType') String? examType,
     @Query('campus') String? campus,
+    @Query('hallInvigilatorId') String? hallInvigilatorId,
   );
 
   @GET('/exam-sessions/{id}')
@@ -91,19 +94,44 @@ abstract class ApiService {
     @Query('roomNumber') String? roomNumber,
   );
 
+  // Tickets
+  @POST('/tickets')
+  Future<ApiResponse> createTicket(
+    @Body() Map<String, dynamic> payload,
+  );
+
+  @GET('/tickets')
+  Future<TicketListResponse> getMyTickets();
+
+  @GET('/tickets/{id}')
+  Future<TicketModel> getTicketById(@Path('id') String id);
+
+  @PATCH('/tickets/{id}/process')
+  Future<ApiResponse> processTicket(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> payload,
+  );
+
   // Device Applications
   @POST('/device-applications/register')
-  Future<Map<String, dynamic>> registerDeviceApplication(
+  Future<ApiResponse> registerDeviceApplication(
     @Body() Map<String, dynamic> payload,
   );
 
   @GET('/device-applications/me')
-  Future<List<Map<String, dynamic>>> getMyDeviceApplications();
+  Future<ApiResponse> getMyDeviceApplications();
 
   @DELETE('/device-applications/{id}')
   Future<void> deleteDeviceApplication(@Path('id') String id);
 
   // Devices
   @GET('/devices/me')
-  Future<List<Map<String, dynamic>>> getMyDevices();
+  Future<ApiResponse> getMyDevices();
+
+  // Notifications
+  @GET('/notifications')
+  Future<ApiResponse> getNotifications();
+
+  @PATCH('/notifications/{id}/read')
+  Future<ApiResponse> markNotificationRead(@Path('id') String id);
 }

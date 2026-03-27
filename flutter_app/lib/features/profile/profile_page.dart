@@ -100,7 +100,7 @@ class ProfilePage extends ConsumerWidget {
                     ),
                   ),
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
     );
   }
 

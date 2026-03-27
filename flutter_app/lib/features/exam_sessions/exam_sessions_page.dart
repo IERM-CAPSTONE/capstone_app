@@ -28,6 +28,23 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedParentTab = 0; // 0: My Exams, 1: All Exams
   int _selectedChildTab = 1; // 0: Today, 1: This Week, 2: All, 3: Past
+  String? _userRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final authService = DependencyInjection.get<AuthService>();
+    final user = await authService.getSavedUserData();
+    if (mounted) {
+      setState(() {
+        _userRole = user?.role?.toLowerCase();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -95,10 +112,6 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                 ),
               ),
               IconButton(
-                onPressed: () => _showLanguageBottomSheet(context, ref),
-                icon: const Icon(Icons.language, color: Colors.white),
-              ),
-              IconButton(
                 onPressed: () => _showFilterSheet(context, state, controller),
                 icon: Icon(
                   Icons.filter_list,
@@ -108,8 +121,11 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildParentToggle(controller, l10n),
-          const SizedBox(height: 12),
+          // Only show Parent Toggle if role is NOT proctor, student, or it_support
+          if (_userRole != 'proctor' && _userRole != 'student' && _userRole != 'it_support') ...[
+            _buildParentToggle(controller, l10n),
+            const SizedBox(height: 12),
+          ],
           _buildToggle(controller, l10n),
           const SizedBox(height: 16),
           _buildActiveFilters(state, controller, l10n),
@@ -185,58 +201,6 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
         controller.applyFilters(clearFilters: true, onlyMyExams: onlyMy);
         break;
     }
-  }
-
-  void _showLanguageBottomSheet(BuildContext context, WidgetRef ref) {
-    final currentLocale = ref.read(languageProvider);
-    final l10n = AppLocalizations.of(context)!;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10n.language,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              ListTile(
-                leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
-                title: Text(l10n.vietnamese),
-                trailing: currentLocale.languageCode == 'vi'
-                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
-                    : null,
-                onTap: () {
-                  ref.read(languageProvider.notifier).setLanguage('vi');
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
-                title: Text(l10n.english),
-                trailing: currentLocale.languageCode == 'en'
-                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
-                    : null,
-                onTap: () {
-                  ref.read(languageProvider.notifier).setLanguage('en');
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildActiveFilters(ExamSessionsState state,
@@ -532,6 +496,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   final session = data['session'] as ExamSession;
                   return RedesignedExamSessionCard(
                     session: session,
+                    userRole: _userRole,
                     onTap: () => _navigateToDetail(session.id, l10n),
                   );
                 }).toList(),

@@ -194,6 +194,11 @@ class AuthService {
 
   /// Get saved user data
   Future<UserModel?> getSavedUserData() async {
+    return getSavedUserDataSync();
+  }
+
+  /// Get saved user data synchronously
+  UserModel? getSavedUserDataSync() {
     try {
       final userJson = _prefs.getString(_userKey);
       if (userJson != null) {
@@ -201,7 +206,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error getting user data: $e');
+      print('Error getting user data sync: $e');
       return null;
     }
   }

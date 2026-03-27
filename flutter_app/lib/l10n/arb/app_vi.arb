@@ -220,5 +220,50 @@
   "proctorGuidelines": "Hướng dẫn Giám thị",
   "proctorGuidelinesDesc": "Xem xét quy trình thi",
   "reportIssue": "Báo cáo sự cố",
-  "reportIssueDesc": "Báo cáo vấn đề kỹ thuật hoặc quy trình"
+  "reportIssueDesc": "Báo cáo vấn đề kỹ thuật hoặc quy trình",
+  "profileTitle": "Hồ sơ {roleDisplayName}",
+  "@profileTitle": {
+    "placeholders": {
+      "roleDisplayName": {
+        "type": "String"
+      }
+    }
+  },
+  "ticketsTitle": "Tickets",
+  "allTickets": "Tất cả",
+  "openTickets": "Đang mở",
+  "inProgressTickets": "Đang xử lý",
+  "solvedTickets": "Đã giải quyết",
+  "noTickets": "Không có ticket nào.",
+  "failedLoadTickets": "Không thể tải danh sách ticket: {error}",
+  "@failedLoadTickets": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "onlyAssignedProctorAction": "Chỉ Giám thị được phân công mới có quyền thực hiện các tác vụ trong ca thi này.",
+  "deviceNotRegistered": "Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.",
+  "devicePending": "Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.",
+  "ticketDetail": "Chi tiết Ticket",
+  "issue": "Vấn đề",
+  "issueType": "Loại vấn đề",
+  "priority": "Mức độ ưu tiên",
+  "description": "Mô tả",
+  "resolveNote": "Ghi chú giải quyết",
+  "techNote": "Ghi chú kỹ thuật",
+  "studentCode": "Mã sinh viên",
+  "createdAt": "Ngày tạo",
+  "updatedAt": "Ngày cập nhật",
+  "notificationsTitle": "Thông báo",
+  "tapToViewDetail": "Nhấn để xem chi tiết →",
+  "createOneTicket": "Tạo 1 ticket",
+  "issueName": "Tên vấn đề(Issue Name)",
+  "student": "Sinh viên",
+  "attachmentOptional": "Ảnh đính kèm (tùy chọn)",
+  "takePhoto": "Chụp ảnh",
+  "gallery": "Thư viện",
+  "create": "Tạo",
+  "noNotifications": "Chưa có thông báo nào."
 }
