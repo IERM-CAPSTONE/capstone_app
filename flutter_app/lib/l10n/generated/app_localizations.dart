@@ -1009,6 +1009,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Report technical or procedural issues'**
   String get reportIssueDesc;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{roleDisplayName} Profile'**
+  String profileTitle(String roleDisplayName);
+
+  /// No description provided for @ticketsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tickets'**
+  String get ticketsTitle;
+
+  /// No description provided for @allTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allTickets;
+
+  /// No description provided for @openTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openTickets;
+
+  /// No description provided for @inProgressTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get inProgressTickets;
+
+  /// No description provided for @solvedTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'Solved'**
+  String get solvedTickets;
+
+  /// No description provided for @noTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'No tickets found.'**
+  String get noTickets;
+
+  /// No description provided for @failedLoadTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load tickets: {error}'**
+  String failedLoadTickets(String error);
+
+  /// No description provided for @onlyAssignedProctorAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the assigned Proctor can perform actions in this exam session.'**
+  String get onlyAssignedProctorAction;
+
+  /// No description provided for @deviceNotRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Device is not registered. Please register before FA Checkin.'**
+  String get deviceNotRegistered;
+
+  /// No description provided for @devicePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Device is pending approval. Please wait for confirmation.'**
+  String get devicePending;
+
+  /// No description provided for @ticketDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket Detail'**
+  String get ticketDetail;
+
+  /// No description provided for @issue.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue'**
+  String get issue;
+
+  /// No description provided for @issueType.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue Type'**
+  String get issueType;
+
+  /// No description provided for @priority.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority'**
+  String get priority;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get description;
+
+  /// No description provided for @resolveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve Note'**
+  String get resolveNote;
+
+  /// No description provided for @techNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tech Note'**
+  String get techNote;
+
+  /// No description provided for @studentCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Student Code'**
+  String get studentCode;
+
+  /// No description provided for @createdAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created At'**
+  String get createdAt;
+
+  /// No description provided for @updatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated At'**
+  String get updatedAt;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @tapToViewDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view detail →'**
+  String get tapToViewDetail;
+
+  /// No description provided for @createOneTicket.
+  ///
+  /// In en, this message translates to:
+  /// **'Create 1 ticket'**
+  String get createOneTicket;
+
+  /// No description provided for @issueName.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue Name'**
+  String get issueName;
+
+  /// No description provided for @student.
+  ///
+  /// In en, this message translates to:
+  /// **'Student'**
+  String get student;
+
+  /// No description provided for @attachmentOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment (optional)'**
+  String get attachmentOptional;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get takePhoto;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications.'**
+  String get noNotifications;
 }
 
 class _AppLocalizationsDelegate

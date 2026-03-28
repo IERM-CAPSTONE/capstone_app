@@ -45,18 +45,19 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
       final currentUser = await _authService.getSavedUserData();
       String? filterStudentId;
       String? defaultProctorId = state.filterProctorId;
+      String? defaultHallInvigilatorId = state.filterHallInvigilatorId;
  
       if (currentUser != null) {
         final role = currentUser.role?.toUpperCase();
         if (role == 'STUDENT') {
-          // Students ALWAYS see their own, but maybe they want to see all too?
-          // User said 'cho phép xem session của tất cả và của mình'.
+          // Student can ONLY see exams they are participating in
+          filterStudentId = currentUser.id;
+        } else if (role == 'PROCTOR') {
+          // Proctor can ONLY see their own exams
+          defaultProctorId = currentUser.id;
+        } else if (role == 'HALL_INVIGILATOR') {
           if (state.onlyMyExams) {
-            filterStudentId = currentUser.id;
-          }
-        } else if (role == 'PROCTOR' || role == 'HALL_INVIGILATOR') {
-          if (state.onlyMyExams) {
-            defaultProctorId ??= currentUser.id;
+            defaultHallInvigilatorId = currentUser.id;
           }
         }
       }
@@ -72,6 +73,7 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         itemsPerPage: state.itemsPerPage,
         studentId: filterStudentId,
         proctorId: defaultProctorId,
+        hallInvigilatorId: defaultHallInvigilatorId,
         subjectCode: state.filterSubjectCode,
         examRoomId: state.filterExamRoomId,
         examType: state.filterExamType,
@@ -109,6 +111,7 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
     String? examType,
     String? campus,
     String? proctorId,
+    String? hallInvigilatorId,
     String? examRoomId,
     bool? onlyMyExams,
     bool clearFilters = false,
@@ -129,6 +132,7 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
       filterExamType: examType,
       filterCampus: campus,
       filterProctorId: proctorId,
+      filterHallInvigilatorId: hallInvigilatorId,
       filterExamRoomId: examRoomId,
       onlyMyExams: onlyMyExams,
       clearFilters: clearFilters,

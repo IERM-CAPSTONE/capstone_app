@@ -15,7 +15,7 @@ class MyDeviceApplicationsController
       final apiService = DependencyInjection.get<ApiService>();
       final applications = await apiService.getMyDeviceApplications();
       state = state.copyWith(
-        applications: applications,
+        applications: (applications.data as List).cast<Map<String, dynamic>>(),
         isLoading: false,
       );
     } catch (e) {

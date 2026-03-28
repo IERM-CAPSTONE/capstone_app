@@ -18,7 +18,8 @@ class UserRepository {
   // Update user
   Future<UserModel> updateUser(Map<String, dynamic> userData) async {
     try {
-      return await _apiService.updateUser(userData);
+      final response = await _apiService.updateUser(userData);
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw Exception('Cannot update user information: ${e.toString()}');
     }

@@ -123,9 +123,14 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
 
       final authService = DependencyInjection.get<AuthService>();
       final token = authService.getToken();
-      if (token != null) {
+      final user = await authService.getSavedUserData();
+      if (token != null && user?.id != null) {
         final socketService = DependencyInjection.get<SocketService>();
-        socketService.init(token);
+        socketService.initAndJoin(
+          token: token,
+          userId: user!.id!,
+          campus: user.code,
+        );
         socketService.subscribe('face_registered', (data) {
           debugPrint('Real-time event received: $data');
           if (data['status'] == 'success') {

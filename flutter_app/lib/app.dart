@@ -1,12 +1,15 @@
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:device_preview/device_preview.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'core/providers/language_provider.dart';
 import 'core/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/generated/app_localizations.dart';
-import 'core/providers/language_provider.dart';
+
+final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
@@ -16,10 +19,10 @@ class MyApp extends ConsumerWidget {
     final locale = ref.watch(languageProvider);
 
     return MaterialApp.router(
-      useInheritedMediaQuery: true,
+      scaffoldMessengerKey: appScaffoldMessengerKey,
       locale: locale,
       builder: DevicePreview.appBuilder,
-      localizationsDelegates: [
+      localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

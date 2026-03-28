@@ -487,4 +487,103 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get reportIssueDesc => 'Báo cáo vấn đề kỹ thuật hoặc quy trình';
+
+  @override
+  String profileTitle(String roleDisplayName) {
+    return 'Hồ sơ $roleDisplayName';
+  }
+
+  @override
+  String get ticketsTitle => 'Tickets';
+
+  @override
+  String get allTickets => 'Tất cả';
+
+  @override
+  String get openTickets => 'Đang mở';
+
+  @override
+  String get inProgressTickets => 'Đang xử lý';
+
+  @override
+  String get solvedTickets => 'Đã giải quyết';
+
+  @override
+  String get noTickets => 'Không có ticket nào.';
+
+  @override
+  String failedLoadTickets(String error) {
+    return 'Không thể tải danh sách ticket: $error';
+  }
+
+  @override
+  String get onlyAssignedProctorAction =>
+      'Chỉ Giám thị được phân công mới có quyền thực hiện các tác vụ trong ca thi này.';
+
+  @override
+  String get deviceNotRegistered =>
+      'Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.';
+
+  @override
+  String get devicePending => 'Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.';
+
+  @override
+  String get ticketDetail => 'Chi tiết Ticket';
+
+  @override
+  String get issue => 'Vấn đề';
+
+  @override
+  String get issueType => 'Loại vấn đề';
+
+  @override
+  String get priority => 'Mức độ ưu tiên';
+
+  @override
+  String get description => 'Mô tả';
+
+  @override
+  String get resolveNote => 'Ghi chú giải quyết';
+
+  @override
+  String get techNote => 'Ghi chú kỹ thuật';
+
+  @override
+  String get studentCode => 'Mã sinh viên';
+
+  @override
+  String get createdAt => 'Ngày tạo';
+
+  @override
+  String get updatedAt => 'Ngày cập nhật';
+
+  @override
+  String get notificationsTitle => 'Thông báo';
+
+  @override
+  String get tapToViewDetail => 'Nhấn để xem chi tiết →';
+
+  @override
+  String get createOneTicket => 'Tạo 1 ticket';
+
+  @override
+  String get issueName => 'Tên vấn đề(Issue Name)';
+
+  @override
+  String get student => 'Sinh viên';
+
+  @override
+  String get attachmentOptional => 'Ảnh đính kèm (tùy chọn)';
+
+  @override
+  String get takePhoto => 'Chụp ảnh';
+
+  @override
+  String get gallery => 'Thư viện';
+
+  @override
+  String get create => 'Tạo';
+
+  @override
+  String get noNotifications => 'Chưa có thông báo nào.';
 }

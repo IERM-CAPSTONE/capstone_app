@@ -8,10 +8,15 @@ import '../../data/models/seat.dart';
 import '../../data/models/student_exam.dart';
 import '../../data/models/subject_part_option.dart';
 import '../../data/repositories/exam_session_repository.dart';
+import '../../data/services/api_service.dart';
 import '../../data/services/auth_service.dart';
 import '../../l10n/generated/app_localizations.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import 'dart:io';
 import '../auth/face_authenticate/face_authenticate_page.dart';
 import '../auth/proctor_face_checkin/proctor_face_checkin_page.dart';
+import '../exam_rooms/seating_plan_page.dart';
 import '../exam_rooms/widgets/seat_widget.dart';
 import '../exam_rooms/widgets/seating_legend.dart';
 import '../profile/proctor_profile_controller.dart';
@@ -57,6 +62,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   String? _selectedExamPartCode;
   Seat? _selectedSeat;
   bool _hasProctorCheckedIn = false;
+  final Set<String> _selectedTicketStudentIds = <String>{};
 
   @override
   void initState() {
@@ -230,7 +236,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _isStaff ? l10n.proctorExamDetail : l10n.examDetail,
+              l10n.examDetail,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -409,7 +415,6 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     required AppLocalizations l10n,
   }) {
     final isAssignedProctor = _userId != null && _userId == session.proctorId;
-
     if (!isAssignedProctor) {
       if (_isStaff) {
         return Container(
@@ -522,7 +527,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => _handleCreateTicket(context, session, students),
               icon: const Icon(Icons.confirmation_number_outlined, size: 20),
               label: Text(l10n.createTicket, style: const TextStyle(fontSize: 13)),
               style: ElevatedButton.styleFrom(
@@ -860,19 +865,33 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   }) {
     if (seat == null) return const SizedBox.shrink();
 
-    final isSelected = _selectedSeat?.id == seat.id;
+    final studentId = seat.studentExam?.studentId;
+    final selectedByTicket =
+        studentId != null && _selectedTicketStudentIds.contains(studentId);
+    final isSelected = selectedByTicket;
 
     return GestureDetector(
       onTap: () {
         if (seat.status == SeatStatus.available) return;
-        setState(() {
-          _selectedSeat = isSelected ? null : seat;
-        });
-        _showSeatDetails(
-          seat: seat,
-          selectedExamPartCode: selectedExamPartCode,
-          l10n: l10n,
-        );
+
+        if (studentId != null && studentId.isNotEmpty) {
+          setState(() {
+            if (_selectedTicketStudentIds.contains(studentId)) {
+              _selectedTicketStudentIds.remove(studentId);
+            } else {
+              _selectedTicketStudentIds.add(studentId);
+            }
+          });
+        }
+      },
+      onLongPress: () {
+        if (seat.status != SeatStatus.available) {
+          _showSeatDetails(
+            seat: seat,
+            selectedExamPartCode: selectedExamPartCode,
+            l10n: l10n,
+          );
+        }
       },
       child: SeatWidget(seat: seat, isSelected: isSelected),
     );
@@ -1153,5 +1172,584 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     required String en,
   }) {
     return _isVietnamese(context) ? vi : en;
+  }
+
+  void _handleCreateTicket(
+    BuildContext context,
+    ExamSession session,
+    List<StudentExam> students,
+  ) {
+    final selectedIds = Set<String>.from(_selectedTicketStudentIds);
+    if (selectedIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please choose student'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (selectedIds.length == 1) {
+      _openSingleTicketDialog(context, session, students, selectedIds);
+      return;
+    }
+
+    _openBulkTicketDialog(context, session, students, selectedIds);
+  }
+
+  Future<void> _openSingleTicketDialog(
+    BuildContext context,
+    ExamSession session,
+    List<StudentExam> students,
+    Set<String> preselectedStudentIds,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final issueNameCtrl = TextEditingController();
+    final selectedStudent = students.firstWhere(
+      (s) => preselectedStudentIds.contains(s.studentId),
+      orElse: () => students.first,
+    );
+    final selectedStudentCode = selectedStudent.studentCode ?? '';
+    final selectedStudentLabel =
+        '${selectedStudent.studentCode ?? '-'} - ${selectedStudent.studentName ?? ''}';
+    final descriptionCtrl = TextEditingController();
+    String issueType = 'Technical Issue';
+    String priority = 'Medium';
+    File? attachmentImage;
+    bool isPickerActive = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: Text(l10n.createOneTicket),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: issueType,
+                      items: const [
+                        DropdownMenuItem(value: 'Technical Issue', child: Text('Technical Issue')),
+                        DropdownMenuItem(value: 'Academic Violation', child: Text('Academic Violation')),
+                        DropdownMenuItem(value: 'Room Management', child: Text('Room Management')),
+                        DropdownMenuItem(value: 'Face Mismatch', child: Text('Face Mismatch')),
+                      ],
+                      onChanged: (v) => issueType = v ?? issueType,
+                      decoration: InputDecoration(labelText: l10n.issueType),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      initialValue: priority,
+                      items: const [
+                        DropdownMenuItem(value: 'Low', child: Text('Low')),
+                        DropdownMenuItem(value: 'Medium', child: Text('Medium')),
+                        DropdownMenuItem(value: 'High', child: Text('High')),
+                        DropdownMenuItem(value: 'Urgent', child: Text('Urgent')),
+                      ],
+                      onChanged: (v) => priority = v ?? priority,
+                      decoration: InputDecoration(labelText: l10n.priority),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: issueNameCtrl,
+                      decoration: InputDecoration(labelText: l10n.issueName),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      initialValue: selectedStudentLabel,
+                      readOnly: true,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: l10n.student,
+                        suffixIcon: const Icon(Icons.lock_outline, size: 18),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: descriptionCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(labelText: l10n.description),
+                    ),
+                    const SizedBox(height: 12),
+                    // ── Attachment Image ──────────────────────────────────
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        l10n.attachmentOptional,
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.camera_alt, size: 18),
+                            label: Text(l10n.takePhoto),
+                            onPressed: () async {
+                              if (isPickerActive) return;
+                              isPickerActive = true;
+                              try {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                  imageQuality: 70,
+                                );
+                                if (picked != null) {
+                                  setDialogState(() => attachmentImage = File(picked.path));
+                                }
+                              } finally {
+                                isPickerActive = false;
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.photo_library, size: 18),
+                            label: Text(l10n.gallery),
+                            onPressed: () async {
+                              if (isPickerActive) return;
+                              isPickerActive = true;
+                              try {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                  imageQuality: 70,
+                                );
+                                if (picked != null) {
+                                  setDialogState(() => attachmentImage = File(picked.path));
+                                }
+                              } finally {
+                                isPickerActive = false;
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (attachmentImage != null) ...[  
+                      const SizedBox(height: 8),
+                      Stack(
+                        children: [
+                          SizedBox(
+                            height: 120,
+                            width: double.maxFinite,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                attachmentImage!,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => setDialogState(() => attachmentImage = null),
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(2),
+                                child: const Icon(Icons.close, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    // ─────────────────────────────────────────────────────
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final issueName = issueNameCtrl.text.trim();
+                    final studentCode = selectedStudentCode.trim();
+                    if (issueName.isEmpty || studentCode.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Issue name and student are required')),
+                      );
+                      return;
+                    }
+
+                    // Upload ảnh trước nếu có chọn
+                    String? uploadedUrl;
+                    if (attachmentImage != null) {
+                      Navigator.of(ctx).pop(); // đóng dialog trước
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                SizedBox(
+                                  width: 18, height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                ),
+                                SizedBox(width: 12),
+                                Text('Đang tải ảnh lên...'),
+                              ],
+                            ),
+                            duration: Duration(seconds: 10),
+                          ),
+                        );
+                      }
+                      uploadedUrl = await _uploadImage(attachmentImage!);
+                      if (context.mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    } else {
+                      Navigator.of(ctx).pop();
+                    }
+
+                    await _submitTicket(
+                      context,
+                      {
+                        'issueName': issueName,
+                        'issueType': issueType,
+                        'description': descriptionCtrl.text.trim(),
+                        'priority': priority,
+                        'sessionId': session.id,
+                        'studentCode': studentCode,
+                        if (uploadedUrl != null) 'attachment': uploadedUrl,
+                      },
+                    );
+                  },
+                  child: Text(l10n.create),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openBulkTicketDialog(
+    BuildContext context,
+    ExamSession session,
+    List<StudentExam> students,
+    Set<String> preselectedStudentIds,
+  ) async {
+    final issueNameCtrl = TextEditingController();
+    final descriptionCtrl = TextEditingController();
+    String issueType = 'Technical Issue';
+    String priority = 'Medium';
+    File? bulkAttachmentImage;
+    bool isBulkPickerActive = false;
+    final selected = <String>{
+      ...students
+          .where((s) => preselectedStudentIds.contains(s.studentId))
+          .map((s) => s.studentCode)
+          .whereType<String>(),
+    };
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final selectedStudents = students
+                .where((s) => preselectedStudentIds.contains(s.studentId))
+                .toList();
+            return AlertDialog(
+              title: const Text('Create multiple tickets'),
+              content: SizedBox(
+                width: 420,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: issueType,
+                        items: const [
+                          DropdownMenuItem(value: 'Technical Issue', child: Text('Technical Issue')),
+                          DropdownMenuItem(value: 'Academic Violation', child: Text('Academic Violation')),
+                          DropdownMenuItem(value: 'Room Management', child: Text('Room Management')),
+                          DropdownMenuItem(value: 'Face Mismatch', child: Text('Face Mismatch')),
+                        ],
+                        onChanged: (v) => issueType = v ?? issueType,
+                        decoration: const InputDecoration(labelText: 'Issue Type'),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: priority,
+                        items: const [
+                          DropdownMenuItem(value: 'Low', child: Text('Low')),
+                          DropdownMenuItem(value: 'Medium', child: Text('Medium')),
+                          DropdownMenuItem(value: 'High', child: Text('High')),
+                          DropdownMenuItem(value: 'Urgent', child: Text('Urgent')),
+                        ],
+                        onChanged: (v) => priority = v ?? priority,
+                        decoration: const InputDecoration(labelText: 'Priority'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: issueNameCtrl,
+                        decoration: const InputDecoration(labelText: 'Issue Name'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: descriptionCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(labelText: 'Description'),
+                      ),
+                      const SizedBox(height: 12),
+                      // ── Ảnh đính kèm (dùng chung cho tất cả ticket) ──────
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Ảnh đính kèm (tùy chọn — dùng chung cho tất cả)',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.camera_alt, size: 18),
+                              label: const Text('Chụp ảnh'),
+                              onPressed: () async {
+                                if (isBulkPickerActive) return;
+                                isBulkPickerActive = true;
+                                try {
+                                  final picker = ImagePicker();
+                                  final picked = await picker.pickImage(
+                                    source: ImageSource.camera,
+                                    imageQuality: 70,
+                                  );
+                                  if (picked != null) {
+                                    setModalState(() => bulkAttachmentImage = File(picked.path));
+                                  }
+                                } finally {
+                                  isBulkPickerActive = false;
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.photo_library, size: 18),
+                              label: const Text('Thư viện'),
+                              onPressed: () async {
+                                if (isBulkPickerActive) return;
+                                isBulkPickerActive = true;
+                                try {
+                                  final picker = ImagePicker();
+                                  final picked = await picker.pickImage(
+                                    source: ImageSource.gallery,
+                                    imageQuality: 70,
+                                  );
+                                  if (picked != null) {
+                                    setModalState(() => bulkAttachmentImage = File(picked.path));
+                                  }
+                                } finally {
+                                  isBulkPickerActive = false;
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (bulkAttachmentImage != null) ...[
+                        const SizedBox(height: 8),
+                        Stack(
+                          children: [
+                            SizedBox(
+                              height: 100,
+                              width: double.maxFinite,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  bulkAttachmentImage!,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () => setModalState(() => bulkAttachmentImage = null),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(2),
+                                  child: const Icon(Icons.close, color: Colors.white, size: 18),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      // ─────────────────────────────────────────────────────
+                      const SizedBox(height: 12),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Selected students', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(height: 8),
+                      ...selectedStudents.map(
+                        (s) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: const Icon(Icons.person, size: 18),
+                          title: Text('${s.studentCode ?? '-'} - ${s.studentName ?? ''}'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final issueName = issueNameCtrl.text.trim();
+                    if (issueName.isEmpty || selected.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Issue name and at least one student are required')),
+                      );
+                      return;
+                    }
+
+                    // Upload ảnh 1 lần duy nhất, dùng chung URL cho tất cả ticket
+                    String? sharedUrl;
+                    if (bulkAttachmentImage != null) {
+                      Navigator.of(ctx).pop();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                SizedBox(
+                                  width: 18, height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                ),
+                                SizedBox(width: 12),
+                                Text('Đang tải ảnh lên...'),
+                              ],
+                            ),
+                            duration: Duration(seconds: 10),
+                          ),
+                        );
+                      }
+                      sharedUrl = await _uploadImage(bulkAttachmentImage!);
+                      if (context.mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    } else {
+                      Navigator.of(ctx).pop();
+                    }
+
+                    int successCount = 0;
+                    for (final studentCode in selected) {
+                      final ok = await _submitTicket(
+                        context,
+                        {
+                          'issueName': issueName,
+                          'issueType': issueType,
+                          'description': descriptionCtrl.text.trim(),
+                          'priority': priority,
+                          'sessionId': session.id,
+                          'studentCode': studentCode,
+                          if (sharedUrl != null) 'attachment': sharedUrl,
+                        },
+                        showToast: false,
+                      );
+                      if (ok) successCount++;
+                    }
+
+                    if (context.mounted) {
+                      setState(() {
+                        _selectedTicketStudentIds.clear();
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Created $successCount/${selected.length} tickets'),
+                          backgroundColor: successCount == selected.length
+                              ? Colors.green
+                              : Colors.orange,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Create all'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Upload ảnh lên Cloudinary thông qua API backend, trả về URL hoặc null nếu lỗi.
+  Future<String?> _uploadImage(File imageFile) async {
+    try {
+      final dio = DependencyInjection.get<Dio>();
+      final bytes = await imageFile.readAsBytes();
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: 'ticket_attachment.jpg',
+        ),
+      });
+      final response = await dio.post('/upload/image', data: formData);
+      final url = response.data is Map ? response.data['url'] as String? : null;
+      return url;
+    } catch (e) {
+      debugPrint('❌ Upload image error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> _submitTicket(
+    BuildContext context,
+    Map<String, dynamic> payload, {
+    bool showToast = true,
+  }) async {
+    try {
+      final apiService = DependencyInjection.get<ApiService>();
+      await apiService.createTicket(payload);
+      if (showToast && context.mounted) {
+        setState(() {
+          _selectedTicketStudentIds.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ticket created successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      return true;
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create ticket: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    }
   }
 }

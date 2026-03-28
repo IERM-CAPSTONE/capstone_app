@@ -23,6 +23,7 @@ class ExamSessionRepository {
     DateTime? toDate,
     String? timeSlot,
     String? proctorId,
+    String? hallInvigilatorId,
     String? studentId,
     String? subjectCode,
     String? examRoomId,
@@ -51,6 +52,7 @@ class ExamSessionRepository {
         toDateStr,
         examType,
         campus,
+        hallInvigilatorId,
       );
 
       // Apply additional client-side filters if needed
@@ -61,6 +63,12 @@ class ExamSessionRepository {
         sessions = sessions.where((session) {
           return session.proctorId == proctorId ||
               session.hallInvigilatorId == proctorId;
+        }).toList();
+      }
+      
+      if (hallInvigilatorId != null && hallInvigilatorId.isNotEmpty) {
+        sessions = sessions.where((session) {
+          return session.hallInvigilatorId == hallInvigilatorId;
         }).toList();
       }
  

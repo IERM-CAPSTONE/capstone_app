@@ -16,6 +16,7 @@ class ExamSessionsState {
   final DateTime? filterFromDate;
   final DateTime? filterToDate;
   final String? filterProctorId;
+  final String? filterHallInvigilatorId;
   final String? filterExamRoomId;
   final List<UserModel> availableProctors;
   final List<ExamRoom> availableRooms;
@@ -40,6 +41,7 @@ class ExamSessionsState {
     this.filterFromDate,
     this.filterToDate,
     this.filterProctorId,
+    this.filterHallInvigilatorId,
     this.filterExamRoomId,
     this.availableProctors = const [],
     this.availableRooms = const [],
@@ -65,6 +67,7 @@ class ExamSessionsState {
     DateTime? filterFromDate,
     DateTime? filterToDate,
     String? filterProctorId,
+    String? filterHallInvigilatorId,
     String? filterExamRoomId,
     List<UserModel>? availableProctors,
     List<ExamRoom>? availableRooms,
@@ -109,6 +112,8 @@ class ExamSessionsState {
           : filterToDate ?? (clearFilters ? null : this.filterToDate),
       filterProctorId:
           filterProctorId ?? (clearFilters ? null : this.filterProctorId),
+      filterHallInvigilatorId:
+          filterHallInvigilatorId ?? (clearFilters ? null : this.filterHallInvigilatorId),
       filterExamRoomId: clearExamRoomId
           ? null
           : filterExamRoomId ?? (clearFilters ? null : this.filterExamRoomId),
@@ -133,6 +138,7 @@ class ExamSessionsState {
       filterFromDate != null ||
       filterToDate != null ||
       filterProctorId != null ||
+      filterHallInvigilatorId != null ||
       filterExamRoomId != null;
 
   int get totalPages {

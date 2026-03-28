@@ -6,11 +6,13 @@ import '../../../l10n/generated/app_localizations.dart';
 class RedesignedExamSessionCard extends StatelessWidget {
   final ExamSession session;
   final VoidCallback? onTap;
+  final String? userRole;
 
   const RedesignedExamSessionCard({
     super.key,
     required this.session,
     this.onTap,
+    this.userRole,
   });
 
   @override
@@ -92,14 +94,16 @@ class RedesignedExamSessionCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Proctor (Giám thị)
-              _buildInfoRow(
-                Icons.person,
-                Colors.orange[100]!,
-                Colors.orange,
-                l10n.proctorLabel(session.proctorName ?? l10n.notAssigned),
-                subtitle: l10n.proctorOfficer,
-              ),
-              const SizedBox(height: 16),
+              if (userRole?.toLowerCase() != 'student') ...[
+                _buildInfoRow(
+                  Icons.person,
+                  Colors.orange[100]!,
+                  Colors.orange,
+                  l10n.proctorLabel(session.proctorName ?? l10n.notAssigned),
+                  subtitle: l10n.proctorOfficer,
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Notice Footer
               if (!session.isEnded)

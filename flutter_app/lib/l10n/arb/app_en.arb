@@ -215,11 +215,56 @@
   "proctorGuidelinesDesc": "Review examination procedures",
   "reportIssue": "Report Issue",
   "reportIssueDesc": "Report technical or procedural issues",
+  "profileTitle": "{roleDisplayName} Profile",
+  "@profileTitle": {
+    "placeholders": {
+      "roleDisplayName": {
+        "type": "String"
+      }
+    }
+  },
+  "ticketsTitle": "Tickets",
+  "allTickets": "All",
+  "openTickets": "Open",
+  "inProgressTickets": "In Progress",
+  "solvedTickets": "Solved",
+  "noTickets": "No tickets found.",
+  "failedLoadTickets": "Failed to load tickets: {error}",
+  "@failedLoadTickets": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "onlyAssignedProctorAction": "Only the assigned Proctor can perform actions in this exam session.",
+  "deviceNotRegistered": "Device is not registered. Please register before FA Checkin.",
+  "devicePending": "Device is pending approval. Please wait for confirmation.",
   "@registerDeviceFailed": {
     "placeholders": {
       "error": {
         "type": "String"
       }
     }
-  }
+  },
+  "ticketDetail": "Ticket Detail",
+  "issue": "Issue",
+  "issueType": "Issue Type",
+  "priority": "Priority",
+  "description": "Description",
+  "resolveNote": "Resolve Note",
+  "techNote": "Tech Note",
+  "studentCode": "Student Code",
+  "createdAt": "Created At",
+  "updatedAt": "Updated At",
+  "notificationsTitle": "Notifications",
+  "tapToViewDetail": "Tap to view detail →",
+  "createOneTicket": "Create 1 ticket",
+  "issueName": "Issue Name",
+  "student": "Student",
+  "attachmentOptional": "Attachment (optional)",
+  "takePhoto": "Take Photo",
+  "gallery": "Gallery",
+  "create": "Create",
+  "noNotifications": "No notifications."
 }
