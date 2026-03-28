@@ -184,6 +184,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               _buildActionButtons(
                 context: context,
                 session: session,
+                students: students,
                 subjectParts: subjectParts,
                 selectedExamPartCode: selectedExamPartCode,
                 l10n: l10n,
@@ -410,6 +411,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   Widget _buildActionButtons({
     required BuildContext context,
     required ExamSession session,
+    required List<StudentExam> students,
     required List<SubjectPartOption> subjectParts,
     required String? selectedExamPartCode,
     required AppLocalizations l10n,
