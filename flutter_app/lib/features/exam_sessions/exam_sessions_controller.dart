@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import '../../data/repositories/exam_session_repository.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/auth_service.dart';
@@ -198,8 +199,9 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
 final examSessionsControllerProvider = StateNotifierProvider.autoDispose<
     ExamSessionsController, ExamSessionsState>((ref) {
   final apiService = DependencyInjection.get<ApiService>();
+  final dio = DependencyInjection.get<Dio>();
   final authService = DependencyInjection.get<AuthService>();
-  final repository = ExamSessionRepository(apiService);
+  final repository = ExamSessionRepository(apiService, dio);
 
   return ExamSessionsController(repository, authService);
 });

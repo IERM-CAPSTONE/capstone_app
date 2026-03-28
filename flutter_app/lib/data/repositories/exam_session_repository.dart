@@ -1,15 +1,18 @@
 import '../models/exam_session.dart';
 import '../models/student_exam.dart';
+import '../models/subject_part_option.dart';
 import '../models/user_model.dart';
 import '../models/exam_room.dart';
 import '../services/api_service.dart';
+import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 
 /// Repository for exam sessions data using real API
 class ExamSessionRepository {
   final ApiService _apiService;
+  final Dio _dio;
 
-  ExamSessionRepository(this._apiService);
+  ExamSessionRepository(this._apiService, this._dio);
 
   /// Get all exam sessions with optional filters
   Future<Map<String, dynamic>> getExamSessions({
@@ -159,6 +162,43 @@ class ExamSessionRepository {
       );
       return response.data;
     } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<SubjectPartOption>> getSubjectParts(String subjectCode) async {
+    final normalizedCode = subjectCode.trim();
+    if (normalizedCode.isEmpty) return [];
+
+    try {
+      final response = await _dio.get(
+        '/subjects',
+        queryParameters: {
+          'page': 1,
+          'limit': 100,
+          'search': normalizedCode,
+        },
+      );
+
+      final payload = response.data;
+      final items = payload is Map<String, dynamic>
+          ? (payload['data'] as List<dynamic>? ?? const [])
+          : const <dynamic>[];
+
+      for (final item in items.whereType<Map<String, dynamic>>()) {
+        final code = item['code']?.toString().trim().toUpperCase();
+        if (code == normalizedCode.toUpperCase()) {
+          final parts = item['parts'] as List<dynamic>? ?? const [];
+          return parts
+              .whereType<Map<String, dynamic>>()
+              .map(SubjectPartOption.fromJson)
+              .where((part) => part.code.isNotEmpty)
+              .toList();
+        }
+      }
+
+      return [];
+    } catch (_) {
       return [];
     }
   }

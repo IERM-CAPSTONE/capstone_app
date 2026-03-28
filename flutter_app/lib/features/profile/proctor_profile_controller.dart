@@ -7,6 +7,7 @@ import '../../core/routes/app_routes.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/api_service.dart';
+import '../../data/services/face_registration_service.dart';
 import 'proctor_profile_state.dart';
 
 class ProctorProfileController extends StateNotifier<ProctorProfileState> {
@@ -26,6 +27,7 @@ class ProctorProfileController extends StateNotifier<ProctorProfileState> {
           user: user,
         );
         await loadDeviceRegistrationStatus();
+        await loadFaceRegistrationStatus();
       } else {
         state = state.copyWith(
           isLoading: false,
@@ -148,6 +150,25 @@ class ProctorProfileController extends StateNotifier<ProctorProfileState> {
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return DeviceRegistrationStatus.none;
+    }
+  }
+
+  Future<void> loadFaceRegistrationStatus() async {
+    final user = state.user;
+    if (user?.id == null) return;
+
+    try {
+      final faceService = DependencyInjection.get<FaceRegistrationService>();
+      final result = await faceService.checkRegistrationStatus(user!.id!);
+      final statusData = result['data'] is Map<String, dynamic>
+          ? result['data'] as Map<String, dynamic>
+          : result;
+      final isRegistered = statusData['isRegistered'] == true ||
+          statusData['registered'] == true;
+
+      state = state.copyWith(isFaceRegistered: isRegistered);
+    } catch (_) {
+      state = state.copyWith(isFaceRegistered: false);
     }
   }
 

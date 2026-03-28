@@ -8,7 +8,13 @@ import '../../../l10n/generated/app_localizations.dart';
 
 class FaceAuthenticatePage extends ConsumerStatefulWidget {
   final String? examSessionId;
-  const FaceAuthenticatePage({super.key, this.examSessionId});
+  final String? examPartCode;
+
+  const FaceAuthenticatePage({
+    super.key,
+    this.examSessionId,
+    this.examPartCode,
+  });
 
   @override
   ConsumerState<FaceAuthenticatePage> createState() =>
@@ -22,7 +28,10 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(faceAuthenticateControllerProvider.notifier)
-          .initializeCamera(examSessionId: widget.examSessionId);
+          .initializeCamera(
+            examSessionId: widget.examSessionId,
+            examPartCode: widget.examPartCode,
+          );
     });
   }
 
@@ -151,7 +160,7 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(context).pop(true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.appBarOrange,
                     foregroundColor: Colors.white,
@@ -280,7 +289,7 @@ class _HeaderWidget extends StatelessWidget {
       left: 10,
       child: IconButton(
         icon: const Icon(Icons.close, color: Colors.white, size: 32),
-        onPressed: () => Navigator.of(context).pop(),
+        onPressed: () => Navigator.of(context).pop(false),
       ),
     );
   }

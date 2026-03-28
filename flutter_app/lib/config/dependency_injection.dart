@@ -129,7 +129,7 @@ class DependencyInjection {
 
     // Initialize Repositories
     _dependencies[UserRepository] = UserRepository(apiService);
-    _dependencies[ExamSessionRepository] = ExamSessionRepository(apiService);
+    _dependencies[ExamSessionRepository] = ExamSessionRepository(apiService, dio);
 
     _initialized = true;
   }

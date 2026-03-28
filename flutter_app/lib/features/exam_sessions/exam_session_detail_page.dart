@@ -1,40 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/models/exam_session.dart';
-import '../../data/models/student_exam.dart';
-import '../../data/models/seat.dart';
-import '../../data/repositories/exam_session_repository.dart';
+import 'package:intl/intl.dart';
+
 import '../../config/dependency_injection.dart';
+import '../../data/models/exam_session.dart';
+import '../../data/models/seat.dart';
+import '../../data/models/student_exam.dart';
+import '../../data/models/subject_part_option.dart';
+import '../../data/repositories/exam_session_repository.dart';
 import '../../data/services/auth_service.dart';
-import '../exam_rooms/seating_plan_page.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../auth/face_authenticate/face_authenticate_page.dart';
+import '../auth/proctor_face_checkin/proctor_face_checkin_page.dart';
 import '../exam_rooms/widgets/seat_widget.dart';
 import '../exam_rooms/widgets/seating_legend.dart';
-import 'package:intl/intl.dart';
-import '../auth/face_authenticate/face_authenticate_page.dart';
 import '../profile/proctor_profile_controller.dart';
 import '../profile/proctor_profile_state.dart';
-import '../../l10n/generated/app_localizations.dart';
 
 final examSessionDetailProvider =
-    FutureProvider.family<Map<String, dynamic>?, String>(
-        (ref, examSessionId) async {
-  print('🔍 DEBUG: Fetching exam session with ID: $examSessionId');
+    FutureProvider.family<Map<String, dynamic>?, String>((ref, examSessionId) async {
   final repository = DependencyInjection.get<ExamSessionRepository>();
-  final result = await repository.getExamSessionById(examSessionId);
-  print(
-      '📊 DEBUG: API Response: ${result != null ? 'SUCCESS' : 'NULL (not found)'}');
-  if (result != null && result['session'] != null) {
-    final session = result['session'] as ExamSession;
-    print('📋 DEBUG: Exam Code: ${session.examCode}');
-  }
-  return result;
+  return repository.getExamSessionById(examSessionId);
 });
 
 final sessionStudentsProvider =
-    FutureProvider.family<List<StudentExam>, String>(
-        (ref, examSessionId) async {
+    FutureProvider.family<List<StudentExam>, String>((ref, examSessionId) async {
   final repository = DependencyInjection.get<ExamSessionRepository>();
   return repository.getExamStudents(examSessionId);
+});
+
+final sessionSubjectPartsProvider =
+    FutureProvider.family<List<SubjectPartOption>, String?>((ref, subjectCode) async {
+  if (subjectCode == null || subjectCode.trim().isEmpty) {
+    return [];
+  }
+  final repository = DependencyInjection.get<ExamSessionRepository>();
+  return repository.getSubjectParts(subjectCode);
 });
 
 class ExamSessionDetailPage extends ConsumerStatefulWidget {
@@ -46,15 +47,16 @@ class ExamSessionDetailPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ExamSessionDetailPage> createState() =>
-      _ExamSessionDetailPageState();
+  ConsumerState<ExamSessionDetailPage> createState() => _ExamSessionDetailPageState();
 }
 
 class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   String? _userRole;
   String? _userId;
   bool _isStaff = false;
+  String? _selectedExamPartCode;
   Seat? _selectedSeat;
+  bool _hasProctorCheckedIn = false;
 
   @override
   void initState() {
@@ -65,20 +67,20 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   Future<void> _checkUserRole() async {
     final authService = DependencyInjection.get<AuthService>();
     final user = await authService.getSavedUserData();
+    if (!mounted) return;
+
     setState(() {
       _userId = user?.id;
       _userRole = user?.role?.toUpperCase() ?? 'STUDENT';
-      // User is staff if role is any of these (all staff-related roles)
-      _isStaff = [
+      _isStaff = const [
         'PROCTOR',
         'HALL_INVIGILATOR',
         'IT_SUPPORT',
         'ADMIN',
-        'EXAM_OFFICER'
+        'EXAM_OFFICER',
       ].contains(_userRole);
     });
 
-    // If student somehow accessed this page, show warning and go back
     if (_userRole == 'STUDENT' && mounted) {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,52 +98,43 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final sessionAsync =
-        ref.watch(examSessionDetailProvider(widget.examSessionId));
-    final studentsAsync =
-        ref.watch(sessionStudentsProvider(widget.examSessionId));
-    final seatingPlanAsync =
-        ref.watch(seatingPlanProvider(widget.examSessionId));
     final l10n = AppLocalizations.of(context)!;
+    final sessionAsync = ref.watch(examSessionDetailProvider(widget.examSessionId));
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context, l10n),
+            _buildHeader(l10n),
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: sessionAsync.when(
                   data: (sessionData) {
                     if (sessionData == null) {
                       return Center(child: Text(l10n.sessionNotFound));
                     }
-                    final session = sessionData['session'] as ExamSession;
-                    final totalStudents = sessionData['totalStudents'] as int;
-                    final presentStudents =
-                        sessionData['presentStudents'] as int;
 
-                    return _buildContent(
-                      context,
-                      session,
-                      totalStudents,
-                      presentStudents,
-                      studentsAsync,
-                      seatingPlanAsync,
-                      l10n,
+                    final session = sessionData['session'] as ExamSession;
+                    final studentsAsync =
+                        ref.watch(sessionStudentsProvider(widget.examSessionId));
+                    final subjectPartsAsync =
+                        ref.watch(sessionSubjectPartsProvider(session.subjectCode));
+
+                    return _buildLoadedContent(
+                      session: session,
+                      studentsAsync: studentsAsync,
+                      subjectPartsAsync: subjectPartsAsync,
+                      l10n: l10n,
                     );
                   },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => Center(
-                    child: Text('Error: $error'),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => Center(
+                    child: Text(_text(context, vi: 'No session', en: 'No session')),
                   ),
                 ),
               ),
@@ -152,7 +145,78 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
+  Widget _buildLoadedContent({
+    required ExamSession session,
+    required AsyncValue<List<StudentExam>> studentsAsync,
+    required AsyncValue<List<SubjectPartOption>> subjectPartsAsync,
+    required AppLocalizations l10n,
+  }) {
+    return studentsAsync.when(
+      data: (students) {
+        final subjectParts = subjectPartsAsync.valueOrNull ?? const <SubjectPartOption>[];
+        final selectedExamPartCode = _resolveSelectedExamPartCode(subjectParts);
+        final seatingPlan = SeatingPlan.fromExamData(
+          maxRows: session.maxRows ?? 6,
+          maxColumns: session.maxColumns ?? 6,
+          totalSeats: session.totalSeats ?? ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
+          studentExams: students,
+          selectedExamPartCode: subjectParts.isNotEmpty ? selectedExamPartCode : null,
+        );
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildExamInfo(session, l10n),
+              if (subjectPartsAsync.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+              if (subjectParts.isNotEmpty)
+                _buildPartSelector(subjectParts, selectedExamPartCode),
+              _buildActionButtons(
+                context: context,
+                session: session,
+                subjectParts: subjectParts,
+                selectedExamPartCode: selectedExamPartCode,
+                l10n: l10n,
+              ),
+              _buildProctorFaceCheckInButton(session: session),
+              _buildStatsCards(
+                students: students,
+                seatingPlan: seatingPlan,
+                l10n: l10n,
+              ),
+              const SizedBox(height: 8),
+              const SeatingLegend(),
+              const SizedBox(height: 16),
+              if (students.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(_text(context, vi: 'No session', en: 'No session')),
+                  ),
+                )
+              else
+                _buildSeatingPlanView(
+                  seatingPlan: seatingPlan,
+                  selectedExamPartCode: selectedExamPartCode,
+                  l10n: l10n,
+                ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Center(
+        child: Text(_text(context, vi: 'No session', en: 'No session')),
+      ),
+    );
+  }
+
+  Widget _buildHeader(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -179,57 +243,6 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildContent(
-    BuildContext context,
-    ExamSession session,
-    int totalStudents,
-    int presentStudents,
-    AsyncValue<List<StudentExam>> studentsAsync,
-    AsyncValue<SeatingPlan?> seatingPlanAsync,
-    AppLocalizations l10n,
-  ) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildExamInfo(session, l10n),
-          _buildActionButtons(context, session, l10n),
-          _buildStatsCards(
-              session, totalStudents, presentStudents, studentsAsync, l10n),
-          const SizedBox(height: 8),
-          const SeatingLegend(),
-          const SizedBox(height: 16),
-          seatingPlanAsync.when(
-            data: (seatingPlan) {
-              if (seatingPlan == null) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(l10n.seatingPlanNotAvailable),
-                  ),
-                );
-              }
-              return _buildSeatingPlanView(seatingPlan, l10n);
-            },
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            error: (error, stack) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text('Error loading seating plan: $error'),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
   Widget _buildExamInfo(ExamSession session, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -241,7 +254,6 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Exam Status and Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -254,14 +266,13 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: _getStatusColor(session.status),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  session.statusLabel,
+                  _sessionStatusLabel(session),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -274,57 +285,28 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(height: 12),
           const Divider(color: Colors.white24, height: 1),
           const SizedBox(height: 12),
-
-          // Subject & Semester
-          _buildInfoRow(
-            Icons.book,
-            l10n.subject,
-            session.subjectCode ?? l10n.tba,
-          ),
+          _buildInfoRow(Icons.book, l10n.subject, session.subjectCode ?? l10n.tba),
           const SizedBox(height: 8),
-          _buildInfoRow(
-            Icons.calendar_month,
-            l10n.semester,
-            session.semester ?? l10n.tba,
-          ),
+          _buildInfoRow(Icons.calendar_month, l10n.semester, session.semester ?? l10n.tba),
           const SizedBox(height: 8),
-
-          // Room Info
-          _buildInfoRow(
-            Icons.meeting_room,
-            l10n.examRoom,
-            session.roomNumber ?? l10n.tba,
-          ),
+          _buildInfoRow(Icons.meeting_room, l10n.examRoom, session.roomNumber ?? l10n.tba),
           const SizedBox(height: 8),
-
-          // Exam Time
           if (session.examOpenTime != null) ...[
             _buildInfoRow(
               Icons.access_time,
               l10n.examDate,
-              '${DateFormat('MMM dd, yyyy HH:mm').format(session.examOpenTime!)} - ${session.examCloseTime != null ? DateFormat('HH:mm').format(session.examCloseTime!) : l10n.tba}',
+              _formatSessionTimeRange(session, l10n),
             ),
             const SizedBox(height: 8),
           ],
-
-          // Proctor
-          _buildInfoRow(
-            Icons.person,
-            l10n.assignee,
-            session.proctorName ?? l10n.tba,
-          ),
-
-          // Note if exists
+          _buildInfoRow(Icons.person, l10n.assignee, session.proctorName ?? l10n.tba),
           if (session.note != null && session.note!.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Divider(color: Colors.white24, height: 1),
             const SizedBox(height: 12),
             Text(
               session.note!,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],
         ],
@@ -339,10 +321,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
         Expanded(
           child: Text(
@@ -358,30 +337,79 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Color _getStatusColor(ExamSessionStatus status) {
-    // We cannot use session.isScheduled here easily since it takes status param
-    // But we can check values directly or use a dummy session
-    if (status == ExamSessionStatus.scheduled ||
-        status == ExamSessionStatus.scheduledLower) {
-      return const Color(0xFF2196F3);
-    }
-    if (status == ExamSessionStatus.ongoing ||
-        status == ExamSessionStatus.ongoingLower) {
-      return const Color(0xFF4CAF50);
-    }
-    if (status == ExamSessionStatus.ended ||
-        status == ExamSessionStatus.endedLower) {
-      return const Color(0xFF757575);
-    }
-    return Colors.grey;
+  Widget _buildPartSelector(List<SubjectPartOption> parts, String? selectedExamPartCode) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(10),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _text(context, vi: 'Chọn phần thi điểm danh', en: 'Choose exam part'),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: parts.map((part) {
+                final isSelected = part.code == selectedExamPartCode;
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedExamPartCode = part.code;
+                      _selectedSeat = null;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF2196F3) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE0E0E0),
+                      ),
+                    ),
+                    child: Text(
+                      part.displayLabel,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : const Color(0xFF333333),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildActionButtons(
-      BuildContext context, ExamSession session, AppLocalizations l10n) {
-    // Only show action buttons for assigned proctors of this session
-    final isAssignedProctor = _userId != null &&
-        (_userId == session.proctorId || _userId == session.hallInvigilatorId);
- 
+  Widget _buildActionButtons({
+    required BuildContext context,
+    required ExamSession session,
+    required List<SubjectPartOption> subjectParts,
+    required String? selectedExamPartCode,
+    required AppLocalizations l10n,
+  }) {
+    final isAssignedProctor = _userId != null && _userId == session.proctorId;
+
     if (!isAssignedProctor) {
       if (_isStaff) {
         return Container(
@@ -398,7 +426,11 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Chỉ Giám thị được phân công mới có quyền thực hiện các tác vụ trong ca thi này.',
+                  _text(
+                    context,
+                    vi: 'Chỉ giám thị được phân công mới có quyền thao tác trong ca thi này.',
+                    en: 'Only the assigned proctor can perform actions in this exam session.',
+                  ),
                   style: TextStyle(
                     color: Colors.orange[900],
                     fontSize: 13,
@@ -414,8 +446,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     }
 
     final profileState = ref.watch(proctorProfileControllerProvider);
-    final deviceIsActive =
-        profileState.deviceStatus == DeviceRegistrationStatus.active;
+    final deviceIsActive = profileState.deviceStatus == DeviceRegistrationStatus.active;
+    final requiresPartSelection = subjectParts.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -425,43 +457,65 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             child: ElevatedButton.icon(
               onPressed: () async {
                 if (!deviceIsActive) {
-                  final message = profileState.deviceStatus ==
-                          DeviceRegistrationStatus.none
-                      ? 'Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.'
-                      : 'Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.';
+                  final message = profileState.deviceStatus == DeviceRegistrationStatus.none
+                      ? _text(
+                          context,
+                          vi: 'Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.',
+                          en: 'This device is not registered yet. Please register it before using FA Checkin.',
+                        )
+                      : _text(
+                          context,
+                          vi: 'Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.',
+                          en: 'This device is pending approval. Please wait for confirmation.',
+                        );
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(message),
-                        backgroundColor: Colors.red,
-                      ),
+                      SnackBar(content: Text(message), backgroundColor: Colors.red),
                     );
                   }
                   return;
                 }
 
-                Navigator.push(
+                if (requiresPartSelection &&
+                    (selectedExamPartCode == null || selectedExamPartCode.isEmpty)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _text(
+                          context,
+                          vi: 'Vui lòng chọn phần thi trước khi điểm danh.',
+                          en: 'Please choose an exam part before check-in.',
+                        ),
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                final result = await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(
                     builder: (context) => FaceAuthenticatePage(
                       examSessionId: widget.examSessionId,
+                      examPartCode: selectedExamPartCode,
                     ),
                   ),
                 );
+
+                if (result == true) {
+                  ref.invalidate(examSessionDetailProvider(widget.examSessionId));
+                  ref.invalidate(sessionStudentsProvider(widget.examSessionId));
+                }
               },
               icon: const Icon(Icons.camera_alt, size: 20),
-              label: Text(
-                l10n.faCheckin,
-                style: const TextStyle(fontSize: 13),
-              ),
+              label: Text(l10n.faCheckin, style: const TextStyle(fontSize: 13)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4CAF50),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
           ),
@@ -470,17 +524,12 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             child: ElevatedButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.confirmation_number_outlined, size: 20),
-              label: Text(
-                l10n.createTicket,
-                style: const TextStyle(fontSize: 13),
-              ),
+              label: Text(l10n.createTicket, style: const TextStyle(fontSize: 13)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
           ),
@@ -489,25 +538,149 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildStatsCards(
-    ExamSession session,
-    int totalStudents,
-    int presentStudents,
-    AsyncValue<List<StudentExam>> studentsAsync,
-    AppLocalizations l10n,
-  ) {
-    final students = studentsAsync.valueOrNull ?? [];
-    final actualTotal = students.length; // ✅ Calculate total from actual data
-    final actualPresent = students
-        .where((s) =>
-            s.status == StudentExamStatus.checkedIn ||
-            s.status == StudentExamStatus.checkedOut)
-        .length; // ✅ Calculate present count
-    final registeredCount =
-        students.where((s) => s.status == StudentExamStatus.registered).length;
-    final absentCount =
-        students.where((s) => s.status == StudentExamStatus.removed).length;
+  Widget _buildProctorPresenceButton({required ExamSession session}) {
+    final isAssignedProctor = _userId != null && _userId == session.proctorId;
 
+    if (!isAssignedProctor) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            setState(() {
+              _hasProctorCheckedIn = !_hasProctorCheckedIn;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  _hasProctorCheckedIn
+                      ? _text(
+                          context,
+                          vi: 'Đã xác nhận giám thị có mặt trong phòng thi.',
+                          en: 'Proctor marked as present in the exam room.',
+                        )
+                      : _text(
+                          context,
+                          vi: 'Đã hủy xác nhận giám thị có mặt trong phòng thi.',
+                          en: 'Proctor presence confirmation removed.',
+                        ),
+                ),
+                backgroundColor:
+                    _hasProctorCheckedIn ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+              ),
+            );
+          },
+          icon: Icon(
+            _hasProctorCheckedIn ? Icons.verified_user : Icons.how_to_reg,
+            size: 20,
+          ),
+          label: Text(
+            _hasProctorCheckedIn
+                ? _text(
+                    context,
+                    vi: 'Giám thị đã vào phòng thi',
+                    en: 'Proctor is in the exam room',
+                  )
+                : _text(
+                    context,
+                    vi: 'Xác nhận giám thị vào phòng thi',
+                    en: 'Confirm proctor entered room',
+                  ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                _hasProctorCheckedIn ? const Color(0xFF2E7D32) : const Color(0xFFFF9800),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProctorFaceCheckInButton({required ExamSession session}) {
+    final isAssignedProctor = _userId != null && _userId == session.proctorId;
+
+    if (!isAssignedProctor) {
+      return const SizedBox.shrink();
+    }
+
+    final checkedInAt = session.proctorCheckedInAt;
+    final hasCheckedIn = checkedInAt != null;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            final result = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => ProctorFaceCheckInPage(
+                  examSessionId: widget.examSessionId,
+                ),
+              ),
+            );
+
+            if (result == true) {
+              ref.invalidate(examSessionDetailProvider(widget.examSessionId));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    _text(
+                      context,
+                      vi: 'Điểm danh giám thị thành công.',
+                      en: 'Proctor check-in successful.',
+                    ),
+                  ),
+                  backgroundColor: const Color(0xFF2E7D32),
+                ),
+              );
+            }
+          },
+          icon: Icon(
+            hasCheckedIn ? Icons.verified_user : Icons.face_retouching_natural,
+            size: 20,
+          ),
+          label: Text(
+            hasCheckedIn
+                ? _text(
+                    context,
+                    vi: 'Giám thị đã vào phòng thi',
+                    en: 'Proctor has checked in',
+                  )
+                : _text(
+                    context,
+                    vi: 'Quét khuôn mặt giám thị vào phòng thi',
+                    en: 'Scan proctor face for check-in',
+                  ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                hasCheckedIn ? const Color(0xFF2E7D32) : const Color(0xFFFF9800),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCards({
+    required List<StudentExam> students,
+    required SeatingPlan seatingPlan,
+    required AppLocalizations l10n,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -515,8 +688,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Expanded(
             child: _buildStatCard(
               icon: Icons.people,
-              value:
-                  '$actualTotal', // ✅ Use calculated value instead of backend
+              value: '${students.length}',
               label: l10n.total,
               color: const Color(0xFF2196F3),
             ),
@@ -525,7 +697,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Expanded(
             child: _buildStatCard(
               icon: Icons.check_circle,
-              value: '$actualPresent', // ✅ Use calculated value
+              value: '${seatingPlan.presentCount}',
               label: l10n.present,
               color: const Color(0xFF4CAF50),
             ),
@@ -534,7 +706,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Expanded(
             child: _buildStatCard(
               icon: Icons.pending,
-              value: '$registeredCount',
+              value: '${seatingPlan.occupiedCount}',
               label: l10n.registered,
               color: const Color(0xFFFFC107),
             ),
@@ -543,7 +715,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Expanded(
             child: _buildStatCard(
               icon: Icons.cancel,
-              value: '$absentCount',
+              value: '${seatingPlan.absentCount}',
               label: l10n.absent,
               color: const Color(0xFFF44336),
             ),
@@ -566,7 +738,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha((0.05 * 255).round()),
+            color: Colors.black.withAlpha(10),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -578,18 +750,12 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -599,12 +765,20 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildSeatingPlanView(SeatingPlan seatingPlan, AppLocalizations l10n) {
+  Widget _buildSeatingPlanView({
+    required SeatingPlan seatingPlan,
+    required String? selectedExamPartCode,
+    required AppLocalizations l10n,
+  }) {
     return Column(
       children: [
         _buildTeacherDesk(l10n),
         const SizedBox(height: 24),
-        _buildSeatingGrid(seatingPlan, l10n),
+        _buildSeatingGrid(
+          seatingPlan: seatingPlan,
+          selectedExamPartCode: selectedExamPartCode,
+          l10n: l10n,
+        ),
       ],
     );
   }
@@ -637,13 +811,17 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildSeatingGrid(SeatingPlan seatingPlan, AppLocalizations l10n) {
+  Widget _buildSeatingGrid({
+    required SeatingPlan seatingPlan,
+    required String? selectedExamPartCode,
+    required AppLocalizations l10n,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final double gridWidth = constraints.maxWidth;
-          final double cellWidth = gridWidth / seatingPlan.columns;
+          final gridWidth = constraints.maxWidth;
+          final cellWidth = gridWidth / seatingPlan.columns;
 
           return Column(
             children: [
@@ -659,8 +837,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           child: SizedBox(
                             width: cellWidth - 12,
                             child: _buildSeatCell(
-                              seatingPlan.getSeatAt(row, col),
-                              l10n,
+                              seat: seatingPlan.getSeatAt(row, col),
+                              selectedExamPartCode: selectedExamPartCode,
+                              l10n: l10n,
                             ),
                           ),
                         ),
@@ -674,31 +853,47 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildSeatCell(Seat? seat, AppLocalizations l10n) {
-    if (seat == null) {
-      return const SizedBox.shrink();
-    }
+  Widget _buildSeatCell({
+    required Seat? seat,
+    required String? selectedExamPartCode,
+    required AppLocalizations l10n,
+  }) {
+    if (seat == null) return const SizedBox.shrink();
 
     final isSelected = _selectedSeat?.id == seat.id;
 
     return GestureDetector(
       onTap: () {
-        if (seat.status != SeatStatus.available) {
-          setState(() {
-            _selectedSeat = isSelected ? null : seat;
-          });
-          _showSeatDetails(seat, l10n);
-        }
+        if (seat.status == SeatStatus.available) return;
+        setState(() {
+          _selectedSeat = isSelected ? null : seat;
+        });
+        _showSeatDetails(
+          seat: seat,
+          selectedExamPartCode: selectedExamPartCode,
+          l10n: l10n,
+        );
       },
-      child: SeatWidget(
-        seat: seat,
-        isSelected: isSelected,
-      ),
+      child: SeatWidget(seat: seat, isSelected: isSelected),
     );
   }
 
-  void _showSeatDetails(Seat seat, AppLocalizations l10n) {
-    if (seat.studentExam == null) return;
+  void _showSeatDetails({
+    required Seat seat,
+    required String? selectedExamPartCode,
+    required AppLocalizations l10n,
+  }) {
+    final student = seat.studentExam;
+    if (student == null) return;
+
+    final partInfo = student.findPartByCode(selectedExamPartCode);
+    final displayStatus = _seatStatusLabel(
+      seatStatus: seat.status,
+      selectedExamPartCode: selectedExamPartCode,
+      studentExam: student,
+      l10n: l10n,
+    );
+    final checkInTime = partInfo?.checkInTime ?? student.checkinTime;
 
     showModalBottomSheet(
       context: context,
@@ -706,9 +901,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       builder: (context) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -721,27 +914,23 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: _getSeatColor(seat.status)
-                        .withAlpha((0.1 * 255).round()),
+                    color: _getSeatColor(seat.status).withAlpha(25),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: seat.studentExam?.studentAvatarUrl?.isNotEmpty ==
-                            true
+                    child: student.studentAvatarUrl?.isNotEmpty == true
                         ? GestureDetector(
-                            onTap: () => _showAvatarPreview(
-                              seat.studentExam!.studentAvatarUrl!,
-                            ),
+                            onTap: () => _showAvatarPreview(student.studentAvatarUrl!),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Image.network(
-                                seat.studentExam!.studentAvatarUrl!,
+                                student.studentAvatarUrl!,
                                 width: 48,
                                 height: 48,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
+                                errorBuilder: (_, __, ___) {
                                   return Text(
-                                    seat.stt.toString(),
+                                    (student.stt ?? seat.stt).toString(),
                                     style: TextStyle(
                                       color: _getSeatColor(seat.status),
                                       fontWeight: FontWeight.bold,
@@ -753,7 +942,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             ),
                           )
                         : Text(
-                            (seat.studentExam?.stt ?? seat.stt).toString(),
+                            (student.stt ?? seat.stt).toString(),
                             style: TextStyle(
                               color: _getSeatColor(seat.status),
                               fontWeight: FontWeight.bold,
@@ -768,14 +957,15 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'STT ${seat.studentExam?.stt ?? seat.stt}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                        _text(
+                          context,
+                          vi: 'Ghế ${student.stt ?? seat.stt}',
+                          en: 'Seat ${student.stt ?? seat.stt}',
                         ),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        _getStatusLabel(seat.status, l10n),
+                        displayStatus,
                         style: TextStyle(
                           fontSize: 14,
                           color: _getSeatColor(seat.status),
@@ -791,22 +981,26 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               ],
             ),
             const Divider(height: 32),
-            if (seat.studentExam != null) ...[
-              _buildDetailRow(l10n.studentId, seat.studentExam!.studentId),
+            _buildDetailRow(l10n.studentId, student.studentCode ?? student.studentId),
+            const SizedBox(height: 12),
+            _buildDetailRow(
+              _text(context, vi: 'Họ và tên', en: 'Student name'),
+              student.studentName ?? '-',
+            ),
+            if (selectedExamPartCode != null && selectedExamPartCode.isNotEmpty) ...[
               const SizedBox(height: 12),
               _buildDetailRow(
-                'Student Name',
-                seat.studentExam!.studentName ?? '-',
+                _text(context, vi: 'Phần thi', en: 'Exam part'),
+                partInfo?.examPartName?.isNotEmpty == true
+                    ? partInfo!.examPartName!
+                    : selectedExamPartCode,
               ),
+            ],
+            const SizedBox(height: 12),
+            _buildDetailRow(l10n.status, displayStatus),
+            if (checkInTime != null) ...[
               const SizedBox(height: 12),
-              _buildDetailRow(
-                  l10n.status, seat.studentExam!.status.name.toUpperCase()),
-              const SizedBox(height: 12),
-              if (seat.studentExam!.checkinTime != null)
-                _buildDetailRow(
-                  l10n.checkinTime,
-                  _formatDateTime(seat.studentExam!.checkinTime!),
-                ),
+              _buildDetailRow(l10n.checkinTime, _formatDateTime(checkInTime)),
             ],
           ],
         ),
@@ -820,16 +1014,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -858,6 +1050,28 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
+  String? _resolveSelectedExamPartCode(List<SubjectPartOption> parts) {
+    if (parts.isEmpty) return null;
+    if (_selectedExamPartCode != null &&
+        parts.any((part) => part.code == _selectedExamPartCode)) {
+      return _selectedExamPartCode;
+    }
+    return parts.first.code;
+  }
+
+  Color _getStatusColor(ExamSessionStatus status) {
+    if (status == ExamSessionStatus.scheduled || status == ExamSessionStatus.scheduledLower) {
+      return const Color(0xFF2196F3);
+    }
+    if (status == ExamSessionStatus.ongoing || status == ExamSessionStatus.ongoingLower) {
+      return const Color(0xFF4CAF50);
+    }
+    if (status == ExamSessionStatus.ended || status == ExamSessionStatus.endedLower) {
+      return const Color(0xFF757575);
+    }
+    return Colors.grey;
+  }
+
   Color _getSeatColor(SeatStatus status) {
     switch (status) {
       case SeatStatus.available:
@@ -871,8 +1085,24 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     }
   }
 
-  String _getStatusLabel(SeatStatus status, AppLocalizations l10n) {
-    switch (status) {
+  String _seatStatusLabel({
+    required SeatStatus seatStatus,
+    required String? selectedExamPartCode,
+    required StudentExam studentExam,
+    required AppLocalizations l10n,
+  }) {
+    if (selectedExamPartCode != null && selectedExamPartCode.isNotEmpty) {
+      final partInfo = studentExam.findPartByCode(selectedExamPartCode);
+      if (studentExam.status == StudentExamStatus.removed) {
+        return l10n.absent;
+      }
+      if (partInfo?.isCheckedIn == true) {
+        return l10n.present;
+      }
+      return l10n.registered;
+    }
+
+    switch (seatStatus) {
       case SeatStatus.available:
         return l10n.available;
       case SeatStatus.occupied:
@@ -884,7 +1114,44 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     }
   }
 
+  String _sessionStatusLabel(ExamSession session) {
+    if (_isVietnamese(context)) {
+      if (session.isScheduled) return 'Sắp tới';
+      if (session.isOngoing) return 'Đang diễn ra';
+      if (session.isEnded) return 'Đã kết thúc';
+      return 'Không rõ';
+    }
+
+    if (session.isScheduled) return 'Scheduled';
+    if (session.isOngoing) return 'Ongoing';
+    if (session.isEnded) return 'Completed';
+    return 'Unknown';
+  }
+
+  String _formatSessionTimeRange(ExamSession session, AppLocalizations l10n) {
+    final openTime = session.examOpenTime;
+    if (openTime == null) return l10n.tba;
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final openText = DateFormat('MMM d, yyyy HH:mm', locale).format(openTime);
+    final closeText = session.examCloseTime != null
+        ? DateFormat('HH:mm', locale).format(session.examCloseTime!)
+        : l10n.tba;
+    return '$openText - $closeText';
+  }
+
   String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')} ${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat('dd/MM/yyyy HH:mm', locale).format(dateTime);
+  }
+
+  bool _isVietnamese(BuildContext context) =>
+      Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+
+  String _text(
+    BuildContext context, {
+    required String vi,
+    required String en,
+  }) {
+    return _isVietnamese(context) ? vi : en;
   }
 }

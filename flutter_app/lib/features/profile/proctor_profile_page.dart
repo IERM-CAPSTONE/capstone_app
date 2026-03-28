@@ -7,6 +7,7 @@ import '../../core/routes/app_routes.dart';
 import 'proctor_profile_controller.dart';
 import 'widgets/proctor_profile_header.dart';
 import 'widgets/proctor_personal_info_section.dart';
+import 'widgets/proctor_face_recognition_section.dart';
 import 'widgets/proctor_device_verification_section.dart';
 import 'widgets/proctor_security_section.dart';
 import 'widgets/proctor_help_support_section.dart';
@@ -81,6 +82,10 @@ class ProctorProfilePage extends ConsumerWidget {
 
                         // Device Verification Section
                         const ProctorDeviceVerificationSection(),
+
+                        const SizedBox(height: 24),
+
+                        ProctorFaceRecognitionSection(state: profileState),
 
                         const SizedBox(height: 24),
 

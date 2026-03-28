@@ -47,7 +47,10 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
     super.dispose();
   }
 
-  Future<void> initializeCamera({String? examSessionId}) async {
+  Future<void> initializeCamera({
+    String? examSessionId,
+    String? examPartCode,
+  }) async {
     try {
       _faceDetector = FaceDetector(
         options: FaceDetectorOptions(
@@ -58,12 +61,20 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       );
 
       final cameras = await availableCameras();
-      final frontCamera = cameras.firstWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.front,
-      );
+      if (cameras.isEmpty) {
+        throw Exception('No camera available');
+      }
+
+      CameraDescription selectedCamera = cameras.first;
+      for (final camera in cameras) {
+        if (camera.lensDirection == CameraLensDirection.front) {
+          selectedCamera = camera;
+          break;
+        }
+      }
 
       final controller = CameraController(
-        frontCamera,
+        selectedCamera,
         ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: Platform.isAndroid
@@ -79,6 +90,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
         status: FaceAuthenticateStatus.scanning,
         instructionMessage: '',
         examSessionId: examSessionId,
+        examPartCode: examPartCode,
       );
 
       controller.startImageStream((image) {
@@ -210,6 +222,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       final result = await service.authenticateFace(
         imageBase64: base64Image,
         examSessionId: state.examSessionId,
+        examPartCode: state.examPartCode,
         isEncrypted: false,
       );
 

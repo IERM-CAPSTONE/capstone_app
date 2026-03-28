@@ -3,16 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'register_face_live_scan_page.dart';
 
-/// Static UI - Face scan intro screen (Step before ID capture).
-/// Pressing "Start scan" navigates to the live face scan page.
 class RegisterFaceScanIntroPage extends StatelessWidget {
   const RegisterFaceScanIntroPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isVietnamese =
+        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan your face'),
+        title: Text(isVietnamese ? 'Qu\u00e9t khu\u00f4n m\u1eb7t' : 'Scan your face'),
         backgroundColor: AppColors.appBarOrange,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -34,27 +35,27 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 8),
-                const Text(
-                  'Ready to scan your face?',
+                Text(
+                  isVietnamese
+                      ? 'S\u1eb5n s\u00e0ng qu\u00e9t khu\u00f4n m\u1eb7t?'
+                      : 'Ready to scan your face?',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 18),
-                // Avatar in oval frame with outline
                 SizedBox(
                   width: 160,
                   height: 240,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // 🔵 Viền oval chuẩn
                       Container(
                         width: 160,
                         height: 240,
-                        decoration: ShapeDecoration(
+                        decoration: const ShapeDecoration(
                           shape: OvalBorder(
                             side: BorderSide(
                               color: AppColors.appBarOrange,
@@ -63,8 +64,6 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                           ),
                         ),
                       ),
-
-                      // 🖼 Avatar oval chuẩn
                       ClipOval(
                         child: SizedBox(
                           width: 152,
@@ -72,7 +71,7 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                           child: Image.asset(
                             'assets/avatar_face.png',
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
+                            errorBuilder: (_, __, ___) {
                               return const Center(
                                 child: Icon(Icons.person, size: 60),
                               );
@@ -83,21 +82,29 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: const [
+                const SizedBox(height: 22),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 16,
+                  children: [
                     _Hint(
                       icon: Icons.crop_free,
-                      text: 'Keep your face\ninside the frame',
+                      text: isVietnamese
+                          ? 'Gi\u1eef khu\u00f4n m\u1eb7t trong khung'
+                          : 'Keep your face inside the frame',
                     ),
                     _Hint(
                       icon: Icons.wb_sunny_outlined,
-                      text: 'Avoid harsh light\nor darkness',
+                      text: isVietnamese
+                          ? 'Tr\u00e1nh \u00e1nh s\u00e1ng qu\u00e1 g\u1eaft ho\u1eb7c qu\u00e1 t\u1ed1i'
+                          : 'Avoid harsh light or darkness',
                     ),
                     _Hint(
                       icon: Icons.no_accounts,
-                      text: 'No hat, sunglasses,\nor mask',
+                      text: isVietnamese
+                          ? 'Kh\u00f4ng \u0111\u1ed9i m\u0169, \u0111eo k\u00ednh r\u00e2m ho\u1eb7c kh\u1ea9u trang'
+                          : 'No hat, sunglasses, or mask',
                     ),
                   ],
                 ),
@@ -117,7 +124,9 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                       backgroundColor: AppColors.appBarOrange,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Start scan'),
+                    child: Text(
+                      isVietnamese ? 'B\u1eaft \u0111\u1ea7u qu\u00e9t' : 'Start scan',
+                    ),
                   ),
                 ),
               ],
@@ -141,7 +150,7 @@ class _Hint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 98,
+      width: 104,
       child: Column(
         children: [
           Icon(icon, size: 22, color: AppColors.appBarOrange),

@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Env {
   // API Configuration
   static const String apiBaseUrl = String.fromEnvironment(
     'apiBaseUrl',
-    defaultValue: 'https://4891-171-231-192-153.ngrok-free.app/api',
+    defaultValue: 'https://e8ac-171-231-192-153.ngrok-free.app/api',
   );
 
   // Redis Configuration (if needed for direct access)
@@ -46,4 +47,7 @@ class Env {
   static int get apiTimeoutMs {
     return 30000; // Default timeout: 30 seconds
   }
+
+  static bool get isAndroid => !kIsWeb && Platform.isAndroid;
+  static bool get isIOS => !kIsWeb && Platform.isIOS;
 }

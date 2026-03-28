@@ -20,6 +20,7 @@ class FaceAuthenticateState {
   final String? studentCode;
   final String? studentName;
   final String? examSessionId;
+  final String? examPartCode;
   final int poseStableCount;
   final int requiredStableFrames;
 
@@ -33,6 +34,7 @@ class FaceAuthenticateState {
     this.studentCode,
     this.studentName,
     this.examSessionId,
+    this.examPartCode,
     this.poseStableCount = 0,
     this.requiredStableFrames = 3,
   });
@@ -47,6 +49,7 @@ class FaceAuthenticateState {
     String? studentCode,
     String? studentName,
     String? examSessionId,
+    String? examPartCode,
     int? poseStableCount,
     int? requiredStableFrames,
   }) {
@@ -60,6 +63,7 @@ class FaceAuthenticateState {
       studentCode: studentCode ?? this.studentCode,
       studentName: studentName ?? this.studentName,
       examSessionId: examSessionId ?? this.examSessionId,
+      examPartCode: examPartCode ?? this.examPartCode,
       poseStableCount: poseStableCount ?? this.poseStableCount,
       requiredStableFrames: requiredStableFrames ?? this.requiredStableFrames,
     );

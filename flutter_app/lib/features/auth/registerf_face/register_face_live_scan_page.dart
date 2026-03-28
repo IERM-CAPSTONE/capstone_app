@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import 'register_controller.dart';
 import 'register_state.dart';
@@ -25,15 +26,25 @@ class _RegisterFaceLiveScanPageState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(registerFaceControllerProvider, (previous, next) {
+      if (next.status == FaceScanStatus.completed &&
+          previous?.status != FaceScanStatus.completed) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (context.mounted) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+        });
+      }
+    });
+
     final state = ref.watch(registerFaceControllerProvider);
 
-    // Auto-navigation or auto-response based on state
     if (state.status == FaceScanStatus.completed) {
       return _buildCompletedScreen(context);
     }
 
     if (state.status == FaceScanStatus.error) {
-      return _buildErrorScreen(context, state.errorMessage ?? "Unknown error");
+      return _buildErrorScreen(context);
     }
 
     if (state.status == FaceScanStatus.capturing) {
@@ -45,30 +56,12 @@ class _RegisterFaceLiveScanPageState
       body: SafeArea(
         child: Stack(
           fit: StackFit.expand,
-          children: [
-            const RepaintBoundary(child: _CameraPreviewWidget()),
-            const _OvalOverlayWidget(),
-            const _HeaderWidget(),
-            const _InstructionWidget(),
-            const _GlassesWarningWidget(),
-
-            // Debug button for testing (Quick re-submit)
-            if (state.capturedImages.length == 5)
-              Positioned(
-                bottom: 20,
-                right: 20,
-                child: FloatingActionButton.extended(
-                  backgroundColor: Colors.redAccent,
-                  onPressed: () => ref
-                      .read(registerFaceControllerProvider.notifier)
-                      .registerFace(
-                        '',
-                        debugImages: state.capturedImages,
-                      ),
-                  label: const Text('DEBUG: Gửi lại ảnh cũ'),
-                  icon: const Icon(Icons.bug_report),
-                ),
-              ),
+          children: const [
+            RepaintBoundary(child: _CameraPreviewWidget()),
+            _OvalOverlayWidget(),
+            _HeaderWidget(),
+            _InstructionWidget(),
+            _GlassesWarningWidget(),
           ],
         ),
       ),
@@ -84,69 +77,61 @@ class _RegisterFaceLiveScanPageState
           children: [
             const CircularProgressIndicator(color: AppColors.appBarOrange),
             const SizedBox(height: 24),
-            Text(message,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+            Text(
+              message,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildErrorScreen(BuildContext context, String error) {
+  Widget _buildErrorScreen(BuildContext context) {
+    final isVietnamese =
+        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.error_outline, color: Colors.red, size: 80),
               const SizedBox(height: 24),
-              const Text('Lỗi đăng ký!',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                isVietnamese
+                    ? 'L\u1ed7i \u0111\u0103ng k\u00fd!'
+                    : 'Registration failed!',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
-              Text(error,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.black54)),
+              Text(
+                isVietnamese
+                    ? '\u0110\u0103ng k\u00fd khu\u00f4n m\u1eb7t kh\u00f4ng th\u00e0nh c\u00f4ng. Vui l\u00f2ng th\u1eed l\u1ea1i t\u1eeb \u0111\u1ea7u.'
+                    : 'Face registration was unsuccessful. Please try again from the beginning.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.black54, fontSize: 16),
+              ),
               const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => ref
-                      .read(registerFaceControllerProvider.notifier)
-                      .initializeCamera(),
+                  onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.appBarOrange,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.all(16),
                   ),
-                  child: const Text('Thử lại từ đầu'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Nút test nhanh khi có dữ liệu cũ
-              if (ref
-                      .read(registerFaceControllerProvider)
-                      .capturedImages
-                      .length ==
-                  5)
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => ref
-                        .read(registerFaceControllerProvider.notifier)
-                        .registerFace(
-                          'STU_RETRY_${DateTime.now().millisecondsSinceEpoch}',
-                        ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.appBarOrange),
-                      padding: const EdgeInsets.all(16),
-                    ),
-                    child: const Text('Thử gửi lại dữ liệu cũ'),
+                  child: Text(
+                    isVietnamese
+                        ? 'Th\u1eed l\u1ea1i t\u1eeb \u0111\u1ea7u'
+                        : 'Start over',
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -155,6 +140,9 @@ class _RegisterFaceLiveScanPageState
   }
 
   Widget _buildCompletedScreen(BuildContext context) {
+    final isVietnamese =
+        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -163,21 +151,28 @@ class _RegisterFaceLiveScanPageState
           children: [
             const Icon(Icons.check_circle, color: Colors.green, size: 80),
             const SizedBox(height: 24),
-            const Text('Đăng ký thành công!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              isVietnamese
+                  ? '\u0110\u0103ng k\u00fd th\u00e0nh c\u00f4ng!'
+                  : 'Registration successful!',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
-            const Text('Dữ liệu khuôn mặt đã được cập nhật.',
-                style: TextStyle(color: Colors.black54)),
+            Text(
+              isVietnamese
+                  ? 'D\u1eef li\u1ec7u khu\u00f4n m\u1eb7t \u0111\u00e3 \u0111\u01b0\u1ee3c c\u1eadp nh\u1eadt.'
+                  : 'Your facial data has been updated.',
+              style: const TextStyle(color: Colors.black54),
+            ),
             const SizedBox(height: 48),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.appBarOrange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
               ),
-              child: const Text('Hoàn tất'),
+              child: Text(isVietnamese ? 'Ho\u00e0n t\u1ea5t' : 'Complete'),
             ),
           ],
         ),
@@ -188,10 +183,12 @@ class _RegisterFaceLiveScanPageState
 
 class _CameraPreviewWidget extends ConsumerWidget {
   const _CameraPreviewWidget();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(
-        registerFaceControllerProvider.select((s) => s.cameraController));
+      registerFaceControllerProvider.select((s) => s.cameraController),
+    );
     if (controller != null && controller.value.isInitialized) {
       return Center(child: CameraPreview(controller));
     }
@@ -201,10 +198,12 @@ class _CameraPreviewWidget extends ConsumerWidget {
 
 class _OvalOverlayWidget extends ConsumerWidget {
   const _OvalOverlayWidget();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final status =
-        ref.watch(registerFaceControllerProvider.select((s) => s.status));
+    final status = ref.watch(
+      registerFaceControllerProvider.select((s) => s.status),
+    );
     return CustomPaint(
       painter: SimpleOvalPainter(isValid: status == FaceScanStatus.poseValid),
     );
@@ -213,10 +212,12 @@ class _OvalOverlayWidget extends ConsumerWidget {
 
 class _HeaderWidget extends ConsumerWidget {
   const _HeaderWidget();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(
-        registerFaceControllerProvider.select((s) => s.capturedPoses.length));
+      registerFaceControllerProvider.select((s) => s.capturedPoses.length),
+    );
     return Positioned(
       top: 10,
       left: 10,
@@ -231,12 +232,17 @@ class _HeaderWidget extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-                color: Colors.black45, borderRadius: BorderRadius.circular(20)),
-            child: Text('$count/5',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
+              color: Colors.black45,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '$count/5',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -246,6 +252,7 @@ class _HeaderWidget extends ConsumerWidget {
 
 class _InstructionWidget extends ConsumerWidget {
   const _InstructionWidget();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(registerFaceControllerProvider);
@@ -287,7 +294,10 @@ class _InstructionWidget extends ConsumerWidget {
             state.instructionMessage,
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: color, fontSize: 20, fontWeight: FontWeight.bold),
+              color: color,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -297,6 +307,7 @@ class _InstructionWidget extends ConsumerWidget {
 
 class SimpleOvalPainter extends CustomPainter {
   final bool isValid;
+
   SimpleOvalPainter({required this.isValid});
 
   @override
@@ -304,25 +315,32 @@ class SimpleOvalPainter extends CustomPainter {
     final paint = Paint()..color = Colors.black.withOpacity(0.6);
     final center = Offset(size.width / 2, size.height * 0.4);
     final ovalRect = Rect.fromCenter(
-        center: center, width: size.width * 0.72, height: size.width * 1.0);
+      center: center,
+      width: size.width * 0.72,
+      height: size.width * 1.0,
+    );
     final ovalPath = Path()..addOval(ovalRect);
 
     canvas.drawPath(
-        Path.combine(
-            PathOperation.difference,
-            Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)),
-            ovalPath),
-        paint);
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)),
+        ovalPath,
+      ),
+      paint,
+    );
     canvas.drawOval(
-        ovalRect,
-        Paint()
-          ..color = isValid ? Colors.green : Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0);
+      ovalRect,
+      Paint()
+        ..color = isValid ? Colors.green : Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
   }
 
   @override
-  bool shouldRepaint(SimpleOvalPainter old) => old.isValid != isValid;
+  bool shouldRepaint(covariant SimpleOvalPainter oldDelegate) =>
+      oldDelegate.isValid != isValid;
 }
 
 class _GlassesWarningWidget extends ConsumerWidget {
@@ -331,9 +349,15 @@ class _GlassesWarningWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isWearingGlasses = ref.watch(
-        registerFaceControllerProvider.select((s) => s.isWearingGlasses));
+      registerFaceControllerProvider.select((s) => s.isWearingGlasses),
+    );
 
-    if (!isWearingGlasses) return const SizedBox.shrink();
+    if (!isWearingGlasses) {
+      return const SizedBox.shrink();
+    }
+
+    final isVietnamese =
+        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
 
     return Positioned(
       top: 100,
@@ -342,31 +366,22 @@ class _GlassesWarningWidget extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.amber.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.orange, width: 2),
+          color: Colors.orange.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.black, size: 28),
-            SizedBox(width: 12),
+            const Icon(Icons.visibility_off, color: Colors.white),
+            const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Phát hiện đang đeo kính',
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
-                  ),
-                  Text(
-                    'Vui lòng tháo kính để đảm bảo độ chính xác khi điểm danh.',
-                    style: TextStyle(color: Colors.black87, fontSize: 13),
-                  ),
-                ],
+              child: Text(
+                isVietnamese
+                    ? 'Vui l\u00f2ng th\u00e1o k\u00ednh \u0111\u1ec3 h\u1ec7 th\u1ed1ng nh\u1eadn di\u1ec7n ch\u00ednh x\u00e1c h\u01a1n.'
+                    : 'Please remove your glasses so the system can detect your face more accurately.',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

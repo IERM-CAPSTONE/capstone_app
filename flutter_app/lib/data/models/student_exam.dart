@@ -15,6 +15,72 @@ enum StudentExamStatus {
   removed,
 }
 
+class StudentExamPartInfo {
+  final String id;
+  final String? examPartId;
+  final bool isInRoom;
+  final bool isCheckedIn;
+  final DateTime? checkInTime;
+  final bool isSubmit;
+  final DateTime? submitTime;
+  final bool isSign;
+  final DateTime? signTime;
+  final String? examPartCode;
+  final String? examPartName;
+
+  StudentExamPartInfo({
+    required this.id,
+    this.examPartId,
+    required this.isInRoom,
+    required this.isCheckedIn,
+    this.checkInTime,
+    required this.isSubmit,
+    this.submitTime,
+    required this.isSign,
+    this.signTime,
+    this.examPartCode,
+    this.examPartName,
+  });
+
+  factory StudentExamPartInfo.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      if (value is String) return DateTime.tryParse(value);
+      return null;
+    }
+
+    final examPart = json['examPart'] as Map<String, dynamic>?;
+
+    return StudentExamPartInfo(
+      id: json['id'] as String? ?? '',
+      examPartId: json['examPartId'] as String?,
+      isInRoom: json['isInRoom'] as bool? ?? false,
+      isCheckedIn: json['isCheckedIn'] as bool? ?? false,
+      checkInTime: parseDate(json['checkInTime']),
+      isSubmit: json['isSubmit'] as bool? ?? false,
+      submitTime: parseDate(json['submitTime']),
+      isSign: json['isSign'] as bool? ?? false,
+      signTime: parseDate(json['signTime']),
+      examPartCode: examPart?['code'] as String?,
+      examPartName: examPart?['name'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'examPartId': examPartId,
+        'isInRoom': isInRoom,
+        'isCheckedIn': isCheckedIn,
+        'checkInTime': checkInTime?.toIso8601String(),
+        'isSubmit': isSubmit,
+        'submitTime': submitTime?.toIso8601String(),
+        'isSign': isSign,
+        'signTime': signTime?.toIso8601String(),
+        'examPartCode': examPartCode,
+        'examPartName': examPartName,
+      };
+}
+
 @JsonSerializable()
 class StudentExam {
   final String id;
@@ -35,6 +101,7 @@ class StudentExam {
   final String? studentAvatarUrl;
   final Map<String, dynamic>? rawStudent;
   final int? stt;
+  final List<StudentExamPartInfo> parts;
 
   StudentExam({
     required this.id,
@@ -55,6 +122,7 @@ class StudentExam {
     this.studentAvatarUrl,
     this.rawStudent,
     this.stt,
+    this.parts = const [],
   });
 
   factory StudentExam.fromJson(Map<String, dynamic> json) {
@@ -65,6 +133,7 @@ class StudentExam {
     }
 
     final student = json['student'] as Map<String, dynamic>?;
+    final partsJson = json['parts'] as List<dynamic>? ?? const [];
 
     return StudentExam(
       id: json['id'] as String? ?? '',
@@ -94,6 +163,10 @@ class StudentExam {
           student?['avatarUrl'] as String?,
       rawStudent: student,
       stt: json['stt'] as int?,
+      parts: partsJson
+          .whereType<Map<String, dynamic>>()
+          .map(StudentExamPartInfo.fromJson)
+          .toList(),
     );
   }
 
@@ -105,6 +178,17 @@ class StudentExam {
 
   bool get isAbsent =>
       status == StudentExamStatus.registered && checkinTime == null;
+
+  StudentExamPartInfo? findPartByCode(String? examPartCode) {
+    if (examPartCode == null || examPartCode.isEmpty) return null;
+    final normalizedCode = examPartCode.trim().toUpperCase();
+    for (final part in parts) {
+      if ((part.examPartCode ?? '').trim().toUpperCase() == normalizedCode) {
+        return part;
+      }
+    }
+    return null;
+  }
 }
 
 @JsonSerializable()

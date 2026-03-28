@@ -94,6 +94,7 @@ class SeatingPlan {
     required int maxColumns,
     required int totalSeats,
     required List<StudentExam> studentExams,
+    String? selectedExamPartCode,
   }) {
     final List<Seat> seats = [];
 
@@ -143,13 +144,25 @@ class SeatingPlan {
 
           // Determine status based on student exam status
           if (studentExam != null) {
-            if (studentExam.status == StudentExamStatus.checkedIn ||
-                studentExam.status == StudentExamStatus.checkedOut) {
-              status = SeatStatus.present;
-            } else if (studentExam.status == StudentExamStatus.registered) {
-              status = SeatStatus.occupied;
-            } else if (studentExam.status == StudentExamStatus.removed) {
-              status = SeatStatus.absent;
+            if (selectedExamPartCode != null &&
+                selectedExamPartCode.trim().isNotEmpty) {
+              final part = studentExam.findPartByCode(selectedExamPartCode);
+              if (studentExam.status == StudentExamStatus.removed) {
+                status = SeatStatus.absent;
+              } else if (part?.isCheckedIn == true) {
+                status = SeatStatus.present;
+              } else {
+                status = SeatStatus.occupied;
+              }
+            } else {
+              if (studentExam.status == StudentExamStatus.checkedIn ||
+                  studentExam.status == StudentExamStatus.checkedOut) {
+                status = SeatStatus.present;
+              } else if (studentExam.status == StudentExamStatus.registered) {
+                status = SeatStatus.occupied;
+              } else if (studentExam.status == StudentExamStatus.removed) {
+                status = SeatStatus.absent;
+              }
             }
           }
         }

@@ -13,6 +13,7 @@ class ProctorProfileState {
   final DeviceRegistrationStatus deviceStatus;
   final Map<String, dynamic>? activeDevice;
   final Map<String, dynamic>? latestApplication;
+  final bool isFaceRegistered;
 
   ProctorProfileState({
     this.user,
@@ -21,6 +22,7 @@ class ProctorProfileState {
     this.deviceStatus = DeviceRegistrationStatus.none,
     this.activeDevice,
     this.latestApplication,
+    this.isFaceRegistered = false,
   });
 
   factory ProctorProfileState.initial() {
@@ -31,6 +33,7 @@ class ProctorProfileState {
       deviceStatus: DeviceRegistrationStatus.none,
       activeDevice: null,
       latestApplication: null,
+      isFaceRegistered: false,
     );
   }
 
@@ -41,6 +44,7 @@ class ProctorProfileState {
     DeviceRegistrationStatus? deviceStatus,
     Map<String, dynamic>? activeDevice,
     Map<String, dynamic>? latestApplication,
+    bool? isFaceRegistered,
   }) {
     return ProctorProfileState(
       user: user ?? this.user,
@@ -49,6 +53,7 @@ class ProctorProfileState {
       deviceStatus: deviceStatus ?? this.deviceStatus,
       activeDevice: activeDevice ?? this.activeDevice,
       latestApplication: latestApplication ?? this.latestApplication,
+      isFaceRegistered: isFaceRegistered ?? this.isFaceRegistered,
     );
   }
 }

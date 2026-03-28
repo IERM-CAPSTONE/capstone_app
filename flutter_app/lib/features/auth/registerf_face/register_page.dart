@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 
-import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/dialogs/data_consent_dialog.dart';
 import 'register_face_scan_page.dart';
 
-/// Static UI - Step 1 for ID verification.
-/// Pressing "Start" navigates to step 2.
 class RegisterFaceStartPage extends StatelessWidget {
   const RegisterFaceStartPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final isVietnamese =
+        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.verifyIdentity),
+        title: Text(
+          isVietnamese
+              ? '\u0110\u0103ng k\u00fd nh\u1eadn di\u1ec7n khu\u00f4n m\u1eb7t'
+              : 'Register face identity',
+        ),
         backgroundColor: AppColors.appBarOrange,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -39,7 +42,9 @@ class RegisterFaceStartPage extends StatelessWidget {
               children: [
                 const SizedBox(height: 8),
                 Text(
-                  l10n.readyToVerify,
+                  isVietnamese
+                      ? 'S\u1eb5n s\u00e0ng \u0111\u0103ng k\u00fd khu\u00f4n m\u1eb7t?'
+                      : 'Ready to register your face?',
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w700,
@@ -48,16 +53,11 @@ class RegisterFaceStartPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 _StepCard(
                   stepNumber: 1,
-                  title: l10n.step1Title,
-                  description: l10n.step1Desc,
+                  title: isVietnamese ? 'Qu\u00e9t khu\u00f4n m\u1eb7t' : 'Scan your face',
+                  description: isVietnamese
+                      ? '\u0110\u1ea3m b\u1ea3o khu\u00f4n m\u1eb7t c\u1ee7a b\u1ea1n hi\u1ec3n th\u1ecb r\u00f5 r\u00e0ng. Kh\u00f4ng \u0111eo k\u00ednh, m\u0169 ho\u1eb7c kh\u1ea9u trang.'
+                      : 'Make sure your face is clearly visible. Do not wear glasses, a hat, or a mask.',
                   icon: Icons.face_retouching_natural,
-                ),
-                const SizedBox(height: 12),
-                _StepCard(
-                  stepNumber: 2,
-                  title: l10n.step2Title,
-                  description: l10n.step2Desc,
-                  icon: Icons.credit_card,
                 ),
                 const Spacer(),
                 SizedBox(
@@ -65,25 +65,22 @@ class RegisterFaceStartPage extends StatelessWidget {
                   height: 52,
                   child: FilledButton(
                     onPressed: () async {
-                      // Show data consent dialog
-                      final result = await DataConsentDialog.show(context);
+                      final agreed = await DataConsentDialog.show(context);
+                      if (!agreed || !context.mounted) return;
 
-                      // If user agreed and selected storage duration, proceed
-                      if (result != null && context.mounted) {
-                        // result will be '7_days' or 'permanent'
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterFaceScanIntroPage(),
-                          ),
-                        );
-                      }
-                      // If result is null, user disagreed - don't navigate
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterFaceScanIntroPage(),
+                        ),
+                      );
                     },
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.appBarOrange,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text(l10n.continueText),
+                    child: Text(
+                      isVietnamese ? 'Ti\u1ebfp t\u1ee5c' : 'Continue',
+                    ),
                   ),
                 ),
               ],
@@ -159,7 +156,7 @@ class _StepCard extends StatelessWidget {
                   description,
                   style: TextStyle(
                     color: Theme.of(context).hintColor,
-                    height: 1.2,
+                    height: 1.25,
                   ),
                 ),
               ],

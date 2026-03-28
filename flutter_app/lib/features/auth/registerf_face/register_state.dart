@@ -24,7 +24,7 @@ class RegisterFaceState {
   const RegisterFaceState({
     this.cameraController,
     this.status = FaceScanStatus.scanning,
-    this.instructionMessage = 'Vui lòng đưa mặt vào khung hình',
+    this.instructionMessage = 'Vui l\u00f2ng \u0111\u01b0a m\u1eb7t v\u00e0o khung h\u00ecnh',
     this.errorMessage,
     this.currentPose = HeadPose.center,
     this.capturedPoses = const [],
@@ -57,15 +57,15 @@ class RegisterFaceState {
   static String getPoseInstruction(HeadPose pose) {
     switch (pose) {
       case HeadPose.center:
-        return 'Nhìn thẳng vào camera';
+        return 'Nh\u00ecn th\u1eb3ng v\u00e0o camera';
       case HeadPose.left:
-        return 'Quay đầu sang trái';
+        return 'Quay \u0111\u1ea7u sang tr\u00e1i';
       case HeadPose.right:
-        return 'Quay đầu sang phải';
+        return 'Quay \u0111\u1ea7u sang ph\u1ea3i';
       case HeadPose.up:
-        return 'Ngước đầu lên trên';
+        return 'Ng\u01b0\u1edbc \u0111\u1ea7u l\u00ean tr\u00ean';
       case HeadPose.down:
-        return 'Cúi đầu xuống dưới';
+        return 'C\u00fai \u0111\u1ea7u xu\u1ed1ng d\u01b0\u1edbi';
     }
   }
 }

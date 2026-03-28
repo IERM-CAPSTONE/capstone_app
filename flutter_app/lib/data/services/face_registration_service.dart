@@ -7,20 +7,15 @@ class FaceRegistrationService {
 
   FaceRegistrationService(this._dio);
 
-  /// Đăng ký khuôn mặt mới với mã hóa AES
-  /// Gửi dữ liệu đã mã hóa dưới dạng JSON
   Future<Map<String, dynamic>> registerFace({
     required Map<HeadPose, String> capturedImages,
     required String studentId,
     bool isEncrypted = true,
   }) async {
     try {
-      // Prepare encrypted images map (key: pose name, value: encrypted base64)
       final encryptedImagesMap = <String, String>{};
-      for (var entry in capturedImages.entries) {
-        final poseName = entry.key.name; // center, left, right, up, down
-        encryptedImagesMap[poseName] =
-            entry.value; // Already encrypted by controller
+      for (final entry in capturedImages.entries) {
+        encryptedImagesMap[entry.key.name] = entry.value;
       }
 
       final requestData = {
@@ -46,16 +41,17 @@ class FaceRegistrationService {
     }
   }
 
-  /// Xác thực khuôn mặt
   Future<Map<String, dynamic>> authenticateFace({
     required String imageBase64,
     String? examSessionId,
+    String? examPartCode,
     bool isEncrypted = false,
   }) async {
     try {
       final requestData = {
         'image': imageBase64,
         'examSessionId': examSessionId,
+        'examPartCode': examPartCode,
         'isEncrypted': isEncrypted,
       };
 
@@ -76,8 +72,35 @@ class FaceRegistrationService {
     }
   }
 
-  /// Legacy: Nhận diện điểm danh (Gửi 1 file Binary - Tốc độ cao)
-  /// Giữ lại để tương thích với code cũ
+  Future<Map<String, dynamic>> proctorCheckIn({
+    required String imageBase64,
+    required String examSessionId,
+    bool isEncrypted = false,
+  }) async {
+    try {
+      final requestData = {
+        'image': imageBase64,
+        'examSessionId': examSessionId,
+        'isEncrypted': isEncrypted,
+      };
+
+      final response = await _dio.post(
+        '/face-recognition/proctor-check-in',
+        data: requestData,
+        options: Options(contentType: 'application/json'),
+      );
+
+      return response.data;
+    } on DioException catch (e) {
+      return {
+        'status': 'error',
+        'message': e.response?.data?['message'] ?? 'Lỗi kết nối Server',
+      };
+    } catch (e) {
+      return {'status': 'error', 'message': e.toString()};
+    }
+  }
+
   Future<Map<String, dynamic>> identifyFace({
     required String imagePath,
   }) async {
@@ -104,7 +127,6 @@ class FaceRegistrationService {
     }
   }
 
-  /// Kiểm tra trạng thái đăng ký của user
   Future<Map<String, dynamic>> checkRegistrationStatus(String studentId) async {
     try {
       final response = await _dio.get(

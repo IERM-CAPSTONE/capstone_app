@@ -29,6 +29,7 @@ class ExamSession {
   final String? roomNumber;
   final DateTime? examOpenTime;
   final DateTime? examCloseTime;
+  final DateTime? proctorCheckedInAt;
   @JsonKey(unknownEnumValue: ExamSessionStatus.scheduled)
   final ExamSessionStatus status;
   final List<String> examType;
@@ -54,6 +55,7 @@ class ExamSession {
     this.roomNumber,
     this.examOpenTime,
     this.examCloseTime,
+    this.proctorCheckedInAt,
     required this.status,
     this.examType = const [],
     this.semester,
@@ -110,6 +112,7 @@ class ExamSession {
       roomNumber: json['roomNumber']?.toString(),
       examOpenTime: parseDate(json['examOpenTime']),
       examCloseTime: parseDate(json['examCloseTime']),
+      proctorCheckedInAt: parseDate(json['proctorCheckedInAt']),
       status: status,
       examType: parseList(json['examType'] ?? json['examTypes'] ?? json['examPart']),
       semester: _parseSemester(json),
