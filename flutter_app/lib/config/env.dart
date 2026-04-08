@@ -4,10 +4,25 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Env {
   // API Configuration
-  static const String apiBaseUrl = String.fromEnvironment(
-    'apiBaseUrl',
-    defaultValue: 'https://e8ac-171-231-192-153.ngrok-free.app/api',
-  );
+  static String get apiBaseUrl {
+    const configured = String.fromEnvironment(
+      'apiBaseUrl',
+      defaultValue: '',
+    );
+    if (configured.trim().isNotEmpty) return configured.trim();
+    if (isAndroid) return 'http://10.0.2.2:3000/api';
+    return 'http://192.168.0.104:3000/api';
+  }
+
+  static String get aiApiBaseUrl {
+    const configured = String.fromEnvironment(
+      'aiApiBaseUrl',
+      defaultValue: '',
+    );
+    if (configured.trim().isNotEmpty) return configured.trim();
+    if (isAndroid) return 'http://10.0.2.2:8000';
+    return 'http://192.168.0.104:8000';
+  }
 
   // Redis Configuration (if needed for direct access)
   static const String redisHost = String.fromEnvironment(

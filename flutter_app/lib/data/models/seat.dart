@@ -2,13 +2,27 @@ import 'student_exam.dart';
 
 enum SeatStatus {
   available,
-  occupied,
   present,
-  absent;
+  absent,
+  locked;
 
   String toJson() => name;
-  static SeatStatus fromJson(String json) => SeatStatus.values
-      .firstWhere((e) => e.name == json, orElse: () => SeatStatus.available);
+  static SeatStatus fromJson(String json) {
+    switch (json.toLowerCase()) {
+      case 'present':
+        return SeatStatus.present;
+      case 'absent':
+        return SeatStatus.absent;
+      case 'locked':
+        return SeatStatus.locked;
+      case 'occupied':
+      case 'assigned':
+        return SeatStatus.absent;
+      case 'available':
+      default:
+        return SeatStatus.available;
+    }
+  }
 }
 
 class Seat {
@@ -52,9 +66,9 @@ class Seat {
       };
 
   bool get isAvailable => status == SeatStatus.available;
-  bool get isOccupied => status == SeatStatus.occupied;
   bool get isPresent => status == SeatStatus.present;
   bool get isAbsent => status == SeatStatus.absent;
+  bool get isLocked => status == SeatStatus.locked;
 
   String get displayNumber => seatNumber ?? '${row + 1}-${column + 1}';
 }
@@ -152,15 +166,14 @@ class SeatingPlan {
               } else if (part?.isCheckedIn == true) {
                 status = SeatStatus.present;
               } else {
-                status = SeatStatus.occupied;
+                status = SeatStatus.absent;
               }
             } else {
               if (studentExam.status == StudentExamStatus.checkedIn ||
                   studentExam.status == StudentExamStatus.checkedOut) {
                 status = SeatStatus.present;
-              } else if (studentExam.status == StudentExamStatus.registered) {
-                status = SeatStatus.occupied;
-              } else if (studentExam.status == StudentExamStatus.removed) {
+              } else if (studentExam.status == StudentExamStatus.registered ||
+                  studentExam.status == StudentExamStatus.removed) {
                 status = SeatStatus.absent;
               }
             }
@@ -201,10 +214,10 @@ class SeatingPlan {
 
   int get availableCount =>
       seats.where((s) => s.status == SeatStatus.available).length;
-  int get occupiedCount =>
-      seats.where((s) => s.status == SeatStatus.occupied).length;
   int get presentCount =>
       seats.where((s) => s.status == SeatStatus.present).length;
   int get absentCount =>
       seats.where((s) => s.status == SeatStatus.absent).length;
+  int get lockedCount =>
+      seats.where((s) => s.status == SeatStatus.locked).length;
 }

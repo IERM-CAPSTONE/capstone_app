@@ -99,8 +99,20 @@ class RedesignedExamSessionCard extends StatelessWidget {
                   Icons.person,
                   Colors.orange[100]!,
                   Colors.orange,
-                  l10n.proctorLabel(session.proctorName ?? l10n.notAssigned),
+                  session.proctorName ?? l10n.notAssigned,
                   subtitle: l10n.proctorOfficer,
+                ),
+                const SizedBox(height: 12),
+                _buildInfoRow(
+                  Icons.support_agent,
+                  Colors.teal[100]!,
+                  Colors.teal,
+                  _hallInvigilatorLabel(context, l10n),
+                  subtitle: _text(
+                    context,
+                    vi: 'Giám thị hành lang',
+                    en: 'Hall invigilator',
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -216,5 +228,17 @@ class RedesignedExamSessionCard extends StatelessWidget {
     if (time == null) return l10n.tba;
     final locale = Localizations.localeOf(context).languageCode;
     return DateFormat('hh:mm a', locale).format(time);
+  }
+
+  String _hallInvigilatorLabel(BuildContext context, AppLocalizations l10n) {
+    final username = session.hallInvigilatorUsername?.trim();
+    if (username != null && username.isNotEmpty) return username;
+    final name = session.hallInvigilatorName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return l10n.notAssigned;
+  }
+
+  String _text(BuildContext context, {required String vi, required String en}) {
+    return Localizations.localeOf(context).languageCode == 'vi' ? vi : en;
   }
 }

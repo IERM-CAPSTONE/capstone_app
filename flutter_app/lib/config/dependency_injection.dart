@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/services/api_service.dart';
 import '../data/services/auth_service.dart';
 import '../data/services/face_registration_service.dart';
+import '../data/services/push_notification_service.dart';
+import '../data/services/realtime_notification_service.dart';
 import '../data/services/socket_service.dart';
 import '../data/repositories/user_repository.dart';
 import '../data/repositories/exam_session_repository.dart';
@@ -126,6 +128,19 @@ class DependencyInjection {
     final authService = AuthService(dio);
     await authService.init();
     _dependencies[AuthService] = authService;
+
+    // Initialize PushNotificationService
+    final pushNotificationService = PushNotificationService(
+      authService: authService,
+      dio: dio,
+      prefs: prefs,
+    );
+    _dependencies[PushNotificationService] = pushNotificationService;
+
+    // Initialize RealtimeNotificationService
+    final realtimeNotificationService =
+        RealtimeNotificationService(socketService, authService);
+    _dependencies[RealtimeNotificationService] = realtimeNotificationService;
 
     // Initialize Repositories
     _dependencies[UserRepository] = UserRepository(apiService);

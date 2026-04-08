@@ -27,16 +27,16 @@ class SeatingLegend extends StatelessWidget {
             label: 'AVAILABLE',
           ),
           _buildLegendItem(
-            color: const Color(0xFF2196F3),
-            label: 'OCCUPIED',
-          ),
-          _buildLegendItem(
             color: const Color(0xFF4CAF50),
             label: 'PRESENT',
           ),
           _buildLegendItem(
-            color: const Color(0xFFF44336),
+            color: const Color(0xFFD97706),
             label: 'ABSENT',
+          ),
+          _buildLegendItem(
+            color: const Color(0xFFBDBDBD),
+            label: 'LOCKED',
           ),
         ],
       ),

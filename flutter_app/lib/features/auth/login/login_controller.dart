@@ -6,6 +6,7 @@ import '../../../config/dependency_injection.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/auth_service.dart';
+import '../../../data/services/push_notification_service.dart';
 import '../../../data/services/realtime_notification_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'login_state.dart';
@@ -82,6 +83,11 @@ class LoginController extends StateNotifier<LoginState> {
       final realtimeNotificationService =
           DependencyInjection.get<RealtimeNotificationService>();
       await realtimeNotificationService.restartWithLatestAuth();
+
+      final pushNotificationService =
+          DependencyInjection.get<PushNotificationService>();
+      await pushNotificationService.init();
+      await pushNotificationService.syncTokenWithBackend(force: true);
 
       if (context.mounted) {
         final upperRole = userModel.role?.toUpperCase() ?? 'STUDENT';

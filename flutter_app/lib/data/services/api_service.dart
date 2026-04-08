@@ -112,6 +112,12 @@ abstract class ApiService {
     @Body() Map<String, dynamic> payload,
   );
 
+  @POST('/tickets/{id}/comments')
+  Future<ApiResponse> commentTicket(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> payload,
+  );
+
   // Device Applications
   @POST('/device-applications/register')
   Future<ApiResponse> registerDeviceApplication(

@@ -130,6 +130,22 @@ class RealtimeNotificationService {
 
   void _handleTicketEvent(TicketRealtimeEvent event) {
     final payload = event.payload;
+    
+    // Check if this is a user-facing notification
+    final isUserNotification = payload['isUserNotification'] == true;
+    
+    // Silent events: only refresh lists, no UI alerts
+    if (!isUserNotification) {
+      // For ticket:created and ticket:updated with isUserNotification: false
+      // Just refresh notifications/tickets list silently
+      if (event.type == 'ticket:created' || event.type == 'ticket:updated') {
+        // Optional: trigger ticket list refresh via a separate stream
+        debugPrint('[RealtimeNotification] Silent event: ${event.type}');
+      }
+      return;
+    }
+
+    // Real notifications: show in-app alert
     final issueName = (payload['issueName'] ?? 'ticket').toString();
 
     String title;
@@ -153,18 +169,12 @@ class RealtimeNotificationService {
         message = 'Ticket cập nhật trạng thái: $status';
         color = Colors.orange;
         break;
-      case 'ticket:created':
-        title = 'Ticket mới';
-        message = 'Có ticket mới: $issueName';
-        color = Colors.indigo;
-        break;
       default:
         title = 'Thông báo';
         message = 'Bạn có thông báo mới';
         color = Colors.black87;
     }
 
-    // Trigger a backend refresh to pull any actual persisted notifications
     refreshNotifications();
 
     appScaffoldMessengerKey.currentState?.showSnackBar(

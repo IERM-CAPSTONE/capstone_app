@@ -20,6 +20,8 @@ class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user_data';
+  static const String _fcmTokenKey = 'fcm_token';
+  static const String _fcmUserIdKey = 'fcm_user_id';
 
   AuthService(this._dio);
 
@@ -74,12 +76,26 @@ class AuthService {
   /// Sign out from both Google and Firebase
   Future<void> signOut() async {
     try {
+      final token = _prefs.getString(_fcmTokenKey);
+      if (token != null && token.isNotEmpty) {
+        try {
+          await _dio.delete(
+            '/auth/me/push-tokens',
+            data: {'token': token},
+          );
+        } catch (e) {
+          print('Error unregistering FCM token: $e');
+        }
+      }
+
       await _auth.signOut();
       await _googleSignIn.signOut();
       // Clear all tokens and user data
       await _prefs.remove(_tokenKey);
       await _prefs.remove(_refreshTokenKey);
       await _prefs.remove(_userKey);
+      await _prefs.remove(_fcmTokenKey);
+      await _prefs.remove(_fcmUserIdKey);
       print('Successfully signed out and cleared all local data');
     } catch (e) {
       print('Error during sign out: $e');

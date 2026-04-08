@@ -1,21 +1,23 @@
-import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:device_preview/device_preview.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
 import 'app.dart';
-import 'config/env.dart';
 import 'config/dependency_injection.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:dio/dio.dart';
+import 'config/env.dart';
 import 'core/routes/app_routes.dart';
 import 'data/services/auth_service.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import 'data/services/push_notification_service.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('vi', null);
   await initializeDateFormatting('en', null);
+
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
@@ -30,23 +32,27 @@ void main() async {
     }
   }
 
-  // Initialize environment
   await Env.init();
-
-  // Initialize dependency injection
   await DependencyInjection.init();
 
-  // Setup global 401 handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  final pushNotificationService =
+      DependencyInjection.get<PushNotificationService>();
+  final authService = DependencyInjection.get<AuthService>();
+  if (authService.isLoggedIn()) {
+    await pushNotificationService.init();
+    await pushNotificationService.syncTokenWithBackend(force: true);
+  }
 
   final dio = DependencyInjection.get<Dio>();
-  final authService = DependencyInjection.get<AuthService>();
-
   dio.interceptors.add(
     InterceptorsWrapper(
       onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
-          print(
-              '⚠️ Received 401 Unauthorized. Logging out and redirecting to login...');
+          debugPrint(
+            'Received 401 Unauthorized. Logging out and redirecting to login...',
+          );
           await authService.signOut();
           AppRoutes.router.go(AppRoutes.login);
         }
@@ -55,12 +61,5 @@ void main() async {
     ),
   );
 
-  runApp(
-    DevicePreview(
-      enabled: kIsWeb,
-      builder: (context) => const ProviderScope(
-        child: MyApp(),
-      ),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }

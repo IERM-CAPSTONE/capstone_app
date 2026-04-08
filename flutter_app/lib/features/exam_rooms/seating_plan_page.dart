@@ -234,11 +234,6 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
             const Color(0xFFE0E0E0),
           ),
           _buildStatItem(
-            'Occupied',
-            seatingPlan.occupiedCount,
-            const Color(0xFF2196F3),
-          ),
-          _buildStatItem(
             'Present',
             seatingPlan.presentCount,
             const Color(0xFF4CAF50),
@@ -246,7 +241,12 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
           _buildStatItem(
             'Absent',
             seatingPlan.absentCount,
-            const Color(0xFFF44336),
+            const Color(0xFFD97706),
+          ),
+          _buildStatItem(
+            'Locked',
+            seatingPlan.lockedCount,
+            const Color(0xFFBDBDBD),
           ),
         ],
       ),
@@ -511,12 +511,12 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
     switch (status) {
       case SeatStatus.available:
         return const Color(0xFFE0E0E0);
-      case SeatStatus.occupied:
-        return const Color(0xFF2196F3);
       case SeatStatus.present:
         return const Color(0xFF4CAF50);
       case SeatStatus.absent:
-        return const Color(0xFFF44336);
+        return const Color(0xFFD97706);
+      case SeatStatus.locked:
+        return const Color(0xFFBDBDBD);
     }
   }
 
@@ -524,12 +524,12 @@ class _SeatingPlanPageState extends ConsumerState<SeatingPlanPage> {
     switch (status) {
       case SeatStatus.available:
         return 'Available';
-      case SeatStatus.occupied:
-        return 'Occupied';
       case SeatStatus.present:
         return 'Present';
       case SeatStatus.absent:
         return 'Absent';
+      case SeatStatus.locked:
+        return 'Locked';
     }
   }
 
