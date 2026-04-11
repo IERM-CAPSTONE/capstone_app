@@ -112,8 +112,26 @@ abstract class ApiService {
     @Body() Map<String, dynamic> payload,
   );
 
+  @PATCH('/tickets/{id}/route')
+  Future<ApiResponse> routeTicket(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> payload,
+  );
+
+  @PATCH('/tickets/{id}/lifecycle')
+  Future<ApiResponse> lifecycleTicket(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> payload,
+  );
+
   @POST('/tickets/{id}/comments')
   Future<ApiResponse> commentTicket(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> payload,
+  );
+
+  @PATCH('/tickets/{id}/review')
+  Future<ApiResponse> reviewTicket(
     @Path('id') String id,
     @Body() Map<String, dynamic> payload,
   );

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/app_colors.dart';
+
 import '../../../core/constants/app_assets.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/language_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'login_controller.dart';
 import 'login_state.dart';
-import '../../../core/providers/language_provider.dart';
-
-import '../../../l10n/generated/app_localizations.dart';
 
 class LoginPage extends ConsumerWidget {
   const LoginPage({super.key});
@@ -15,12 +15,12 @@ class LoginPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final loginState = ref.watch(loginControllerProvider);
     final loginController = ref.read(loginControllerProvider.notifier);
+    final currentLocale = ref.watch(languageProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Main content
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -38,10 +38,8 @@ class LoginPage extends ConsumerWidget {
                   Column(
                     children: [
                       const Spacer(flex: 2),
-                      // Logo
                       _buildLogo(),
                       const SizedBox(height: 16),
-                      // Title
                       Text(
                         l10n.fptExamManagement,
                         style: const TextStyle(
@@ -51,7 +49,6 @@ class LoginPage extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Subtitle
                       Text(
                         l10n.secureExamSystem,
                         style: const TextStyle(
@@ -60,11 +57,13 @@ class LoginPage extends ConsumerWidget {
                         ),
                       ),
                       const Spacer(flex: 1),
-                      // Login Card
                       _buildLoginCard(
-                          context, loginState, loginController, l10n),
+                        context,
+                        loginState,
+                        loginController,
+                        l10n,
+                      ),
                       const Spacer(flex: 2),
-                      // Copyright
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: Text(
@@ -77,20 +76,19 @@ class LoginPage extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  // Language Switcher Positioned
                   Positioned(
                     top: 10,
                     right: 16,
-                    child: IconButton(
-                      icon: const Icon(Icons.language, color: Colors.white),
-                      onPressed: () => _showLanguageBottomSheet(context, ref),
+                    child: _buildLanguageDropdown(
+                      context,
+                      ref,
+                      currentLocale.languageCode,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          // Loading overlay
           if (loginState.isLoading)
             Container(
               color: Colors.black54,
@@ -173,7 +171,6 @@ class LoginPage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Welcome Back heading
           Text(
             l10n.welcomeBack,
             style: const TextStyle(
@@ -183,7 +180,6 @@ class LoginPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // Instruction text
           Text(
             l10n.signInGoogle,
             style: const TextStyle(
@@ -192,9 +188,69 @@ class LoginPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          // Login Button
           _buildLoginButton(context, state, controller, isEnabled, l10n),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageDropdown(
+    BuildContext context,
+    WidgetRef ref,
+    String currentLanguageCode,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white54),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentLanguageCode,
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          selectedItemBuilder: (context) => const [
+            _LanguageDropdownValue(label: 'VI'),
+            _LanguageDropdownValue(label: 'EN'),
+          ],
+          items: const [
+            DropdownMenuItem<String>(
+              value: 'vi',
+              child: Text(
+                'Tiếng Việt',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            DropdownMenuItem<String>(
+              value: 'en',
+              child: Text(
+                'English',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              ref.read(languageProvider.notifier).setLanguage(value);
+            }
+          },
+        ),
       ),
     );
   }
@@ -244,7 +300,6 @@ class LoginPage extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Google Logo
                   _buildGoogleLogo(),
                   const SizedBox(width: 12),
                   Text(
@@ -264,57 +319,6 @@ class LoginPage extends ConsumerWidget {
     );
   }
 
-  void _showLanguageBottomSheet(BuildContext context, WidgetRef ref) {
-    final currentLocale = ref.read(languageProvider);
-    final l10n = AppLocalizations.of(context)!;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10n.language,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              ListTile(
-                leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
-                title: Text(l10n.vietnamese),
-                trailing: currentLocale.languageCode == 'vi'
-                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
-                    : null,
-                onTap: () {
-                  ref.read(languageProvider.notifier).setLanguage('vi');
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
-                title: Text(l10n.english),
-                trailing: currentLocale.languageCode == 'en'
-                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
-                    : null,
-                onTap: () {
-                  ref.read(languageProvider.notifier).setLanguage('en');
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 Widget _buildGoogleLogo() {
@@ -324,4 +328,22 @@ Widget _buildGoogleLogo() {
     height: 20,
     fit: BoxFit.contain,
   );
+}
+
+class _LanguageDropdownValue extends StatelessWidget {
+  const _LanguageDropdownValue({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.language, size: 16, color: Colors.white),
+        const SizedBox(width: 6),
+        Text(label),
+      ],
+    );
+  }
 }

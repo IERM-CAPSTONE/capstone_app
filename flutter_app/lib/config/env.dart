@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Env {
+  static const String _productionHost = 'https://vocago.io.vn';
+
   // API Configuration
   static String get apiBaseUrl {
     const configured = String.fromEnvironment(
@@ -10,8 +12,7 @@ class Env {
       defaultValue: '',
     );
     if (configured.trim().isNotEmpty) return configured.trim();
-    if (isAndroid) return 'http://10.0.2.2:3000/api';
-    return 'http://192.168.0.104:3000/api';
+    return '$_productionHost/api';
   }
 
   static String get aiApiBaseUrl {
@@ -20,8 +21,7 @@ class Env {
       defaultValue: '',
     );
     if (configured.trim().isNotEmpty) return configured.trim();
-    if (isAndroid) return 'http://10.0.2.2:8000';
-    return 'http://192.168.0.104:8000';
+    return '$_productionHost/ticket-ai';
   }
 
   // Redis Configuration (if needed for direct access)

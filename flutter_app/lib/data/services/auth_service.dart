@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dio/dio.dart';
+
+import '../../core/routes/app_routes.dart';
 import '../models/user_model.dart';
 
 /// AuthService using google_sign_in with Firebase Auth
@@ -16,6 +20,8 @@ class AuthService {
 
   late final SharedPreferences _prefs;
   final Dio _dio;
+  Completer<String?>? _refreshCompleter;
+  bool _isSigningOut = false;
 
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
@@ -33,7 +39,7 @@ class AuthService {
   /// Sign in with Google using native google_sign_in plugin
   Future<User?> signInWithGoogle() async {
     try {
-      print('🔄 Starting native Google Sign-In...');
+      print('Starting native Google Sign-In...');
 
       // Step 1: Sign out first to clear any corrupted state
       try {
@@ -44,17 +50,17 @@ class AuthService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        print(' Google sign-in cancelled by user');
+        print('Google sign-in cancelled by user');
         return null;
       }
 
-      print(' Got Google account: ${googleUser.email}');
+      print('Got Google account: ${googleUser.email}');
 
       // Step 3: Get authentication details
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      print(' Got Google auth tokens');
+      print('Got Google auth tokens');
 
       // Step 4: Create Firebase credential
       final credential = GoogleAuthProvider.credential(
@@ -65,41 +71,77 @@ class AuthService {
       // Step 5: Sign in to Firebase
       final userCredential = await _auth.signInWithCredential(credential);
 
-      print(' Firebase sign-in successful: ${userCredential.user?.email}');
+      print('Firebase sign-in successful: ${userCredential.user?.email}');
       return userCredential.user;
     } catch (e) {
-      print(' Google sign-in error: $e');
+      print('Google sign-in error: $e');
       rethrow;
     }
   }
 
   /// Sign out from both Google and Firebase
-  Future<void> signOut() async {
+  Future<void> signOut({
+    bool revokePushToken = true,
+    bool redirectToLogin = false,
+  }) async {
+    if (_isSigningOut) return;
+    _isSigningOut = true;
+
     try {
-      final token = _prefs.getString(_fcmTokenKey);
-      if (token != null && token.isNotEmpty) {
+      final pushToken = _prefs.getString(_fcmTokenKey);
+      final accessToken = _prefs.getString(_tokenKey);
+
+      // Clear local auth state first so logout cleanup cannot trigger refresh.
+      await _prefs.remove(_tokenKey);
+      await _prefs.remove(_refreshTokenKey);
+      await _prefs.remove(_userKey);
+      await _prefs.remove(_fcmTokenKey);
+      await _prefs.remove(_fcmUserIdKey);
+
+      try {
+        await _auth.signOut();
+      } catch (e) {
+        print('Error signing out from Firebase: $e');
+      }
+
+      try {
+        await _googleSignIn.signOut();
+      } catch (e) {
+        print('Error signing out from Google: $e');
+      }
+
+      if (revokePushToken &&
+          pushToken != null &&
+          pushToken.isNotEmpty &&
+          accessToken != null &&
+          accessToken.isNotEmpty) {
         try {
           await _dio.delete(
             '/auth/me/push-tokens',
-            data: {'token': token},
+            options: Options(
+              headers: {
+                'Authorization': 'Bearer $accessToken',
+              },
+              extra: {'requiresAuth': false},
+              validateStatus: (status) => status != null && status < 500,
+            ),
+            data: {'token': pushToken},
           );
         } catch (e) {
           print('Error unregistering FCM token: $e');
         }
       }
 
-      await _auth.signOut();
-      await _googleSignIn.signOut();
-      // Clear all tokens and user data
-      await _prefs.remove(_tokenKey);
-      await _prefs.remove(_refreshTokenKey);
-      await _prefs.remove(_userKey);
-      await _prefs.remove(_fcmTokenKey);
-      await _prefs.remove(_fcmUserIdKey);
       print('Successfully signed out and cleared all local data');
+
+      if (redirectToLogin) {
+        AppRoutes.router.go(AppRoutes.login);
+      }
     } catch (e) {
       print('Error during sign out: $e');
       rethrow;
+    } finally {
+      _isSigningOut = false;
     }
   }
 
@@ -130,12 +172,13 @@ class AuthService {
 
   /// Verify Firebase token with backend and get app tokens
   Future<Map<String, dynamic>> verifyFirebaseTokenWithBackend(
-      String idToken) async {
+    String idToken,
+  ) async {
     try {
       print('Verifying Firebase token with backend...');
-      print('📍 Base URL: ${_dio.options.baseUrl}');
-      print('📍 Endpoint: /auth/firebase/login');
-      print('📍 Full URL: ${_dio.options.baseUrl}/auth/firebase/login');
+      print('Base URL: ${_dio.options.baseUrl}');
+      print('Endpoint: /auth/firebase/login');
+      print('Full URL: ${_dio.options.baseUrl}/auth/firebase/login');
 
       final response = await _dio.post(
         '/auth/firebase/login',
@@ -155,7 +198,8 @@ class AuthService {
         return data;
       } else {
         throw Exception(
-            'Backend authentication failed: ${response.statusMessage}');
+          'Backend authentication failed: ${response.statusMessage}',
+        );
       }
     } on DioException catch (e) {
       print('Dio error: ${e.message}');
@@ -239,26 +283,32 @@ class AuthService {
 
   /// Refresh tokens using refresh token
   Future<String?> refreshToken() async {
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
+    }
+
+    _refreshCompleter = Completer<String?>();
+
     try {
       final refreshToken = _prefs.getString(_refreshTokenKey);
       if (refreshToken == null) {
-        print('❌ No refresh token found');
+        print('No refresh token found');
+        _refreshCompleter!.complete(null);
         return null;
       }
 
-      print('🔄 Refreshing tokens...');
+      print('Refreshing tokens...');
       final response = await _dio.post(
         '/auth/refresh',
         options: Options(
           headers: {
             'Authorization': 'Bearer $refreshToken',
           },
-          extra: {'requiresAuth': false}, // Don't use standard auth interceptor
+          extra: {'requiresAuth': false},
         ),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Handle different response structures
         var responseData = response.data;
         if (responseData is Map && responseData.containsKey('data')) {
           responseData = responseData['data'];
@@ -268,20 +318,24 @@ class AuthService {
         final newRefreshToken = responseData['refreshToken'] as String?;
 
         await saveTokens(accessToken, newRefreshToken);
-        print('✅ Tokens refreshed successfully');
+        print('Tokens refreshed successfully');
+        _refreshCompleter!.complete(accessToken);
         return accessToken;
-      } else {
-        print('❌ Failed to refresh tokens: ${response.statusCode}');
-        return null;
       }
-    } catch (e) {
-      print('❌ Error refreshing tokens: $e');
-      // If refresh token is invalid/expired, we might want to sign out
-      if (e is DioException && e.response?.statusCode == 401) {
-        print('⚠️ Refresh token expired, signing out...');
-        await signOut();
-      }
+
+      print('Failed to refresh tokens: ${response.statusCode}');
+      _refreshCompleter!.complete(null);
       return null;
+    } catch (e) {
+      print('Error refreshing tokens: $e');
+      if (e is DioException && e.response?.statusCode == 401) {
+        print('Refresh token expired, signing out...');
+        await signOut(revokePushToken: false, redirectToLogin: true);
+      }
+      _refreshCompleter!.complete(null);
+      return null;
+    } finally {
+      _refreshCompleter = null;
     }
   }
 }

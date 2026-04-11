@@ -46,10 +46,12 @@ final sessionSubjectPartsProvider =
 
 class ExamSessionDetailPage extends ConsumerStatefulWidget {
   final String examSessionId;
+  final ExamSession? initialSession;
 
   const ExamSessionDetailPage({
     super.key,
     required this.examSessionId,
+    this.initialSession,
   });
 
   @override
@@ -126,6 +128,47 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   bool _canManageSessionActions(ExamSession session) {
     if (_userId == null) return false;
     return _userId == session.proctorId || _userId == session.hallInvigilatorId;
+  }
+
+  ExamSession _mergeSessionFallback(ExamSession fetched) {
+    final fallback = widget.initialSession;
+    if (fallback == null) return fetched;
+
+    return ExamSession(
+      id: fetched.id,
+      examRoomId: fetched.examRoomId ?? fallback.examRoomId,
+      proctorId: fetched.proctorId ?? fallback.proctorId,
+      hallInvigilatorId: fetched.hallInvigilatorId ?? fallback.hallInvigilatorId,
+      subjectCode: fetched.subjectCode ?? fallback.subjectCode,
+      examCode: fetched.examCode ?? fallback.examCode,
+      openCode: fetched.openCode ?? fallback.openCode,
+      roomNumber: fetched.roomNumber ?? fallback.roomNumber,
+      examOpenTime: fetched.examOpenTime ?? fallback.examOpenTime,
+      examCloseTime: fetched.examCloseTime ?? fallback.examCloseTime,
+      proctorCheckedInAt: fetched.proctorCheckedInAt ?? fallback.proctorCheckedInAt,
+      status: fetched.status,
+      examType: fetched.examType.isNotEmpty ? fetched.examType : fallback.examType,
+      semester: fetched.semester ?? fallback.semester,
+      note: fetched.note ?? fallback.note,
+      createdAt: fetched.createdAt,
+      updatedAt: fetched.updatedAt,
+      proctorName: (fetched.proctorName?.trim().isNotEmpty ?? false)
+          ? fetched.proctorName
+          : fallback.proctorName,
+      hallInvigilatorName:
+          (fetched.hallInvigilatorName?.trim().isNotEmpty ?? false)
+              ? fetched.hallInvigilatorName
+              : fallback.hallInvigilatorName,
+      hallInvigilatorUsername:
+          (fetched.hallInvigilatorUsername?.trim().isNotEmpty ?? false)
+              ? fetched.hallInvigilatorUsername
+              : fallback.hallInvigilatorUsername,
+      maxRows: fetched.maxRows ?? fallback.maxRows,
+      maxColumns: fetched.maxColumns ?? fallback.maxColumns,
+      totalSeats: fetched.totalSeats ?? fallback.totalSeats,
+      isArchived: fetched.isArchived,
+      campus: fetched.campus ?? fallback.campus,
+    );
   }
 
   DateTime? _attendanceOpenAt(ExamSession session) {
@@ -745,7 +788,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       return Center(child: Text(l10n.sessionNotFound));
                     }
 
-                    final session = sessionData['session'] as ExamSession;
+                    final session = _mergeSessionFallback(
+                      sessionData['session'] as ExamSession,
+                    );
                     final studentsAsync =
                         ref.watch(sessionStudentsProvider(widget.examSessionId));
                     final subjectPartsAsync =
@@ -1267,7 +1312,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 label: Text(
                   _text(
                     context,
-                    vi: 'Táº¡o ticket thá»§ cÃ´ng theo sinh viÃªn',
+                    vi: 'Tạo ticket thủ công theo sinh viên',
                     en: 'Create ticket manually by student',
                   ),
                   style: const TextStyle(fontSize: 13),
@@ -1305,7 +1350,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     child: Text(
                       _text(
                         context,
-                        vi: 'Cháº¿ Ä‘á»™ chá»n gháº¿ Ä‘ang báº­t. ÄÃ£ chá»n ${_selectedTicketStudentIds.length} sinh viÃªn.',
+                        vi: 'Chế độ chọn ghế đang bật. Đã chọn ${_selectedTicketStudentIds.length} sinh viên.',
                         en: 'Seat selection mode is on. ${_selectedTicketStudentIds.length} students selected.',
                       ),
                       style: const TextStyle(
@@ -1322,7 +1367,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                         _selectedTicketStudentIds.clear();
                       });
                     },
-                    child: Text(_text(context, vi: 'Táº¯t', en: 'Off')),
+                    child: Text(_text(context, vi: 'Tắt', en: 'Off')),
                   ),
                 ],
               ),
@@ -2146,6 +2191,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   bool _isVietnamese(BuildContext context) =>
       Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
 
+  bool _isCompactTicketFlow(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < 640;
+
   String _text(
     BuildContext context, {
     required String vi,
@@ -2545,21 +2593,27 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     // Upload áº£nh trÆ°á»›c náº¿u cÃ³ chá»n
                     String? uploadedUrl;
                     if (attachmentImage != null) {
-                      Navigator.of(ctx).pop(); // Ä‘Ã³ng dialog trÆ°á»›c
+                      Navigator.of(ctx).pop();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Row(
                               children: [
-                                SizedBox(
+                                const SizedBox(
                                   width: 18, height: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 ),
-                                SizedBox(width: 12),
-                                Text('Äang táº£i áº£nh lÃªn...'),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _text(
+                                    context,
+                                    vi: 'Đang tải ảnh lên...',
+                                    en: 'Uploading image...',
+                                  ),
+                                ),
                               ],
                             ),
-                            duration: Duration(seconds: 10),
+                            duration: const Duration(seconds: 10),
                           ),
                         );
                       }
@@ -2635,19 +2689,68 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             final selectedStudents = students
                 .where((s) => selected.contains(s.studentCode))
                 .toList();
+            final isCompact = _isCompactTicketFlow(context);
             return AlertDialog(
-              title: Text(
-                _text(
-                  context,
-                  vi: 'Tạo nhiều ticket',
-                  en: 'Create multiple tickets',
-                ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(isCompact ? 0 : 24),
+              ),
+              insetPadding: isCompact
+                  ? EdgeInsets.zero
+                  : const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              titlePadding: EdgeInsets.fromLTRB(
+                isCompact ? 16 : 24,
+                isCompact ? 20 : 22,
+                isCompact ? 16 : 24,
+                0,
+              ),
+              contentPadding: EdgeInsets.fromLTRB(
+                isCompact ? 16 : 24,
+                18,
+                isCompact ? 16 : 24,
+                0,
+              ),
+              actionsPadding: EdgeInsets.fromLTRB(
+                isCompact ? 16 : 20,
+                8,
+                isCompact ? 16 : 20,
+                isCompact ? 16 : 18,
+              ),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _text(
+                      context,
+                      vi: isCompact
+                          ? 'Xem lại trước khi tạo ticket'
+                          : 'Tạo nhiều ticket',
+                      en: isCompact
+                          ? 'Review before creating tickets'
+                          : 'Create multiple tickets',
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _text(
+                      context,
+                      vi: '${selectedStudents.length} sinh viên được chọn',
+                      en: '${selectedStudents.length} students selected',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
               ),
               content: SizedBox(
-                width: 420,
+                width: isCompact ? MediaQuery.sizeOf(context).width : 420,
+                height: isCompact ? MediaQuery.sizeOf(context).height - 180 : null,
                 child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                       if (bulkAttachmentImage != null || aiPrediction != null || isAiAnalyzing) ...[
                         Align(
@@ -2701,22 +2804,61 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       ],
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              _text(
-                                context,
-                                vi: 'Sinh viên đã chọn',
-                                en: 'Selected students',
-                              ),
-                              style: const TextStyle(fontWeight: FontWeight.w700),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _text(
+                                          context,
+                                          vi: 'Sinh viên đã chọn',
+                                          en: 'Selected students',
+                                        ),
+                                        style: const TextStyle(fontWeight: FontWeight.w700),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _text(
+                                          context,
+                                          vi: '${selectedStudents.length} sinh viên sẽ được tạo ticket',
+                                          en: '${selectedStudents.length} students will receive tickets',
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (aiPrediction != null && (aiPrediction!['needs_human_review'] ?? false) == true)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFEDD5),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      _text(context, vi: 'Cần kiểm tra', en: 'Needs review'),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF9A3412),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             const SizedBox(height: 8),
                             if (selectedStudents.isEmpty)
@@ -2733,11 +2875,45 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               )
                             else
                               ...selectedStudents.map(
-                                (s) => ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  leading: const Icon(Icons.person, size: 18),
-                                  title: Text('${s.studentCode ?? '-'} - ${s.studentName ?? ''}'),
+                                (s) => Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.person_outline, size: 18, color: Color(0xFF2563EB)),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          '${s.studentCode ?? '-'} - ${s.studentName ?? ''}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () {
+                                          final code = s.studentCode;
+                                          if (code == null || code.isEmpty) return;
+                                          setModalState(() {
+                                            selected.remove(code);
+                                            if (selectedStudentToAdd?.studentCode == code) {
+                                              selectedStudentToAdd = null;
+                                            }
+                                          });
+                                        },
+                                        icon: const Icon(Icons.close, size: 18),
+                                        tooltip: _text(
+                                          context,
+                                          vi: 'Bỏ sinh viên',
+                                          en: 'Remove student',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             const SizedBox(height: 8),
@@ -2797,7 +2973,11 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
+                      _buildDialogSectionTitle(
+                        _text(context, vi: 'Thông tin ticket', en: 'Ticket details'),
+                      ),
+                      const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         initialValue: issueType,
                         items: [
@@ -2819,7 +2999,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           ),
                         ],
                         onChanged: (v) => issueType = v ?? issueType,
-                        decoration: InputDecoration(labelText: l10n.issueType),
+                        decoration: _ticketFieldDecoration(label: l10n.issueType),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -2835,33 +3015,48 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           ),
                         ],
                         onChanged: (v) => priority = v ?? priority,
-                        decoration: InputDecoration(labelText: l10n.priority),
+                        decoration: _ticketFieldDecoration(label: l10n.priority),
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: issueNameCtrl,
-                        decoration: InputDecoration(labelText: l10n.issueName),
+                        decoration: _ticketFieldDecoration(label: l10n.issueName),
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: descriptionCtrl,
                         maxLines: 2,
-                        decoration: InputDecoration(labelText: l10n.description),
+                        decoration: _ticketFieldDecoration(label: l10n.description),
                       ),
-                      const SizedBox(height: 12),
-                      // Attachment shared across created tickets.
+                      const SizedBox(height: 16),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           _text(
                             context,
-                            vi: 'Ảnh đính kèm (tùy chọn, dùng chung cho tất cả)',
-                            en: 'Attachment (optional, shared for all tickets)',
+                            vi: 'Ảnh đính kèm',
+                            en: 'Attachment',
                           ),
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _text(
+                            context,
+                            vi: 'Ảnh dùng chung cho tất cả ticket tạo trong lần này.',
+                            en: 'This attachment will be shared across all created tickets.',
+                          ),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Expanded(
@@ -3110,7 +3305,13 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       );
                     }
                   },
-                  child: Text(_text(context, vi: 'Tạo tất cả', en: 'Create all')),
+                  child: Text(
+                    _text(
+                      context,
+                      vi: 'Tạo ${selected.length} ticket',
+                      en: 'Create ${selected.length} tickets',
+                    ),
+                  ),
                 ),
               ],
             );
@@ -3176,7 +3377,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       final url = response.data is Map ? response.data['secure_url'] as String? : null;
       return url;
     } catch (e) {
-      debugPrint('âŒ Upload image error: $e');
+      debugPrint('Upload image error: $e');
       return null;
     }
   }
@@ -3275,8 +3476,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           _isTicketSelectionMode = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ticket created successfully'),
+          SnackBar(
+            content: Text(
+              _text(
+                context,
+                vi: 'Tạo ticket thành công',
+                en: 'Ticket created successfully',
+              ),
+            ),
             backgroundColor: Colors.green,
           ),
         );

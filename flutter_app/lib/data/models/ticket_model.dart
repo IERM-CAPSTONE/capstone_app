@@ -18,6 +18,9 @@ class TicketModel {
   final String? resolutionCode;
   final String? resolutionCustomText;
   final String? resolutionStandardText;
+  final String? latestSummary;
+  final String? resolvedBy;
+  final DateTime? resolvedAt;
   final bool needsAiReview;
   final String? aiTrainingStatus;
   final String? reviewNote;
@@ -26,6 +29,7 @@ class TicketModel {
   final String? examPartName;
   final String? assigneeName;
   final List<TicketActivityModel> activityHistories;
+  final List<AiCandidateModel> aiCandidates;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -49,6 +53,9 @@ class TicketModel {
     this.resolutionCode,
     this.resolutionCustomText,
     this.resolutionStandardText,
+    this.latestSummary,
+    this.resolvedBy,
+    this.resolvedAt,
     this.needsAiReview = false,
     this.aiTrainingStatus,
     this.reviewNote,
@@ -57,6 +64,7 @@ class TicketModel {
     this.examPartName,
     this.assigneeName,
     this.activityHistories = const [],
+    this.aiCandidates = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -97,6 +105,9 @@ class TicketModel {
       resolutionCode: parseString(json['resolutionCode']),
       resolutionCustomText: parseString(json['resolutionCustomText']),
       resolutionStandardText: parseString(json['resolutionStandardText']),
+      latestSummary: parseString(json['latestSummary']),
+      resolvedBy: parseString(json['resolvedBy']),
+      resolvedAt: parseDate(json['resolvedAt']),
       needsAiReview: json['needsAiReview'] == true,
       aiTrainingStatus: parseString(json['aiTrainingStatus']),
       reviewNote: parseString(json['reviewNote']),
@@ -119,6 +130,9 @@ class TicketModel {
       activityHistories: (json['activityHistories'] as List<dynamic>? ?? [])
           .map((e) => TicketActivityModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      aiCandidates: (json['aiCandidates'] as List<dynamic>? ?? [])
+          .map((e) => AiCandidateModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
       createdAt: parseDate(json['createdAt']),
       updatedAt: parseDate(json['updatedAt']),
     );
@@ -136,6 +150,79 @@ class TicketModel {
       return (examPart['name'] ?? examPart['examPartName'])?.toString();
     }
     return examPart?.toString();
+  }
+}
+
+class AiCandidateModel {
+  final String id;
+  final String ticketId;
+  final String sourceActivityId;
+  final String sourceType;
+  final String? issueCode;
+  final String? issueType;
+  final String? issueCustomText;
+  final String? resolutionCode;
+  final String? resolutionCustomText;
+  final String? responseText;
+  final String? techNote;
+  final String reviewStatus;
+  final String? reviewNote;
+  final String? reviewedBy;
+  final DateTime? reviewedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  const AiCandidateModel({
+    required this.id,
+    required this.ticketId,
+    required this.sourceActivityId,
+    required this.sourceType,
+    this.issueCode,
+    this.issueType,
+    this.issueCustomText,
+    this.resolutionCode,
+    this.resolutionCustomText,
+    this.responseText,
+    this.techNote,
+    required this.reviewStatus,
+    this.reviewNote,
+    this.reviewedBy,
+    this.reviewedAt,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory AiCandidateModel.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      return DateTime.tryParse(value.toString());
+    }
+
+    String? parseString(dynamic value) {
+      if (value == null) return null;
+      final v = value.toString().trim();
+      return v.isEmpty ? null : v;
+    }
+
+    return AiCandidateModel(
+      id: (json['id'] ?? '').toString(),
+      ticketId: (json['ticketId'] ?? '').toString(),
+      sourceActivityId: (json['sourceActivityId'] ?? '').toString(),
+      sourceType: (json['sourceType'] ?? '').toString(),
+      issueCode: parseString(json['issueCode']),
+      issueType: parseString(json['issueType']),
+      issueCustomText: parseString(json['issueCustomText']),
+      resolutionCode: parseString(json['resolutionCode']),
+      resolutionCustomText: parseString(json['resolutionCustomText']),
+      responseText: parseString(json['responseText']),
+      techNote: parseString(json['techNote']),
+      reviewStatus: (json['reviewStatus'] ?? '').toString(),
+      reviewNote: parseString(json['reviewNote']),
+      reviewedBy: parseString(json['reviewedBy']),
+      reviewedAt: parseDate(json['reviewedAt']),
+      createdAt: parseDate(json['createdAt']),
+      updatedAt: parseDate(json['updatedAt']),
+    );
   }
 }
 

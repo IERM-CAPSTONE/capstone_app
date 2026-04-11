@@ -497,7 +497,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
                   return RedesignedExamSessionCard(
                     session: session,
                     userRole: _userRole,
-                    onTap: () => _navigateToDetail(session.id, l10n),
+                    onTap: () => _navigateToDetail(session, l10n),
                   );
                 }).toList(),
               ),
@@ -643,7 +643,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
 
 
   Future<void> _navigateToDetail(
-      String examSessionId, AppLocalizations l10n) async {
+      ExamSession session, AppLocalizations l10n) async {
     // Check user role - only proctor can view detail page
     final authService = DependencyInjection.get<AuthService>();
     final user = await authService.getSavedUserData();
@@ -665,9 +665,12 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     if (!mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) =>
-            ExamSessionDetailPage(examSessionId: examSessionId),
+        MaterialPageRoute(
+          builder: (context) =>
+            ExamSessionDetailPage(
+              examSessionId: session.id,
+              initialSession: session,
+            ),
       ),
     );
   }

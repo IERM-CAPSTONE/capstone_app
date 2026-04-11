@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +7,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'config/dependency_injection.dart';
 import 'config/env.dart';
-import 'core/routes/app_routes.dart';
 import 'data/services/auth_service.dart';
 import 'data/services/push_notification_service.dart';
 import 'firebase_options.dart';
@@ -44,22 +42,6 @@ void main() async {
     await pushNotificationService.init();
     await pushNotificationService.syncTokenWithBackend(force: true);
   }
-
-  final dio = DependencyInjection.get<Dio>();
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
-          debugPrint(
-            'Received 401 Unauthorized. Logging out and redirecting to login...',
-          );
-          await authService.signOut();
-          AppRoutes.router.go(AppRoutes.login);
-        }
-        return handler.next(error);
-      },
-    ),
-  );
 
   runApp(const ProviderScope(child: MyApp()));
 }
