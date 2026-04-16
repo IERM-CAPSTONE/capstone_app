@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -1140,9 +1140,16 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     final currentUserId = _currentUser?.id;
     final isCurrentAssignee =
         currentUserId != null && ticket.assigneeId == currentUserId;
+    final isReporterOnly = currentUserId != null &&
+        ticket.reporterId == currentUserId &&
+        ticket.assigneeId != currentUserId;
     final isHallInvigilator = _currentRole == 'hall_invigilator';
     final isExamOfficer = _currentRole == 'exam_officer';
     final isProctor = _currentRole == 'proctor';
+
+    // Reporter-only users cannot perform any actions
+    if (isReporterOnly) return [];
+
     final canAssign = isHallInvigilator || isExamOfficer || isProctor;
     final canChangeStatus =
         isCurrentAssignee || isExamOfficer || isHallInvigilator || isProctor;
@@ -1183,17 +1190,16 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     final currentUserId = _currentUser?.id;
     final isCurrentAssignee =
         currentUserId != null && ticket.assigneeId == currentUserId;
+    final isReporterOnly = currentUserId != null &&
+        ticket.reporterId == currentUserId &&
+        ticket.assigneeId != currentUserId;
     final isHallInvigilator = _currentRole == 'hall_invigilator';
     final isExamOfficer = _currentRole == 'exam_officer';
-    final isProctor = _currentRole == 'proctor';
-    final isReporter = currentUserId != null && ticket.reporterId == currentUserId;
-    final canComment = isCurrentAssignee ||
-        isExamOfficer ||
-        isHallInvigilator ||
-        isProctor ||
-        isReporter;
+    final canComment =
+        isCurrentAssignee || isExamOfficer || isHallInvigilator;
 
-    if (!canComment) {
+    // Reporter-only users cannot comment
+    if (isReporterOnly || !canComment) {
       return const SizedBox.shrink();
     }
 
