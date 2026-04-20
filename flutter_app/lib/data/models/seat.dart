@@ -169,7 +169,8 @@ class SeatingPlan {
                 status = SeatStatus.absent;
               }
             } else {
-              if (studentExam.status == StudentExamStatus.checkedIn ||
+              if (studentExam.hasAnyCheckedInPart ||
+                  studentExam.status == StudentExamStatus.checkedIn ||
                   studentExam.status == StudentExamStatus.checkedOut) {
                 status = SeatStatus.present;
               } else if (studentExam.status == StudentExamStatus.registered ||

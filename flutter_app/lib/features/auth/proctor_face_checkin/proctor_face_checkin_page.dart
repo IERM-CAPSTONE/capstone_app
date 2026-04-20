@@ -21,6 +21,12 @@ class ProctorFaceCheckInPage extends ConsumerStatefulWidget {
 
 class _ProctorFaceCheckInPageState
     extends ConsumerState<ProctorFaceCheckInPage> {
+  Future<void> _shutdownCamera() async {
+    await ref
+        .read(proctorFaceCheckInControllerProvider(widget.examSessionId).notifier)
+        .shutdown();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +35,12 @@ class _ProctorFaceCheckInPageState
           .read(proctorFaceCheckInControllerProvider(widget.examSessionId).notifier)
           .initializeCamera();
     });
+  }
+
+  @override
+  void dispose() {
+    _shutdownCamera();
+    super.dispose();
   }
 
   @override

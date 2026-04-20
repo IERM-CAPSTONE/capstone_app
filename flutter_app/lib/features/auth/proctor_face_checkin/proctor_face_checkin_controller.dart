@@ -36,21 +36,52 @@ class ProctorFaceCheckInController
   int _eyesClosedFrames = 0;
   int _eyesReopenedFrames = 0;
   bool _blinkClosingPhase = false;
+  DateTime? _lastBlinkAt;
 
   static const Duration _detectionInterval = Duration(milliseconds: 250);
   static const int _requiredStableFrames = 3;
   static const int _requiredBlinks = 1;
-  static const int _requiredClosedFrames = 1;
-  static const int _requiredReopenedFrames = 1;
+  static const int _requiredClosedFrames = 2;
+  static const int _requiredReopenedFrames = 2;
   static const double _centerThreshold = 10.0;
+  static const double _eyeClosedThreshold = 0.32;
+  static const double _eyeOpenThreshold = 0.72;
+  static const double _minFaceWidthRatio = 0.24;
+  static const double _minFaceHeightRatio = 0.32;
+  static const double _maxFaceOffsetXRatio = 0.18;
+  static const double _maxFaceOffsetYRatio = 0.22;
 
   @override
   void dispose() {
+    shutdown();
+    super.dispose();
+  }
+
+  Future<void> shutdown() async {
     _timeoutTimer?.cancel();
     _detectionTimer?.cancel();
+    _timeoutTimer = null;
+    _detectionTimer = null;
+    _lastImage = null;
+    _isProcessing = false;
+    _isCapturing = false;
+
+    final controller = state.cameraController;
+    if (controller != null) {
+      try {
+        if (controller.value.isStreamingImages) {
+          await controller.stopImageStream();
+        }
+      } catch (_) {}
+
+      try {
+        await controller.dispose();
+      } catch (_) {}
+    }
+
+    state = state.copyWith(cameraController: null);
     _faceDetector?.close();
-    state.cameraController?.dispose();
-    super.dispose();
+    _faceDetector = null;
   }
 
   Future<void> initializeCamera() async {
@@ -139,7 +170,26 @@ class ProctorFaceCheckInController
         return;
       }
 
+      if (faces.length > 1) {
+        _stableCount = 0;
+        state = state.copyWith(
+          status: ProctorFaceCheckInStatus.scanning,
+          instructionMessage: 'Chỉ để một khuôn mặt trong khung hình',
+          stableCount: 0,
+        );
+        return;
+      }
+
       final face = faces.first;
+      if (!_isFaceWellPositioned(face, inputImage.metadata!.size)) {
+        _stableCount = 0;
+        state = state.copyWith(
+          status: ProctorFaceCheckInStatus.faceDetected,
+          instructionMessage: 'Đưa mặt vào giữa khung và lại gần hơn',
+          stableCount: 0,
+        );
+        return;
+      }
       final headY = face.headEulerAngleY ?? 0;
       final headX = face.headEulerAngleX ?? 0;
       _detectBlink(face);
@@ -188,10 +238,7 @@ class ProctorFaceCheckInController
     final rightEyeOpen = face.rightEyeOpenProbability ?? 1.0;
     final avgEyeOpen = (leftEyeOpen + rightEyeOpen) / 2;
 
-    const eyeClosedThreshold = 0.4;
-    const eyeOpenThreshold = 0.65;
-
-    if (avgEyeOpen <= eyeClosedThreshold) {
+    if (avgEyeOpen <= _eyeClosedThreshold) {
       _eyesClosedFrames++;
       _eyesReopenedFrames = 0;
       if (_eyesClosedFrames >= _requiredClosedFrames) {
@@ -200,12 +247,18 @@ class ProctorFaceCheckInController
       return;
     }
 
-    if (avgEyeOpen >= eyeOpenThreshold) {
+    if (avgEyeOpen >= _eyeOpenThreshold) {
       if (_blinkClosingPhase) {
         _eyesReopenedFrames++;
         if (_eyesReopenedFrames >= _requiredReopenedFrames) {
-          _blinkCount++;
-          _blinkDetected = _blinkCount >= _requiredBlinks;
+          final now = DateTime.now();
+          final isCooldownDone = _lastBlinkAt == null ||
+              now.difference(_lastBlinkAt!) > const Duration(milliseconds: 800);
+          if (isCooldownDone) {
+            _blinkCount++;
+            _blinkDetected = _blinkCount >= _requiredBlinks;
+            _lastBlinkAt = now;
+          }
           _blinkClosingPhase = false;
           _eyesClosedFrames = 0;
           _eyesReopenedFrames = 0;
@@ -219,6 +272,22 @@ class ProctorFaceCheckInController
     }
 
     _eyesReopenedFrames = 0;
+  }
+
+  bool _isFaceWellPositioned(Face face, Size imageSize) {
+    final boundingBox = face.boundingBox;
+    final widthRatio = boundingBox.width / imageSize.width;
+    final heightRatio = boundingBox.height / imageSize.height;
+    final centerX = boundingBox.left + (boundingBox.width / 2);
+    final centerY = boundingBox.top + (boundingBox.height / 2);
+    final offsetXRatio = (centerX - imageSize.width / 2).abs() / imageSize.width;
+    final offsetYRatio =
+        (centerY - imageSize.height / 2).abs() / imageSize.height;
+
+    return widthRatio >= _minFaceWidthRatio &&
+        heightRatio >= _minFaceHeightRatio &&
+        offsetXRatio <= _maxFaceOffsetXRatio &&
+        offsetYRatio <= _maxFaceOffsetYRatio;
   }
 
   Future<void> _checkIn() async {
@@ -335,6 +404,7 @@ class ProctorFaceCheckInController
     _eyesClosedFrames = 0;
     _eyesReopenedFrames = 0;
     _blinkClosingPhase = false;
+    _lastBlinkAt = null;
   }
 
   void _startTimeout() {

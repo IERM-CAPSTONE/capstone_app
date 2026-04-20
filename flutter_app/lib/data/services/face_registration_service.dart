@@ -43,6 +43,7 @@ class FaceRegistrationService {
 
   Future<Map<String, dynamic>> authenticateFace({
     required String imageBase64,
+    List<String>? images,
     String? examSessionId,
     String? examPartCode,
     bool isEncrypted = false,
@@ -50,6 +51,7 @@ class FaceRegistrationService {
     try {
       final requestData = {
         'image': imageBase64,
+        'images': images,
         'examSessionId': examSessionId,
         'examPartCode': examPartCode,
         'isEncrypted': isEncrypted,

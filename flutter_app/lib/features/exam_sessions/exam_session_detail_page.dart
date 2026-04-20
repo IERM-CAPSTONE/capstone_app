@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 
 import '../../config/env.dart';
 import '../../config/dependency_injection.dart';
@@ -11,6 +12,7 @@ import '../../data/models/subject_part_option.dart';
 import '../../data/repositories/exam_session_repository.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/socket_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
@@ -82,15 +84,45 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   String? _userId;
   bool _isStaff = false;
   String? _selectedExamPartCode;
-  Seat? _selectedSeat;
   bool _hasProctorCheckedIn = false;
   final Set<String> _selectedTicketStudentIds = <String>{};
   bool _isTicketSelectionMode = false;
+  StreamSubscription<TicketRealtimeEvent>? _faceAuthSubscription;
 
   @override
   void initState() {
     super.initState();
     _checkUserRole();
+    _bindFaceAuthenticatedListener();
+  }
+
+  @override
+  void dispose() {
+    _faceAuthSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _bindFaceAuthenticatedListener() {
+    final socketService = DependencyInjection.get<SocketService>();
+    _faceAuthSubscription?.cancel();
+    _faceAuthSubscription = socketService.ticketEvents.listen((event) {
+      if (event.type != 'face_authenticated') return;
+
+      final eventSessionId = event.payload['examSessionId']?.toString();
+      if (eventSessionId != widget.examSessionId) return;
+
+      unawaited(_refreshSessionData());
+    });
+  }
+
+  Future<void> _refreshSessionData() async {
+    ref.invalidate(examSessionDetailProvider(widget.examSessionId));
+    ref.invalidate(sessionStudentsProvider(widget.examSessionId));
+
+    await Future.wait([
+      ref.read(examSessionDetailProvider(widget.examSessionId).future),
+      ref.read(sessionStudentsProvider(widget.examSessionId).future),
+    ]);
   }
 
   Future<void> _checkUserRole() async {
@@ -1071,7 +1103,6 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                   onTap: () {
                     setState(() {
                       _selectedExamPartCode = part.code;
-                      _selectedSeat = null;
                     });
                   },
                   borderRadius: BorderRadius.circular(12),
@@ -1246,8 +1277,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 );
 
                 if (result == true) {
-                  ref.invalidate(examSessionDetailProvider(widget.examSessionId));
-                  ref.invalidate(sessionStudentsProvider(widget.examSessionId));
+                  await _refreshSessionData();
                 }
               },
               icon: const Icon(Icons.camera_alt, size: 20),
@@ -1631,55 +1661,55 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
-          onPressed: () {
-            setState(() {
-              if (_isTicketSelectionMode) {
-                _isTicketSelectionMode = false;
-                _selectedTicketStudentIds.clear();
-              } else {
-                _isTicketSelectionMode = true;
-                _selectedTicketStudentIds.clear();
-              }
-            });
-          },
-          icon: Icon(
-            _isTicketSelectionMode
-                ? Icons.close_fullscreen_outlined
-                : Icons.select_all_outlined,
-            size: 18,
-          ),
-          label: Text(
-            _isTicketSelectionMode
-                ? _text(
-                    context,
-                    vi: 'Tắt chọn ghế tạo ticket',
-                    en: 'Turn off seat ticket selection',
-                  )
-                : _text(
-                    context,
-                    vi: 'Chọn ghế để tạo ticket',
-                    en: 'Select seats to create tickets',
-                  ),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _isTicketSelectionMode
-                ? const Color(0xFF1565C0)
-                : const Color(0xFF475569),
-            side: BorderSide(
-              color: _isTicketSelectionMode
-                  ? const Color(0xFF90CAF9)
-                  : const Color(0xFFD0D7E2),
+              onPressed: () {
+                setState(() {
+                  if (_isTicketSelectionMode) {
+                    _isTicketSelectionMode = false;
+                    _selectedTicketStudentIds.clear();
+                  } else {
+                    _isTicketSelectionMode = true;
+                    _selectedTicketStudentIds.clear();
+                  }
+                });
+              },
+              icon: Icon(
+                _isTicketSelectionMode
+                    ? Icons.close_fullscreen_outlined
+                    : Icons.select_all_outlined,
+                size: 18,
+              ),
+              label: Text(
+                _isTicketSelectionMode
+                    ? _text(
+                        context,
+                        vi: 'Tắt chọn ghế tạo ticket',
+                        en: 'Turn off seat ticket selection',
+                      )
+                    : _text(
+                        context,
+                        vi: 'Chọn ghế để tạo ticket',
+                        en: 'Select seats to create tickets',
+                      ),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _isTicketSelectionMode
+                    ? const Color(0xFF1565C0)
+                    : const Color(0xFF475569),
+                side: BorderSide(
+                  color: _isTicketSelectionMode
+                      ? const Color(0xFF90CAF9)
+                      : const Color(0xFFD0D7E2),
+                ),
+                backgroundColor: _isTicketSelectionMode
+                    ? const Color(0xFFE3F2FD)
+                    : Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
-            backgroundColor: _isTicketSelectionMode
-                ? const Color(0xFFE3F2FD)
-                : Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 11),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -61,8 +61,10 @@ class StudentExamPartInfo {
       submitTime: parseDate(json['submitTime']),
       isSign: json['isSign'] as bool? ?? false,
       signTime: parseDate(json['signTime']),
-      examPartCode: examPart?['code'] as String?,
-      examPartName: examPart?['name'] as String?,
+      examPartCode:
+          json['examPartCode'] as String? ?? examPart?['code'] as String?,
+      examPartName:
+          json['examPartName'] as String? ?? examPart?['name'] as String?,
     );
   }
 
@@ -175,6 +177,8 @@ class StudentExam {
   bool get isPresent =>
       status == StudentExamStatus.checkedIn ||
       status == StudentExamStatus.checkedOut;
+
+  bool get hasAnyCheckedInPart => parts.any((part) => part.isCheckedIn);
 
   bool get isAbsent =>
       status == StudentExamStatus.registered && checkinTime == null;

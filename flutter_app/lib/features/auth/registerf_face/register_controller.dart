@@ -37,28 +37,58 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
   int _eyesReopenedFrames = 0;
   bool _blinkClosingPhase = false;
   static const int _requiredBlinks = 1;
-  static const int _requiredClosedFrames = 1;
-  static const int _requiredReopenedFrames = 1;
+  static const int _requiredClosedFrames = 2;
+  static const int _requiredReopenedFrames = 2;
 
   // Head pose thresholds
   static const double _hMin = 12.0;
   static const double _vUpMin = 3.0;
   static const double _vDownMin = 5.0;
   static const double _centerThreshold = 12.0;
+  static const double _eyeClosedThreshold = 0.32;
+  static const double _eyeOpenThreshold = 0.72;
+  static const double _minFaceWidthRatio = 0.24;
+  static const double _minFaceHeightRatio = 0.32;
+  static const double _maxFaceOffsetXRatio = 0.18;
+  static const double _maxFaceOffsetYRatio = 0.22;
+  DateTime? _lastBlinkAt;
 
   RegisterFaceController() : super(const RegisterFaceState());
 
   @override
   void dispose() {
-    _detectionTimer?.cancel();
-    _faceDetector?.close();
-    _glassesService.dispose();
-    state.cameraController?.dispose();
+    shutdown();
     try {
       final socketService = DependencyInjection.get<SocketService>();
       socketService.unsubscribe('face_registered');
     } catch (_) {}
     super.dispose();
+  }
+
+  Future<void> shutdown() async {
+    _detectionTimer?.cancel();
+    _detectionTimer = null;
+    _lastImage = null;
+    _isProcessing = false;
+    _isCapturing = false;
+
+    final controller = state.cameraController;
+    if (controller != null) {
+      try {
+        if (controller.value.isStreamingImages) {
+          await controller.stopImageStream();
+        }
+      } catch (_) {}
+
+      try {
+        await controller.dispose();
+      } catch (_) {}
+    }
+
+    state = state.copyWith(cameraController: null);
+    _faceDetector?.close();
+    _faceDetector = null;
+    _glassesService.dispose();
   }
 
   Future<void> initializeCamera() async {
@@ -176,10 +206,27 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
             instructionMessage: 'Không tìm thấy khuôn mặt',
           );
         }
-      } else {
+        } else {
+        if (faces.length > 1) {
+          _poseStableCount = 0;
+          state = state.copyWith(
+            status: FaceScanStatus.scanning,
+            instructionMessage: 'Chỉ để một khuôn mặt trong khung hình',
+          );
+          return;
+        }
+
         final face = faces.first;
-        final headY = face.headEulerAngleY ?? 0;
-        final headX = face.headEulerAngleX ?? 0;
+        if (!_isFaceWellPositioned(face, inputImage.metadata!.size)) {
+          _poseStableCount = 0;
+          state = state.copyWith(
+            status: FaceScanStatus.faceDetected,
+            instructionMessage: 'Đưa mặt vào giữa khung và lại gần hơn',
+          );
+          return;
+        }
+          final headY = face.headEulerAngleY ?? 0;
+          final headX = face.headEulerAngleX ?? 0;
 
         if (state.currentPose == HeadPose.center) {
           _detectBlink(face);
@@ -250,10 +297,7 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     final rightEyeOpen = face.rightEyeOpenProbability ?? 1.0;
     final avgEyeOpen = (leftEyeOpen + rightEyeOpen) / 2;
 
-    const eyeClosedThreshold = 0.4;
-    const eyeOpenThreshold = 0.65;
-
-    if (avgEyeOpen <= eyeClosedThreshold) {
+    if (avgEyeOpen <= _eyeClosedThreshold) {
       _eyesClosedFrames++;
       _eyesReopenedFrames = 0;
       if (_eyesClosedFrames >= _requiredClosedFrames) {
@@ -262,12 +306,18 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       return;
     }
 
-    if (avgEyeOpen >= eyeOpenThreshold) {
+    if (avgEyeOpen >= _eyeOpenThreshold) {
       if (_blinkClosingPhase) {
         _eyesReopenedFrames++;
         if (_eyesReopenedFrames >= _requiredReopenedFrames) {
-          _blinkCount++;
-          _blinkDetected = _blinkCount >= _requiredBlinks;
+          final now = DateTime.now();
+          final isCooldownDone = _lastBlinkAt == null ||
+              now.difference(_lastBlinkAt!) > const Duration(milliseconds: 800);
+          if (isCooldownDone) {
+            _blinkCount++;
+            _blinkDetected = _blinkCount >= _requiredBlinks;
+            _lastBlinkAt = now;
+          }
           _blinkClosingPhase = false;
           _eyesClosedFrames = 0;
           _eyesReopenedFrames = 0;
@@ -281,6 +331,22 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     }
 
     _eyesReopenedFrames = 0;
+  }
+
+  bool _isFaceWellPositioned(Face face, Size imageSize) {
+    final boundingBox = face.boundingBox;
+    final widthRatio = boundingBox.width / imageSize.width;
+    final heightRatio = boundingBox.height / imageSize.height;
+    final centerX = boundingBox.left + (boundingBox.width / 2);
+    final centerY = boundingBox.top + (boundingBox.height / 2);
+    final offsetXRatio = (centerX - imageSize.width / 2).abs() / imageSize.width;
+    final offsetYRatio =
+        (centerY - imageSize.height / 2).abs() / imageSize.height;
+
+    return widthRatio >= _minFaceWidthRatio &&
+        heightRatio >= _minFaceHeightRatio &&
+        offsetXRatio <= _maxFaceOffsetXRatio &&
+        offsetYRatio <= _maxFaceOffsetYRatio;
   }
 
   bool _checkPoseMatch(HeadPose requiredPose, double eulerY, double eulerX) {
@@ -371,6 +437,7 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     _eyesClosedFrames = 0;
     _eyesReopenedFrames = 0;
     _blinkClosingPhase = false;
+    _lastBlinkAt = null;
   }
 
   HeadPose _getNextPose(List<HeadPose> captured) {

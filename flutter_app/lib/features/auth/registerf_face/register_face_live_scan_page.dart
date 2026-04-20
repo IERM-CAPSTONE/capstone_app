@@ -16,12 +16,22 @@ class RegisterFaceLiveScanPage extends ConsumerStatefulWidget {
 
 class _RegisterFaceLiveScanPageState
     extends ConsumerState<RegisterFaceLiveScanPage> {
+  Future<void> _shutdownCamera() async {
+    await ref.read(registerFaceControllerProvider.notifier).shutdown();
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(registerFaceControllerProvider.notifier).initializeCamera();
     });
+  }
+
+  @override
+  void dispose() {
+    _shutdownCamera();
+    super.dispose();
   }
 
   @override

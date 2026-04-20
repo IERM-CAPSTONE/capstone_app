@@ -57,7 +57,7 @@ class RealtimeNotificationService {
   final SocketService _socketService;
   final AuthService _authService;
 
-  StreamSubscription<TicketRealtimeEvent>? _ticketSub;
+  StreamSubscription<TicketRealtimeEvent>? _notificationSub;
   bool _started = false;
 
   final ValueNotifier<List<AppNotificationItem>> notifications =
@@ -81,7 +81,6 @@ class RealtimeNotificationService {
     _socketService.initAndJoin(
       token: token,
       userId: user!.id!,
-      campus: user.code,
     );
 
     // Tải thông báo cũ từ Database
@@ -101,16 +100,16 @@ class RealtimeNotificationService {
       debugPrint(stack.toString());
     }
 
-    _ticketSub?.cancel();
-    _ticketSub = _socketService.ticketEvents.listen(_handleTicketEvent);
+    _notificationSub?.cancel();
+    _notificationSub = _socketService.ticketEvents.listen(_handleRealtimeEvent);
 
     _started = true;
   }
 
   Future<void> restartWithLatestAuth() async {
     _started = false;
-    await _ticketSub?.cancel();
-    _ticketSub = null;
+    await _notificationSub?.cancel();
+    _notificationSub = null;
     await start();
   }
 
@@ -128,8 +127,22 @@ class RealtimeNotificationService {
     }
   }
 
-  void _handleTicketEvent(TicketRealtimeEvent event) {
+  void _handleRealtimeEvent(TicketRealtimeEvent event) {
     final payload = event.payload;
+
+    if (event.type == 'broadcast_announcement') {
+      refreshNotifications();
+
+      final message = (payload['message'] ?? 'Bạn có thông báo mới').toString();
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.deepOrange,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
     
     // Check if this is a user-facing notification
     final isUserNotification = payload['isUserNotification'] == true;
@@ -211,8 +224,8 @@ class RealtimeNotificationService {
 
   Future<void> stop() async {
     _started = false;
-    await _ticketSub?.cancel();
-    _ticketSub = null;
+    await _notificationSub?.cancel();
+    _notificationSub = null;
     _socketService.dispose();
   }
 }

@@ -17,7 +17,7 @@ class TicketRealtimeEvent {
 
 class SocketService {
   io.Socket? _socket;
-  bool _ticketHandlersBound = false;
+  bool _notificationHandlersBound = false;
 
   final StreamController<TicketRealtimeEvent> _ticketEventsController =
       StreamController<TicketRealtimeEvent>.broadcast();
@@ -37,7 +37,7 @@ class SocketService {
     if (_socket != null) {
       _socket!.dispose();
       _socket = null;
-      _ticketHandlersBound = false;
+      _notificationHandlersBound = false;
     }
 
     debugPrint('Connecting to Socket.IO at $socketUrl');
@@ -68,7 +68,7 @@ class SocketService {
       debugPrint('Socket Connect Error: $err');
     });
 
-    bindTicketEventHandlers();
+    bindNotificationEventHandlers();
     _socket!.connect();
   }
 
@@ -82,8 +82,8 @@ class SocketService {
     debugPrint('Joined notification room for userId=$userId');
   }
 
-  void bindTicketEventHandlers() {
-    if (_socket == null || _ticketHandlersBound) return;
+  void bindNotificationEventHandlers() {
+    if (_socket == null || _notificationHandlersBound) return;
 
     void bind(String eventName) {
       _socket!.off(eventName);
@@ -101,8 +101,10 @@ class SocketService {
     bind('ticket:resolved');
     bind('ticket:updated');
     bind('ticket:created');
+    bind('broadcast_announcement');
+    bind('face_authenticated');
 
-    _ticketHandlersBound = true;
+    _notificationHandlersBound = true;
   }
 
   void subscribe(String event, Function(dynamic) callback) {
@@ -116,6 +118,6 @@ class SocketService {
   void dispose() {
     _socket?.dispose();
     _socket = null;
-    _ticketHandlersBound = false;
+    _notificationHandlersBound = false;
   }
 }

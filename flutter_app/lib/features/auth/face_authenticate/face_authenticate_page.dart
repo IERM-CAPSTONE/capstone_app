@@ -22,6 +22,16 @@ class FaceAuthenticatePage extends ConsumerStatefulWidget {
 }
 
 class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
+  Future<void> _shutdownCamera() async {
+    await ref.read(faceAuthenticateControllerProvider.notifier).shutdown();
+  }
+
+  Future<void> _closePage([bool result = false]) async {
+    await _shutdownCamera();
+    if (!mounted) return;
+    Navigator.of(context).pop(result);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -33,6 +43,12 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
             examPartCode: widget.examPartCode,
           );
     });
+  }
+
+  @override
+  void dispose() {
+    _shutdownCamera();
+    super.dispose();
   }
 
   @override
@@ -54,28 +70,34 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
       return _buildProcessingScreen(context, l10n.authenticatingFace);
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const RepaintBoundary(child: _CameraPreviewWidget()),
-            const _OvalOverlayWidget(),
-            const _HeaderWidget(),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (_, __) {
+        _shutdownCamera();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const RepaintBoundary(child: _CameraPreviewWidget()),
+              const _OvalOverlayWidget(),
+              _HeaderWidget(onClose: _closePage),
 
-            // Blink Animation (unique to authentication)
-            if (state.status == FaceAuthenticateStatus.livenessCheck)
-              Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 100),
-                  child: _BlinkGuidance(l10n: l10n),
+              // Blink Animation (unique to authentication)
+              if (state.status == FaceAuthenticateStatus.livenessCheck)
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 100),
+                    child: _BlinkGuidance(l10n: l10n),
+                  ),
                 ),
-              ),
 
-            _InstructionWidget(l10n: l10n),
-          ],
+              _InstructionWidget(l10n: l10n),
+            ],
+          ),
         ),
       ),
     );
@@ -160,7 +182,7 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
+                  onPressed: () => _closePage(true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.appBarOrange,
                     foregroundColor: Colors.white,
@@ -206,7 +228,7 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => ref
+                onPressed: () => ref
                       .read(faceAuthenticateControllerProvider.notifier)
                       .retry(),
                   style: ElevatedButton.styleFrom(
@@ -222,7 +244,7 @@ class _FaceAuthenticatePageState extends ConsumerState<FaceAuthenticatePage> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => _closePage(),
                 child: Text(l10n.backToMenu,
                     style: const TextStyle(color: Colors.grey)),
               ),
@@ -281,7 +303,9 @@ class _OvalOverlayWidget extends ConsumerWidget {
 }
 
 class _HeaderWidget extends StatelessWidget {
-  const _HeaderWidget();
+  final Future<void> Function(bool result) onClose;
+
+  const _HeaderWidget({required this.onClose});
   @override
   Widget build(BuildContext context) {
     return Positioned(
@@ -289,7 +313,7 @@ class _HeaderWidget extends StatelessWidget {
       left: 10,
       child: IconButton(
         icon: const Icon(Icons.close, color: Colors.white, size: 32),
-        onPressed: () => Navigator.of(context).pop(false),
+        onPressed: () => onClose(false),
       ),
     );
   }

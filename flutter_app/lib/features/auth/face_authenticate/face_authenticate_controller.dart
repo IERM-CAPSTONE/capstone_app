@@ -23,28 +23,64 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
   bool _isCapturing = false;
   Timer? _timeoutTimer;
   CameraImage? _lastImage;
-  int _frameCounter = 0;
   int _poseStableCount = 0;
-  static const int _requiredStableFrames = 3;
+  static const Duration _detectionInterval = Duration(milliseconds: 180);
+  static const int _requiredStableFrames = 2;
 
   // Blink detection (Liveness)
   bool _blinkDetected = false;
-  bool _wasEyesOpen = true;
   int _blinkCount = 0;
+  int _eyesClosedFrames = 0;
+  int _eyesReopenedFrames = 0;
+  bool _blinkClosingPhase = false;
+  DateTime? _lastBlinkAt;
   static const int _requiredBlinks = 1;
+  static const int _requiredClosedFrames = 1;
+  static const int _requiredReopenedFrames = 1;
 
   // Thresholds
-  static const double _centerThreshold = 10.0;
+  static const double _centerThreshold = 12.0;
+  static const double _eyeClosedThreshold = 0.40;
+  static const double _eyeOpenThreshold = 0.65;
+  static const double _minFaceWidthRatio = 0.26;
+  static const double _minFaceHeightRatio = 0.34;
+  static const double _maxFaceOffsetXRatio = 0.12;
+  static const double _maxFaceOffsetYRatio = 0.18;
+  static const double _minEdgePaddingRatio = 0.06;
 
   FaceAuthenticateController() : super(const FaceAuthenticateState());
 
   @override
   void dispose() {
+    shutdown();
+    super.dispose();
+  }
+
+  Future<void> shutdown() async {
     _timeoutTimer?.cancel();
     _detectionTimer?.cancel();
+    _timeoutTimer = null;
+    _detectionTimer = null;
+    _lastImage = null;
+    _isProcessing = false;
+    _isCapturing = false;
+
+    final controller = state.cameraController;
+    if (controller != null) {
+      try {
+        if (controller.value.isStreamingImages) {
+          await controller.stopImageStream();
+        }
+      } catch (_) {}
+
+      try {
+        await controller.dispose();
+      } catch (_) {}
+    }
+
+    state = const FaceAuthenticateState();
     _faceDetector?.close();
-    state.cameraController?.dispose();
-    super.dispose();
+    _faceDetector = null;
   }
 
   Future<void> initializeCamera({
@@ -52,6 +88,13 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
     String? examPartCode,
   }) async {
     try {
+      state = FaceAuthenticateState(
+        status: FaceAuthenticateStatus.scanning,
+        instructionMessage: '',
+        examSessionId: examSessionId,
+        examPartCode: examPartCode,
+      );
+
       _faceDetector = FaceDetector(
         options: FaceDetectorOptions(
           enableClassification: true,
@@ -97,7 +140,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
         _lastImage = image;
       });
 
-      _detectionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      _detectionTimer = Timer.periodic(_detectionInterval, (_) {
         _processLatestImage();
       });
 
@@ -112,9 +155,6 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
 
   void _processLatestImage() {
     if (_isProcessing || _isCapturing || _lastImage == null) return;
-
-    _frameCounter++;
-    if (_frameCounter % 2 != 0) return;
 
     _isProcessing = true;
     _detectFace(_lastImage!);
@@ -131,12 +171,31 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       final faces = await _faceDetector?.processImage(inputImage);
 
       if (faces == null || faces.isEmpty) {
+        _resetTrackingState();
         state = state.copyWith(
           status: FaceAuthenticateStatus.scanning,
           instructionMessage: '',
         );
       } else {
+        if (faces.length > 1) {
+          _resetTrackingState(resetBlink: false);
+          state = state.copyWith(
+            status: FaceAuthenticateStatus.scanning,
+            instructionMessage: 'Chỉ để một khuôn mặt trong khung hình',
+          );
+          return;
+        }
+
         final face = faces.first;
+        if (!_isFaceWellPositioned(face, inputImage.metadata!.size)) {
+          _resetTrackingState(resetBlink: false);
+          state = state.copyWith(
+            status: FaceAuthenticateStatus.faceDetected,
+            instructionMessage: 'Đưa mặt vào giữa khung và lại gần hơn',
+          );
+          return;
+        }
+
         final headY = face.headEulerAngleY ?? 0;
         final headX = face.headEulerAngleX ?? 0;
 
@@ -147,6 +206,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
 
         if (isCenter) {
           if (!_blinkDetected) {
+            _poseStableCount = 0;
             state = state.copyWith(
               status: FaceAuthenticateStatus.livenessCheck,
               instructionMessage: '',
@@ -165,7 +225,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
             }
           }
         } else {
-          _poseStableCount = 0;
+          _resetTrackingState(resetBlink: false);
           state = state.copyWith(
             status: FaceAuthenticateStatus.faceDetected,
             instructionMessage: '',
@@ -184,16 +244,81 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
     final rightEyeOpen = face.rightEyeOpenProbability ?? 1.0;
     final avgEyeOpen = (leftEyeOpen + rightEyeOpen) / 2;
 
-    if (avgEyeOpen > 0.8) {
-      _wasEyesOpen = true;
-    } else if (avgEyeOpen < 0.25 && _wasEyesOpen) {
-      _blinkCount++;
-      _wasEyesOpen = false;
-      debugPrint('Blink detected! Count: $_blinkCount');
-      if (_blinkCount >= _requiredBlinks) {
-        _blinkDetected = true;
+    if (avgEyeOpen <= _eyeClosedThreshold) {
+      _eyesClosedFrames++;
+      _eyesReopenedFrames = 0;
+      if (_eyesClosedFrames >= _requiredClosedFrames) {
+        _blinkClosingPhase = true;
       }
+      return;
     }
+
+    if (avgEyeOpen >= _eyeOpenThreshold) {
+      if (_blinkClosingPhase) {
+        _eyesReopenedFrames++;
+        if (_eyesReopenedFrames >= _requiredReopenedFrames) {
+          final now = DateTime.now();
+          final isCooldownDone = _lastBlinkAt == null ||
+              now.difference(_lastBlinkAt!) > const Duration(milliseconds: 800);
+          if (isCooldownDone) {
+            _blinkCount++;
+            _blinkDetected = _blinkCount >= _requiredBlinks;
+            _lastBlinkAt = now;
+            debugPrint('Blink detected! Count: $_blinkCount');
+          }
+          _blinkClosingPhase = false;
+          _eyesClosedFrames = 0;
+          _eyesReopenedFrames = 0;
+        }
+      } else {
+        _eyesClosedFrames = 0;
+        _eyesReopenedFrames = 0;
+      }
+      return;
+    }
+
+    _eyesReopenedFrames = 0;
+  }
+
+  bool _isFaceWellPositioned(Face face, Size imageSize) {
+    final boundingBox = face.boundingBox;
+    final leftEye = face.landmarks[FaceLandmarkType.leftEye];
+    final rightEye = face.landmarks[FaceLandmarkType.rightEye];
+    final noseBase = face.landmarks[FaceLandmarkType.noseBase];
+    final widthRatio = boundingBox.width / imageSize.width;
+    final heightRatio = boundingBox.height / imageSize.height;
+    final centerX = boundingBox.left + (boundingBox.width / 2);
+    final centerY = boundingBox.top + (boundingBox.height / 2);
+    final offsetXRatio = (centerX - imageSize.width / 2).abs() / imageSize.width;
+    final offsetYRatio =
+        (centerY - imageSize.height / 2).abs() / imageSize.height;
+    final minHorizontalPadding = imageSize.width * _minEdgePaddingRatio;
+    final minVerticalPadding = imageSize.height * _minEdgePaddingRatio;
+    final isInsideFrame = boundingBox.left >= minHorizontalPadding &&
+        boundingBox.top >= minVerticalPadding &&
+        boundingBox.right <= imageSize.width - minHorizontalPadding &&
+        boundingBox.bottom <= imageSize.height - minVerticalPadding;
+    final hasCoreLandmarks =
+        leftEye != null && rightEye != null && noseBase != null;
+
+    return hasCoreLandmarks &&
+        isInsideFrame &&
+        widthRatio >= _minFaceWidthRatio &&
+        heightRatio >= _minFaceHeightRatio &&
+        offsetXRatio <= _maxFaceOffsetXRatio &&
+        offsetYRatio <= _maxFaceOffsetYRatio;
+  }
+
+  void _resetTrackingState({bool resetBlink = true}) {
+    _poseStableCount = 0;
+    if (resetBlink) {
+      _blinkDetected = false;
+      _blinkCount = 0;
+      _lastBlinkAt = null;
+    }
+    _eyesClosedFrames = 0;
+    _eyesReopenedFrames = 0;
+    _blinkClosingPhase = false;
   }
 
   Future<void> _authenticate() async {
@@ -204,8 +329,8 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
       _detectionTimer?.cancel();
       _timeoutTimer?.cancel();
 
-      final XFile? photo = await state.cameraController?.takePicture();
-      if (photo == null) {
+      final photos = await _captureAuthenticationFrames();
+      if (photos.isEmpty) {
         _isCapturing = false;
         _startDetection();
         return;
@@ -216,11 +341,16 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
         instructionMessage: '',
       );
 
-      final base64Image = await _processImage(photo.path);
+      final processedImages = <String>[];
+      for (final photo in photos) {
+        processedImages.add(await _processImage(photo.path));
+      }
+      final base64Image = processedImages.first;
 
       final service = DependencyInjection.get<FaceRegistrationService>();
       final result = await service.authenticateFace(
         imageBase64: base64Image,
+        images: processedImages,
         examSessionId: state.examSessionId,
         examPartCode: state.examPartCode,
         isEncrypted: false,
@@ -247,7 +377,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
         // RESET all liveness flags immediately on success
         _blinkDetected = false;
         _blinkCount = 0;
-        _poseStableCount = 0;
+        _resetTrackingState();
 
         state = state.copyWith(
           status: FaceAuthenticateStatus.authenticated,
@@ -260,8 +390,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
         );
       } else {
         // RESET states so next attempt requires blink again
-        _blinkDetected = false;
-        _blinkCount = 0;
+        _resetTrackingState();
 
         state = state.copyWith(
           status: FaceAuthenticateStatus.failed,
@@ -286,9 +415,24 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
   }
 
   void _startDetection() {
-    _detectionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    _detectionTimer = Timer.periodic(_detectionInterval, (_) {
       _processLatestImage();
     });
+  }
+
+  Future<List<XFile>> _captureAuthenticationFrames() async {
+    final controller = state.cameraController;
+    if (controller == null) return const [];
+
+    final captures = <XFile>[];
+    for (var i = 0; i < 2; i++) {
+      final photo = await controller.takePicture();
+      captures.add(photo);
+      if (i < 1) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }
+    return captures;
   }
 
   Future<String> _processImage(String imagePath) async {
@@ -327,8 +471,7 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
   void retry() {
     _blinkDetected = false;
     _blinkCount = 0;
-    _poseStableCount = 0;
-    _wasEyesOpen = true;
+    _resetTrackingState();
     state = state.copyWith(
       status: FaceAuthenticateStatus.scanning,
       instructionMessage: '',

@@ -9,6 +9,7 @@ import 'config/dependency_injection.dart';
 import 'config/env.dart';
 import 'data/services/auth_service.dart';
 import 'data/services/push_notification_service.dart';
+import 'data/services/realtime_notification_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -37,8 +38,11 @@ void main() async {
 
   final pushNotificationService =
       DependencyInjection.get<PushNotificationService>();
+  final realtimeNotificationService =
+      DependencyInjection.get<RealtimeNotificationService>();
   final authService = DependencyInjection.get<AuthService>();
   if (authService.isLoggedIn()) {
+    await realtimeNotificationService.start();
     await pushNotificationService.init();
     await pushNotificationService.syncTokenWithBackend(force: true);
   }

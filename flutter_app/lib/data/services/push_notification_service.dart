@@ -14,6 +14,7 @@ import '../../core/routes/app_routes.dart';
 import '../../firebase_options.dart';
 import '../models/user_model.dart';
 import 'auth_service.dart';
+import 'realtime_notification_service.dart';
 import 'socket_service.dart';
 
 @pragma('vm:entry-point')
@@ -238,6 +239,9 @@ class PushNotificationService {
     final notification = message.notification;
     final title = notification?.title ?? message.data['title']?.toString() ?? 'Notification';
     final body = notification?.body ?? message.data['body']?.toString() ?? '';
+    try {
+      DependencyInjection.get<RealtimeNotificationService>().refreshNotifications();
+    } catch (_) {}
 
     // Check if this notification is for a ticket event
     final notificationType = message.data['type']?.toString() ?? '';
