@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +31,7 @@ class _TicketsPageState extends State<TicketsPage> {
 
   String _selectedStatus = 'ALL';
   String _selectedRoom = 'ALL';
+  String _selectedRole = 'ALL'; // 'ALL' | 'ASSIGNED' | 'REPORTED'
   String _searchQuery = '';
 
   bool get _isVietnamese =>
@@ -81,7 +82,10 @@ class _TicketsPageState extends State<TicketsPage> {
         return <TicketModel>[];
       }
 
-      return tickets.where((ticket) => ticket.assigneeId == currentUserId).toList();
+      return tickets
+          .where((ticket) =>
+              ticket.assigneeId == currentUserId || ticket.reporterId == currentUserId)
+          .toList();
     });
   }
 
@@ -979,6 +983,17 @@ class _TicketsPageState extends State<TicketsPage> {
     if (_selectedRoom != 'ALL') {
       filtered = filtered
           .where((t) => (t.roomNumber ?? '').trim() == _selectedRoom)
+          .toList();
+    }
+
+    final currentUserId = _currentUserId;
+    if (_selectedRole == 'ASSIGNED' && currentUserId != null) {
+      filtered = filtered
+          .where((t) => t.assigneeId == currentUserId)
+          .toList();
+    } else if (_selectedRole == 'REPORTED' && currentUserId != null) {
+      filtered = filtered
+          .where((t) => t.reporterId == currentUserId)
           .toList();
     }
 
@@ -2727,6 +2742,34 @@ class _TicketsPageState extends State<TicketsPage> {
                       ],
                     ),
                   ),
+                  if (!_isExamOfficer && _currentRole != 'admin') ...[
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildFilterChip(
+                            'ALL',
+                            _isVietnamese ? 'Tất cả' : 'All',
+                            _selectedRole,
+                            (value) => setState(() => _selectedRole = value),
+                          ),
+                          _buildFilterChip(
+                            'ASSIGNED',
+                            _isVietnamese ? 'Được giao' : 'Assigned',
+                            _selectedRole,
+                            (value) => setState(() => _selectedRole = value),
+                          ),
+                          _buildFilterChip(
+                            'REPORTED',
+                            _isVietnamese ? 'Do tôi tạo' : 'Reported',
+                            _selectedRole,
+                            (value) => setState(() => _selectedRole = value),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
