@@ -37,11 +37,13 @@ class ProctorFaceRecognitionSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isRegistered ? Colors.green.shade50 : Colors.orange.shade50,
+              color:
+                  isRegistered ? Colors.green.shade50 : Colors.orange.shade50,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color:
-                    isRegistered ? Colors.green.shade200 : Colors.orange.shade200,
+                color: isRegistered
+                    ? Colors.green.shade200
+                    : Colors.orange.shade200,
               ),
             ),
             child: Row(
@@ -49,8 +51,9 @@ class ProctorFaceRecognitionSection extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color:
-                        isRegistered ? Colors.green.shade100 : Colors.orange.shade100,
+                    color: isRegistered
+                        ? Colors.green.shade100
+                        : Colors.orange.shade100,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -81,11 +84,14 @@ class ProctorFaceRecognitionSection extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: isRegistered ? Colors.green : Colors.orange,
+                              color:
+                                  isRegistered ? Colors.green : Colors.orange,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              isRegistered ? l10n.registered : l10n.notRegistered,
+                              isRegistered
+                                  ? l10n.registered
+                                  : l10n.notRegistered,
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.white,

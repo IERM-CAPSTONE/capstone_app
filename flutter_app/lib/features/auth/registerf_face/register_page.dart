@@ -5,19 +5,35 @@ import '../../../../shared/dialogs/data_consent_dialog.dart';
 import 'register_face_scan_page.dart';
 
 class RegisterFaceStartPage extends StatelessWidget {
-  const RegisterFaceStartPage({super.key});
+  final String? targetStudentCode;
+  final bool showCompletionInfo;
+
+  const RegisterFaceStartPage({
+    super.key,
+    this.targetStudentCode,
+    this.showCompletionInfo = false,
+  });
+
+  bool get _isProctorMode =>
+      targetStudentCode != null && targetStudentCode!.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
-    final isVietnamese =
-        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          isVietnamese
-              ? '\u0110\u0103ng k\u00fd nh\u1eadn di\u1ec7n khu\u00f4n m\u1eb7t'
-              : 'Register face identity',
+          _isProctorMode
+              ? (isVietnamese
+                  ? 'Đăng ký khuôn mặt sinh viên'
+                  : 'Register student face')
+              : (isVietnamese
+                  ? 'Đăng ký nhận diện khuôn mặt'
+                  : 'Register face identity'),
         ),
         backgroundColor: AppColors.appBarOrange,
         foregroundColor: Colors.white,
@@ -42,21 +58,53 @@ class RegisterFaceStartPage extends StatelessWidget {
               children: [
                 const SizedBox(height: 8),
                 Text(
-                  isVietnamese
-                      ? 'S\u1eb5n s\u00e0ng \u0111\u0103ng k\u00fd khu\u00f4n m\u1eb7t?'
-                      : 'Ready to register your face?',
+                  _isProctorMode
+                      ? (isVietnamese
+                          ? 'Sẵn sàng đăng ký khuôn mặt cho sinh viên?'
+                          : 'Ready to register this student face?')
+                      : (isVietnamese
+                          ? 'Sẵn sàng đăng ký khuôn mặt?'
+                          : 'Ready to register your face?'),
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (_isProctorMode) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.badge_outlined,
+                            color: AppColors.appBarOrange),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isVietnamese
+                                ? 'Mã sinh viên: ${targetStudentCode!}'
+                                : 'Student code: ${targetStudentCode!}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 _StepCard(
                   stepNumber: 1,
-                  title: isVietnamese ? 'Qu\u00e9t khu\u00f4n m\u1eb7t' : 'Scan your face',
+                  title: isVietnamese ? 'Quét khuôn mặt' : 'Scan face',
                   description: isVietnamese
-                      ? '\u0110\u1ea3m b\u1ea3o khu\u00f4n m\u1eb7t c\u1ee7a b\u1ea1n hi\u1ec3n th\u1ecb r\u00f5 r\u00e0ng. Kh\u00f4ng \u0111eo k\u00ednh, m\u0169 ho\u1eb7c kh\u1ea9u trang.'
-                      : 'Make sure your face is clearly visible. Do not wear glasses, a hat, or a mask.',
+                      ? 'Đảm bảo khuôn mặt hiển thị rõ ràng. Không đeo kính, mũ hoặc khẩu trang.'
+                      : 'Make sure the face is clearly visible. Do not wear glasses, a hat, or a mask.',
                   icon: Icons.face_retouching_natural,
                 ),
                 const Spacer(),
@@ -70,7 +118,10 @@ class RegisterFaceStartPage extends StatelessWidget {
 
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const RegisterFaceScanIntroPage(),
+                          builder: (_) => RegisterFaceScanIntroPage(
+                            targetStudentCode: targetStudentCode,
+                            showCompletionInfo: showCompletionInfo,
+                          ),
                         ),
                       );
                     },
@@ -78,9 +129,7 @@ class RegisterFaceStartPage extends StatelessWidget {
                       backgroundColor: AppColors.appBarOrange,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text(
-                      isVietnamese ? 'Ti\u1ebfp t\u1ee5c' : 'Continue',
-                    ),
+                    child: Text(isVietnamese ? 'Tiếp tục' : 'Continue'),
                   ),
                 ),
               ],

@@ -19,16 +19,15 @@ class ProctorProfilePage extends ConsumerWidget {
     final profileController =
         ref.read(proctorProfileControllerProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
-
     final role = profileState.user?.role?.toLowerCase() ?? 'proctor';
-    final isVietnamese = Localizations.localeOf(context).languageCode == 'vi';
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
     String roleDisplay = isVietnamese ? 'Giám thị' : 'Proctor';
-    if (role == 'it_support') {
+
+    if (role == 'it' || role == 'it_support') {
       roleDisplay = isVietnamese ? 'Hỗ trợ kỹ thuật' : 'IT Support';
-    } else if (role == 'hall_invigilator') {
-      roleDisplay = isVietnamese ? 'Giám thị' : 'Invigilator';
-    } else if (role == 'proctor') {
-      roleDisplay = isVietnamese ? 'Giám thị' : 'Proctor';
     } else if (role == 'student') {
       roleDisplay = isVietnamese ? 'Sinh viên' : 'Student';
     }
@@ -119,8 +118,7 @@ class ProctorProfilePage extends ConsumerWidget {
                                 _showLogoutDialog(
                                     context, l10n, profileController);
                               },
-                              icon:
-                                  const Icon(Icons.logout, color: Colors.red),
+                              icon: const Icon(Icons.logout, color: Colors.red),
                               label: Text(
                                 l10n.logout,
                                 style: const TextStyle(
@@ -133,7 +131,7 @@ class ProctorProfilePage extends ConsumerWidget {
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 14),
                                 side: BorderSide(
-                                  color: Colors.red.withOpacity(0.35),
+                                  color: Colors.red.withValues(alpha: 0.35),
                                   width: 1,
                                 ),
                                 shape: RoundedRectangleBorder(
@@ -172,14 +170,13 @@ class ProctorProfilePage extends ConsumerWidget {
               Text(
                 l10n!.language,
                 style: const TextStyle(
-                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 10),
               ListTile(
                 leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
-                title: Text(l10n!.vietnamese),
+                title: Text(l10n.vietnamese),
                 trailing: currentLocale.languageCode == 'vi'
                     ? const Icon(Icons.check, color: AppColors.appBarOrange)
                     : null,
@@ -190,7 +187,7 @@ class ProctorProfilePage extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
-                title: Text(l10n!.english),
+                title: Text(l10n.english),
                 trailing: currentLocale.languageCode == 'en'
                     ? const Icon(Icons.check, color: AppColors.appBarOrange)
                     : null,

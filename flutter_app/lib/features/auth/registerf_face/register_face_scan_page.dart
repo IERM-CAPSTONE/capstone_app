@@ -4,16 +4,25 @@ import '../../../../core/constants/app_colors.dart';
 import 'register_face_live_scan_page.dart';
 
 class RegisterFaceScanIntroPage extends StatelessWidget {
-  const RegisterFaceScanIntroPage({super.key});
+  final String? targetStudentCode;
+  final bool showCompletionInfo;
+
+  const RegisterFaceScanIntroPage({
+    super.key,
+    this.targetStudentCode,
+    this.showCompletionInfo = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isVietnamese =
-        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isVietnamese ? 'Qu\u00e9t khu\u00f4n m\u1eb7t' : 'Scan your face'),
+        title: Text(isVietnamese ? 'Quét khuôn mặt' : 'Scan face'),
         backgroundColor: AppColors.appBarOrange,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -37,8 +46,8 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   isVietnamese
-                      ? 'S\u1eb5n s\u00e0ng qu\u00e9t khu\u00f4n m\u1eb7t?'
-                      : 'Ready to scan your face?',
+                      ? 'Sẵn sàng quét khuôn mặt?'
+                      : 'Ready to scan the face?',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 26,
@@ -91,19 +100,19 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                     _Hint(
                       icon: Icons.crop_free,
                       text: isVietnamese
-                          ? 'Gi\u1eef khu\u00f4n m\u1eb7t trong khung'
-                          : 'Keep your face inside the frame',
+                          ? 'Giữ khuôn mặt trong khung'
+                          : 'Keep the face inside the frame',
                     ),
                     _Hint(
                       icon: Icons.wb_sunny_outlined,
                       text: isVietnamese
-                          ? 'Tr\u00e1nh \u00e1nh s\u00e1ng qu\u00e1 g\u1eaft ho\u1eb7c qu\u00e1 t\u1ed1i'
+                          ? 'Tránh ánh sáng quá gắt hoặc quá tối'
                           : 'Avoid harsh light or darkness',
                     ),
                     _Hint(
                       icon: Icons.no_accounts,
                       text: isVietnamese
-                          ? 'Kh\u00f4ng \u0111\u1ed9i m\u0169, \u0111eo k\u00ednh r\u00e2m ho\u1eb7c kh\u1ea9u trang'
+                          ? 'Không đội mũ, đeo kính râm hoặc khẩu trang'
                           : 'No hat, sunglasses, or mask',
                     ),
                   ],
@@ -116,7 +125,10 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const RegisterFaceLiveScanPage(),
+                          builder: (_) => RegisterFaceLiveScanPage(
+                            targetStudentCode: targetStudentCode,
+                            showCompletionInfo: showCompletionInfo,
+                          ),
                         ),
                       );
                     },
@@ -124,9 +136,7 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                       backgroundColor: AppColors.appBarOrange,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text(
-                      isVietnamese ? 'B\u1eaft \u0111\u1ea7u qu\u00e9t' : 'Start scan',
-                    ),
+                    child: Text(isVietnamese ? 'Bắt đầu quét' : 'Start scan'),
                   ),
                 ),
               ],

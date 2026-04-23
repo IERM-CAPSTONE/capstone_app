@@ -23,7 +23,8 @@ class _ProctorFaceCheckInPageState
     extends ConsumerState<ProctorFaceCheckInPage> {
   Future<void> _shutdownCamera() async {
     await ref
-        .read(proctorFaceCheckInControllerProvider(widget.examSessionId).notifier)
+        .read(
+            proctorFaceCheckInControllerProvider(widget.examSessionId).notifier)
         .shutdown();
   }
 
@@ -32,7 +33,8 @@ class _ProctorFaceCheckInPageState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
-          .read(proctorFaceCheckInControllerProvider(widget.examSessionId).notifier)
+          .read(proctorFaceCheckInControllerProvider(widget.examSessionId)
+              .notifier)
           .initializeCamera();
     });
   }
@@ -169,7 +171,8 @@ class _ProctorFaceCheckInPageState
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(
@@ -204,7 +207,8 @@ class _ProctorFaceCheckInPageState
                   vi: 'Điểm danh giám thị thất bại',
                   en: 'Proctor check-in failed',
                 ),
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
@@ -223,7 +227,9 @@ class _ProctorFaceCheckInPageState
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => ref
-                      .read(proctorFaceCheckInControllerProvider(widget.examSessionId).notifier)
+                      .read(proctorFaceCheckInControllerProvider(
+                              widget.examSessionId)
+                          .notifier)
                       .retry(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.appBarOrange,
@@ -246,8 +252,10 @@ class _ProctorFaceCheckInPageState
   }
 
   String _text(BuildContext context, {required String vi, required String en}) {
-    final isVietnamese =
-        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
     return isVietnamese ? vi : en;
   }
 }
@@ -284,7 +292,7 @@ class _OvalOverlayWidget extends StatelessWidget {
 class _OvalPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black.withOpacity(0.7);
+    final paint = Paint()..color = Colors.black.withValues(alpha: 0.7);
     final center = Offset(size.width / 2, size.height * 0.42);
     final ovalRect = Rect.fromCenter(
       center: center,
@@ -388,7 +396,7 @@ class _InstructionWidget extends StatelessWidget {
             ? state.instructionMessage
             : _text(
                 context,
-                vi: 'Giữ yên ${state.stableCount}/${state.requiredStableFrames}',
+                vi: 'Giữ yên /',
                 en: 'Hold still ${state.stableCount}/${state.requiredStableFrames}',
               );
         icon = Icons.check_circle;
@@ -423,8 +431,10 @@ class _InstructionWidget extends StatelessWidget {
   }
 
   String _text(BuildContext context, {required String vi, required String en}) {
-    final isVietnamese =
-        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
     return isVietnamese ? vi : en;
   }
 }
@@ -446,7 +456,8 @@ class _BlinkHint extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.remove_red_eye, color: Colors.orangeAccent, size: 28),
+          const Icon(Icons.remove_red_eye,
+              color: Colors.orangeAccent, size: 28),
           const SizedBox(width: 12),
           Text(
             text,

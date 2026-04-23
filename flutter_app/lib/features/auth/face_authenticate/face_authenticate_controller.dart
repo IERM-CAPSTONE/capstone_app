@@ -42,11 +42,10 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
   static const double _centerThreshold = 12.0;
   static const double _eyeClosedThreshold = 0.40;
   static const double _eyeOpenThreshold = 0.65;
-  static const double _minFaceWidthRatio = 0.26;
-  static const double _minFaceHeightRatio = 0.34;
-  static const double _maxFaceOffsetXRatio = 0.12;
-  static const double _maxFaceOffsetYRatio = 0.18;
-  static const double _minEdgePaddingRatio = 0.06;
+  static const double _minFaceWidthRatio = 0.24;
+  static const double _minFaceHeightRatio = 0.32;
+  static const double _maxFaceOffsetXRatio = 0.18;
+  static const double _maxFaceOffsetYRatio = 0.22;
 
   FaceAuthenticateController() : super(const FaceAuthenticateState());
 
@@ -289,20 +288,14 @@ class FaceAuthenticateController extends StateNotifier<FaceAuthenticateState> {
     final heightRatio = boundingBox.height / imageSize.height;
     final centerX = boundingBox.left + (boundingBox.width / 2);
     final centerY = boundingBox.top + (boundingBox.height / 2);
-    final offsetXRatio = (centerX - imageSize.width / 2).abs() / imageSize.width;
+    final offsetXRatio =
+        (centerX - imageSize.width / 2).abs() / imageSize.width;
     final offsetYRatio =
         (centerY - imageSize.height / 2).abs() / imageSize.height;
-    final minHorizontalPadding = imageSize.width * _minEdgePaddingRatio;
-    final minVerticalPadding = imageSize.height * _minEdgePaddingRatio;
-    final isInsideFrame = boundingBox.left >= minHorizontalPadding &&
-        boundingBox.top >= minVerticalPadding &&
-        boundingBox.right <= imageSize.width - minHorizontalPadding &&
-        boundingBox.bottom <= imageSize.height - minVerticalPadding;
     final hasCoreLandmarks =
         leftEye != null && rightEye != null && noseBase != null;
 
     return hasCoreLandmarks &&
-        isInsideFrame &&
         widthRatio >= _minFaceWidthRatio &&
         heightRatio >= _minFaceHeightRatio &&
         offsetXRatio <= _maxFaceOffsetXRatio &&

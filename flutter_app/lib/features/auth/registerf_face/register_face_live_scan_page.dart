@@ -7,7 +7,14 @@ import 'register_controller.dart';
 import 'register_state.dart';
 
 class RegisterFaceLiveScanPage extends ConsumerStatefulWidget {
-  const RegisterFaceLiveScanPage({super.key});
+  final String? targetStudentCode;
+  final bool showCompletionInfo;
+
+  const RegisterFaceLiveScanPage({
+    super.key,
+    this.targetStudentCode,
+    this.showCompletionInfo = false,
+  });
 
   @override
   ConsumerState<RegisterFaceLiveScanPage> createState() =>
@@ -24,7 +31,9 @@ class _RegisterFaceLiveScanPageState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(registerFaceControllerProvider.notifier).initializeCamera();
+      final controller = ref.read(registerFaceControllerProvider.notifier);
+      controller.setTargetStudentCode(widget.targetStudentCode);
+      controller.initializeCamera();
     });
   }
 
@@ -36,21 +45,10 @@ class _RegisterFaceLiveScanPageState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(registerFaceControllerProvider, (previous, next) {
-      if (next.status == FaceScanStatus.completed &&
-          previous?.status != FaceScanStatus.completed) {
-        Future.delayed(const Duration(seconds: 2), () {
-          if (context.mounted) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }
-        });
-      }
-    });
-
     final state = ref.watch(registerFaceControllerProvider);
 
     if (state.status == FaceScanStatus.completed) {
-      return _buildCompletedScreen(context);
+      return _buildCompletedScreen(context, state);
     }
 
     if (state.status == FaceScanStatus.error) {
@@ -98,8 +96,10 @@ class _RegisterFaceLiveScanPageState
   }
 
   Widget _buildErrorScreen(BuildContext context) {
-    final isVietnamese =
-        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -112,15 +112,14 @@ class _RegisterFaceLiveScanPageState
               const Icon(Icons.error_outline, color: Colors.red, size: 80),
               const SizedBox(height: 24),
               Text(
-                isVietnamese
-                    ? 'L\u1ed7i \u0111\u0103ng k\u00fd!'
-                    : 'Registration failed!',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                isVietnamese ? 'Lỗi đăng ký!' : 'Registration failed!',
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(
                 isVietnamese
-                    ? '\u0110\u0103ng k\u00fd khu\u00f4n m\u1eb7t kh\u00f4ng th\u00e0nh c\u00f4ng. Vui l\u00f2ng th\u1eed l\u1ea1i t\u1eeb \u0111\u1ea7u.'
+                    ? 'Đăng ký khuôn mặt không thành công. Vui lòng thử lại từ đầu.'
                     : 'Face registration was unsuccessful. Please try again from the beginning.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.black54, fontSize: 16),
@@ -136,9 +135,7 @@ class _RegisterFaceLiveScanPageState
                     padding: const EdgeInsets.all(16),
                   ),
                   child: Text(
-                    isVietnamese
-                        ? 'Th\u1eed l\u1ea1i t\u1eeb \u0111\u1ea7u'
-                        : 'Start over',
+                    isVietnamese ? 'Thử lại từ đầu' : 'Start over',
                   ),
                 ),
               ),
@@ -149,42 +146,85 @@ class _RegisterFaceLiveScanPageState
     );
   }
 
-  Widget _buildCompletedScreen(BuildContext context) {
-    final isVietnamese =
-        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+  Widget _buildCompletedScreen(BuildContext context, RegisterFaceState state) {
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
+    final student = state.registeredStudent;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 80),
-            const SizedBox(height: 24),
-            Text(
-              isVietnamese
-                  ? '\u0110\u0103ng k\u00fd th\u00e0nh c\u00f4ng!'
-                  : 'Registration successful!',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isVietnamese
-                  ? 'D\u1eef li\u1ec7u khu\u00f4n m\u1eb7t \u0111\u00e3 \u0111\u01b0\u1ee3c c\u1eadp nh\u1eadt.'
-                  : 'Your facial data has been updated.',
-              style: const TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.appBarOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 80),
+              const SizedBox(height: 24),
+              Text(
+                isVietnamese
+                    ? 'Đăng ký thành công!'
+                    : 'Registration successful!',
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              child: Text(isVietnamese ? 'Ho\u00e0n t\u1ea5t' : 'Complete'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                isVietnamese
+                    ? 'Dữ liệu khuôn mặt đã được cập nhật.'
+                    : 'Face data has been updated.',
+                style: const TextStyle(color: Colors.black54),
+              ),
+              if (widget.showCompletionInfo && student != null) ...[
+                const SizedBox(height: 24),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isVietnamese ? 'Thông tin' : 'Information',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Code: ${student.code ?? '-'}'),
+                      const SizedBox(height: 8),
+                      Text('Name: ${student.fullName ?? student.code ?? '-'}'),
+                      const SizedBox(height: 8),
+                      Text(
+                        isVietnamese
+                            ? 'Trạng thái: ${student.created ? 'Vừa tạo mới' : 'Đã ghi đè dữ liệu hiện có'}'
+                            : 'Status: ${student.created ? 'Created now' : 'Existing data overwritten'}',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 48),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.appBarOrange,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                ),
+                child: Text(isVietnamese ? 'Hoàn tất' : 'Complete'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -228,6 +268,10 @@ class _HeaderWidget extends ConsumerWidget {
     final count = ref.watch(
       registerFaceControllerProvider.select((s) => s.capturedPoses.length),
     );
+    final targetStudentCode = ref.watch(
+      registerFaceControllerProvider.select((s) => s.targetStudentCode),
+    );
+
     return Positioned(
       top: 10,
       left: 10,
@@ -238,7 +282,21 @@ class _HeaderWidget extends ConsumerWidget {
             icon: const Icon(Icons.close, color: Colors.white, size: 28),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const Spacer(),
+          if (targetStudentCode != null && targetStudentCode.isNotEmpty)
+            Expanded(
+              child: Text(
+                targetStudentCode,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
+            const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
@@ -322,7 +380,7 @@ class SimpleOvalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black.withOpacity(0.6);
+    final paint = Paint()..color = Colors.black.withValues(alpha: 0.6);
     final center = Offset(size.width / 2, size.height * 0.4);
     final ovalRect = Rect.fromCenter(
       center: center,
@@ -366,8 +424,10 @@ class _GlassesWarningWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final isVietnamese =
-        Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
 
     return Positioned(
       top: 100,
@@ -376,7 +436,7 @@ class _GlassesWarningWidget extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.92),
+          color: Colors.orange.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -386,8 +446,8 @@ class _GlassesWarningWidget extends ConsumerWidget {
             Expanded(
               child: Text(
                 isVietnamese
-                    ? 'Vui l\u00f2ng th\u00e1o k\u00ednh \u0111\u1ec3 h\u1ec7 th\u1ed1ng nh\u1eadn di\u1ec7n ch\u00ednh x\u00e1c h\u01a1n.'
-                    : 'Please remove your glasses so the system can detect your face more accurately.',
+                    ? 'Vui lòng tháo kính để hệ thống nhận diện chính xác hơn.'
+                    : 'Please remove glasses so the system can detect the face more accurately.',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,

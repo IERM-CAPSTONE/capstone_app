@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../data/models/exam_session.dart';
-import '../../core/routes/app_routes.dart';
 import '../../shared/widgets/skeleton_loader.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/services/auth_service.dart';
@@ -13,8 +11,8 @@ import 'package:intl/intl.dart';
 import 'widgets/redesigned_exam_session_card.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
 import 'exam_session_detail_page.dart';
+import '../auth/registerf_face/exam_officer_student_face_register_page.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../core/providers/language_provider.dart';
 import '../../core/constants/app_colors.dart';
 
 class ExamSessionsPage extends ConsumerStatefulWidget {
@@ -29,6 +27,8 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
   int _selectedParentTab = 0; // 0: My Exams, 1: All Exams
   int _selectedChildTab = 1; // 0: Today, 1: This Week, 2: All, 3: Past
   String? _userRole;
+
+  bool get _isExamOfficer => _userRole == 'exam_officer';
 
   @override
   void initState() {
@@ -126,9 +126,96 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
             _buildParentToggle(controller, l10n),
             const SizedBox(height: 12),
           ],
+          if (_isExamOfficer) ...[
+            _buildExamOfficerFaceEntry(context),
+            const SizedBox(height: 12),
+          ],
           _buildToggle(controller, l10n),
           const SizedBox(height: 16),
           _buildActiveFilters(state, controller, l10n),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExamOfficerFaceEntry(BuildContext context) {
+    final isVietnamese = Localizations.localeOf(context)
+        .languageCode
+        .toLowerCase()
+        .startsWith('vi');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0E8),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.face_retouching_natural,
+              color: AppColors.appBarOrange,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isVietnamese
+                      ? 'Đăng ký khuôn mặt sinh viên'
+                      : 'Register student face',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isVietnamese
+                      ? 'Luồng riêng cho khảo thí nhập mã sinh viên và bắt đầu quét.'
+                      : 'Dedicated flow for exam officers to enter a student code and start scanning.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ExamOfficerStudentFaceRegisterPage(),
+                ),
+              );
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.appBarOrange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+            child: Text(isVietnamese ? 'Mở' : 'Open'),
+          ),
         ],
       ),
     );

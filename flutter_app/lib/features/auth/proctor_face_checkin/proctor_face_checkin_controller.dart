@@ -29,7 +29,6 @@ class ProctorFaceCheckInController
   CameraImage? _lastImage;
   bool _isProcessing = false;
   bool _isCapturing = false;
-  int _frameCounter = 0;
   int _stableCount = 0;
   bool _blinkDetected = false;
   int _blinkCount = 0;
@@ -38,14 +37,14 @@ class ProctorFaceCheckInController
   bool _blinkClosingPhase = false;
   DateTime? _lastBlinkAt;
 
-  static const Duration _detectionInterval = Duration(milliseconds: 250);
-  static const int _requiredStableFrames = 3;
+  static const Duration _detectionInterval = Duration(milliseconds: 180);
+  static const int _requiredStableFrames = 2;
   static const int _requiredBlinks = 1;
-  static const int _requiredClosedFrames = 2;
-  static const int _requiredReopenedFrames = 2;
-  static const double _centerThreshold = 10.0;
-  static const double _eyeClosedThreshold = 0.32;
-  static const double _eyeOpenThreshold = 0.72;
+  static const int _requiredClosedFrames = 1;
+  static const int _requiredReopenedFrames = 1;
+  static const double _centerThreshold = 12.0;
+  static const double _eyeClosedThreshold = 0.40;
+  static const double _eyeOpenThreshold = 0.65;
   static const double _minFaceWidthRatio = 0.24;
   static const double _minFaceHeightRatio = 0.32;
   static const double _maxFaceOffsetXRatio = 0.18;
@@ -146,9 +145,6 @@ class ProctorFaceCheckInController
 
   void _processLatestImage() {
     if (_isProcessing || _isCapturing || _lastImage == null) return;
-    _frameCounter++;
-    if (_frameCounter % 2 != 0) return;
-
     _isProcessing = true;
     _detectFace(_lastImage!);
   }
@@ -190,6 +186,7 @@ class ProctorFaceCheckInController
         );
         return;
       }
+
       final headY = face.headEulerAngleY ?? 0;
       final headX = face.headEulerAngleX ?? 0;
       _detectBlink(face);
@@ -220,7 +217,8 @@ class ProctorFaceCheckInController
         status: ProctorFaceCheckInStatus.faceDetected,
         stableCount: _stableCount,
         requiredStableFrames: _requiredStableFrames,
-        instructionMessage: 'Nháy mắt thành công. Giữ yên $_stableCount/$_requiredStableFrames',
+        instructionMessage:
+            'Nháy mắt thành công. Giữ yên $_stableCount/$_requiredStableFrames',
       );
 
       if (_stableCount >= _requiredStableFrames) {
@@ -280,7 +278,8 @@ class ProctorFaceCheckInController
     final heightRatio = boundingBox.height / imageSize.height;
     final centerX = boundingBox.left + (boundingBox.width / 2);
     final centerY = boundingBox.top + (boundingBox.height / 2);
-    final offsetXRatio = (centerX - imageSize.width / 2).abs() / imageSize.width;
+    final offsetXRatio =
+        (centerX - imageSize.width / 2).abs() / imageSize.width;
     final offsetYRatio =
         (centerY - imageSize.height / 2).abs() / imageSize.height;
 
@@ -318,8 +317,8 @@ class ProctorFaceCheckInController
       );
 
       final level1Data = result['data'] ?? result;
-      final isSuccess = result['status'] == 'success' ||
-          level1Data['status'] == 'success';
+      final isSuccess =
+          result['status'] == 'success' || level1Data['status'] == 'success';
 
       if (isSuccess) {
         state = state.copyWith(
@@ -329,8 +328,9 @@ class ProctorFaceCheckInController
       } else {
         state = state.copyWith(
           status: ProctorFaceCheckInStatus.failed,
-          errorMessage:
-              result['message'] ?? level1Data['message'] ?? 'Điểm danh thất bại',
+          errorMessage: result['message'] ??
+              level1Data['message'] ??
+              'Điểm danh thất bại',
         );
       }
     } catch (e) {

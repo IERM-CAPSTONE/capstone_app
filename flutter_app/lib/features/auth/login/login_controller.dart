@@ -95,7 +95,8 @@ class LoginController extends StateNotifier<LoginState> {
           'STUDENT',
           'PROCTOR',
           'HALL_INVIGILATOR',
-          'IT_SUPPORT'
+          'IT_SUPPORT',
+          'EXAM_OFFICER',
         ];
 
         if (!allowedRoles.contains(upperRole)) {

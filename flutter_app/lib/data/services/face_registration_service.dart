@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../features/auth/registerf_face/register_state.dart';
 
@@ -9,7 +8,8 @@ class FaceRegistrationService {
 
   Future<Map<String, dynamic>> registerFace({
     required Map<HeadPose, String> capturedImages,
-    required String studentId,
+    String? studentId,
+    String? studentCode,
     bool isEncrypted = true,
   }) async {
     try {
@@ -20,6 +20,7 @@ class FaceRegistrationService {
 
       final requestData = {
         'studentId': studentId,
+        'studentCode': studentCode,
         'encryptedImages': encryptedImagesMap,
         'isEncrypted': isEncrypted,
       };

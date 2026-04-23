@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
+
 import '../../../config/dependency_injection.dart';
 import '../../../core/services/glasses_detection_service.dart';
 import '../../../data/services/auth_service.dart';
@@ -27,33 +29,38 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
   CameraImage? _lastImage;
   final _glassesService = GlassesDetectionService();
   int _poseStableCount = 0;
-  static const Duration _detectionInterval = Duration(milliseconds: 250);
-  static const int _requiredStableFrames = 2;
 
-  // Blink detection
+  static const Duration _detectionInterval = Duration(milliseconds: 180);
+  static const int _requiredStableFrames = 2;
+  static const int _requiredBlinks = 1;
+  static const int _requiredClosedFrames = 1;
+  static const int _requiredReopenedFrames = 1;
+  static const double _hMin = 12.0;
+  static const double _vUpMin = 3.0;
+  static const double _vDownMin = 5.0;
+  static const double _centerThreshold = 12.0;
+  static const double _eyeClosedThreshold = 0.40;
+  static const double _eyeOpenThreshold = 0.65;
+  static const double _minFaceWidthRatio = 0.24;
+  static const double _minFaceHeightRatio = 0.32;
+  static const double _maxFaceOffsetXRatio = 0.18;
+  static const double _maxFaceOffsetYRatio = 0.22;
+
   bool _blinkDetected = false;
   int _blinkCount = 0;
   int _eyesClosedFrames = 0;
   int _eyesReopenedFrames = 0;
   bool _blinkClosingPhase = false;
-  static const int _requiredBlinks = 1;
-  static const int _requiredClosedFrames = 2;
-  static const int _requiredReopenedFrames = 2;
-
-  // Head pose thresholds
-  static const double _hMin = 12.0;
-  static const double _vUpMin = 3.0;
-  static const double _vDownMin = 5.0;
-  static const double _centerThreshold = 12.0;
-  static const double _eyeClosedThreshold = 0.32;
-  static const double _eyeOpenThreshold = 0.72;
-  static const double _minFaceWidthRatio = 0.24;
-  static const double _minFaceHeightRatio = 0.32;
-  static const double _maxFaceOffsetXRatio = 0.18;
-  static const double _maxFaceOffsetYRatio = 0.22;
   DateTime? _lastBlinkAt;
 
   RegisterFaceController() : super(const RegisterFaceState());
+
+  void setTargetStudentCode(String? studentCode) {
+    state = state.copyWith(
+      targetStudentCode:
+          studentCode?.trim().isEmpty == true ? null : studentCode?.trim(),
+    );
+  }
 
   @override
   void dispose() {
@@ -163,9 +170,6 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
         );
         socketService.subscribe('face_registered', (data) {
           debugPrint('Real-time event received: $data');
-          if (data['status'] == 'success') {
-            state = state.copyWith(status: FaceScanStatus.completed);
-          }
         });
       }
     } catch (e, st) {
@@ -180,7 +184,6 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
 
   void _processLatestImage() {
     if (_isProcessing || _isCapturing || _lastImage == null) return;
-
     _isProcessing = true;
     _detectFace(_lastImage!);
   }
@@ -206,80 +209,80 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
             instructionMessage: 'Không tìm thấy khuôn mặt',
           );
         }
-        } else {
-        if (faces.length > 1) {
-          _poseStableCount = 0;
+        return;
+      }
+
+      if (faces.length > 1) {
+        _poseStableCount = 0;
+        state = state.copyWith(
+          status: FaceScanStatus.scanning,
+          instructionMessage: 'Chỉ để một khuôn mặt trong khung hình',
+        );
+        return;
+      }
+
+      final face = faces.first;
+      if (!_isFaceWellPositioned(face, inputImage.metadata!.size)) {
+        _poseStableCount = 0;
+        state = state.copyWith(
+          status: FaceScanStatus.faceDetected,
+          instructionMessage: 'Đưa mặt vào giữa khung và lại gần hơn',
+        );
+        return;
+      }
+
+      final headY = face.headEulerAngleY ?? 0;
+      final headX = face.headEulerAngleX ?? 0;
+
+      if (state.currentPose == HeadPose.center) {
+        _detectBlink(face);
+      }
+
+      final isWearingGlasses = _detectGlasses(face);
+      final poseMatched = _checkPoseMatch(state.currentPose, headY, headX);
+
+      if (poseMatched) {
+        if (state.currentPose == HeadPose.center && !_blinkDetected) {
           state = state.copyWith(
-            status: FaceScanStatus.scanning,
-            instructionMessage: 'Chỉ để một khuôn mặt trong khung hình',
+            status: FaceScanStatus.faceDetected,
+            instructionMessage: 'Nháy mắt $_blinkCount/$_requiredBlinks lần',
+            isWearingGlasses: isWearingGlasses,
           );
           return;
         }
 
-        final face = faces.first;
-        if (!_isFaceWellPositioned(face, inputImage.metadata!.size)) {
+        _poseStableCount++;
+
+        var message = 'Giữ yên... $_poseStableCount/$_requiredStableFrames';
+        if (state.currentPose == HeadPose.center && _blinkDetected) {
+          message =
+              'Liveness OK! Giữ yên... $_poseStableCount/$_requiredStableFrames';
+        }
+
+        state = state.copyWith(
+          status: FaceScanStatus.poseValid,
+          instructionMessage: message,
+          isWearingGlasses: isWearingGlasses,
+        );
+
+        if (_poseStableCount >= _requiredStableFrames) {
           _poseStableCount = 0;
-          state = state.copyWith(
-            status: FaceScanStatus.faceDetected,
-            instructionMessage: 'Đưa mặt vào giữa khung và lại gần hơn',
-          );
-          return;
+          await _captureCurrentPose();
         }
-          final headY = face.headEulerAngleY ?? 0;
-          final headX = face.headEulerAngleX ?? 0;
+      } else {
+        _poseStableCount = 0;
 
-        if (state.currentPose == HeadPose.center) {
-          _detectBlink(face);
+        var instruction =
+            RegisterFaceState.getPoseInstruction(state.currentPose);
+        if (state.currentPose == HeadPose.up) {
+          instruction += ' (Ngửa đầu ra sau)';
         }
 
-        final isWearingGlasses = _detectGlasses(face);
-        final poseMatched = _checkPoseMatch(state.currentPose, headY, headX);
-
-        if (poseMatched) {
-          if (state.currentPose == HeadPose.center && !_blinkDetected) {
-            state = state.copyWith(
-              status: FaceScanStatus.faceDetected,
-              instructionMessage:
-                  'Nháy mắt $_blinkCount/$_requiredBlinks lần',
-              isWearingGlasses: isWearingGlasses,
-            );
-            return;
-          }
-
-          _poseStableCount++;
-
-          String message =
-              'Giữ yên... $_poseStableCount/$_requiredStableFrames';
-          if (state.currentPose == HeadPose.center && _blinkDetected) {
-            message =
-                'Liveness OK! Giữ yên... $_poseStableCount/$_requiredStableFrames';
-          }
-
-          state = state.copyWith(
-            status: FaceScanStatus.poseValid,
-            instructionMessage: message,
-            isWearingGlasses: isWearingGlasses,
-          );
-
-          if (_poseStableCount >= _requiredStableFrames) {
-            _poseStableCount = 0;
-            await _captureCurrentPose();
-          }
-        } else {
-          _poseStableCount = 0;
-
-          String instruction =
-              RegisterFaceState.getPoseInstruction(state.currentPose);
-          if (state.currentPose == HeadPose.up) {
-            instruction += ' (Ngửa đầu ra sau)';
-          }
-
-          state = state.copyWith(
-            status: FaceScanStatus.faceDetected,
-            instructionMessage: instruction,
-            isWearingGlasses: isWearingGlasses,
-          );
-        }
+        state = state.copyWith(
+          status: FaceScanStatus.faceDetected,
+          instructionMessage: instruction,
+          isWearingGlasses: isWearingGlasses,
+        );
       }
     } catch (e) {
       debugPrint('Detection error: $e');
@@ -339,7 +342,8 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     final heightRatio = boundingBox.height / imageSize.height;
     final centerX = boundingBox.left + (boundingBox.width / 2);
     final centerY = boundingBox.top + (boundingBox.height / 2);
-    final offsetXRatio = (centerX - imageSize.width / 2).abs() / imageSize.width;
+    final offsetXRatio =
+        (centerX - imageSize.width / 2).abs() / imageSize.width;
     final offsetYRatio =
         (centerY - imageSize.height / 2).abs() / imageSize.height;
 
@@ -373,7 +377,7 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       _detectionTimer?.cancel();
       await Future.delayed(const Duration(milliseconds: 100));
 
-      final XFile? photo = await state.cameraController?.takePicture();
+      final photo = await state.cameraController?.takePicture();
       if (photo == null) {
         _restartDetection();
         return;
@@ -386,13 +390,13 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
 
       if (newCapturedPoses.length >= HeadPose.values.length) {
         state = state.copyWith(
-          status: FaceScanStatus.completed,
+          status: FaceScanStatus.capturing,
           capturedPoses: newCapturedPoses,
           capturedImages: newCapturedImages,
-          instructionMessage: 'Đang tự động gửi dữ liệu...',
+          instructionMessage: 'Đang đăng ký lên server...',
         );
 
-        registerFace('');
+        await registerFace(debugImages: newCapturedImages);
       } else {
         final nextPose = _getNextPose(newCapturedPoses);
 
@@ -411,6 +415,10 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       }
     } catch (e) {
       debugPrint('Capture error: $e');
+      state = state.copyWith(
+        status: FaceScanStatus.error,
+        errorMessage: e.toString(),
+      );
     } finally {
       _isCapturing = false;
     }
@@ -447,13 +455,13 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     return HeadPose.center;
   }
 
-  Future<void> registerFace(String studentId,
-      {Map<HeadPose, String>? debugImages}) async {
+  Future<void> registerFace({Map<HeadPose, String>? debugImages}) async {
     final imagesToProcess = debugImages ?? state.capturedImages;
 
     state = state.copyWith(
-        status: FaceScanStatus.capturing,
-        instructionMessage: 'Đang đăng ký lên Server...');
+      status: FaceScanStatus.capturing,
+      instructionMessage: 'Đang đăng ký lên server...',
+    );
 
     try {
       final processedImages = <HeadPose, String>{};
@@ -465,18 +473,27 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       final service = DependencyInjection.get<FaceRegistrationService>();
       final result = await service.registerFace(
         capturedImages: processedImages,
-        studentId: studentId,
+        studentCode: state.targetStudentCode,
         isEncrypted: false,
       );
 
-      final actualData = result['data'] ?? {};
+      final status = result['status']?.toString();
+      final data = result['data'] is Map<String, dynamic>
+          ? result['data'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final studentJson = data['student'];
 
-      if (actualData['status'] == 'success') {
-        state = state.copyWith(status: FaceScanStatus.completed);
+      if (status == 'success') {
+        state = state.copyWith(
+          status: FaceScanStatus.completed,
+          registeredStudent: studentJson is Map<String, dynamic>
+              ? RegisteredStudentInfo.fromJson(studentJson)
+              : null,
+        );
       } else {
         state = state.copyWith(
           status: FaceScanStatus.error,
-          errorMessage: actualData['message'] ?? 'Server error',
+          errorMessage: result['message']?.toString() ?? 'Server error',
           capturedImages: imagesToProcess,
         );
       }
@@ -499,7 +516,8 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
         dataToSend =
             Uint8List.fromList(img.encodeJpg(decodedImage, quality: 70));
         debugPrint(
-            'Compressed image: ${imageBytes.length} -> ${dataToSend.length} bytes');
+          'Compressed image: ${imageBytes.length} -> ${dataToSend.length} bytes',
+        );
       } else {
         dataToSend = imageBytes;
       }
