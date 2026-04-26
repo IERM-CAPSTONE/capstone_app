@@ -160,6 +160,8 @@ class RealtimeNotificationService {
 
     // Real notifications: show in-app alert
     final issueName = (payload['issueName'] ?? 'ticket').toString();
+    final action = (payload['action'] ?? '').toString();
+    final payloadMessage = payload['message']?.toString();
 
     String title;
     String message;
@@ -178,6 +180,30 @@ class RealtimeNotificationService {
         break;
       case 'ticket:updated':
         final status = (payload['status'] ?? 'UPDATED').toString();
+        if (action == 'commented') {
+          title = 'B\u00ecnh lu\u1eadn ticket';
+          message = payloadMessage?.isNotEmpty == true
+              ? payloadMessage!
+              : 'Ticket c\u00f3 b\u00ecnh lu\u1eadn m\u1edbi: $issueName';
+          color = Colors.blueGrey;
+          break;
+        }
+        if (action == 'conclusion_updated') {
+          title = 'C\u1eadp nh\u1eadt k\u1ebft lu\u1eadn';
+          message = payloadMessage?.isNotEmpty == true
+              ? payloadMessage!
+              : 'Ticket \u0111\u00e3 c\u1eadp nh\u1eadt k\u1ebft lu\u1eadn: $issueName';
+          color = Colors.indigo;
+          break;
+        }
+        if (action == 'resolution_updated') {
+          title = 'C\u1eadp nh\u1eadt x\u1eed l\u00fd';
+          message = payloadMessage?.isNotEmpty == true
+              ? payloadMessage!
+              : 'Ticket \u0111\u00e3 c\u1eadp nh\u1eadt ghi ch\u00fa x\u1eed l\u00fd: $issueName';
+          color = Colors.green;
+          break;
+        }
         title = 'Ticket cập nhật';
         message = 'Ticket cập nhật trạng thái: $status';
         color = Colors.orange;

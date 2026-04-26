@@ -50,8 +50,8 @@ const List<TicketIssuePreset> kTicketIssuePresets = [
   TicketIssuePreset(
     code: 'OTHER',
     issueType: 'Technical Issue',
-    viLabel: 'Khác / Tùy chỉnh',
-    enLabel: 'Other / Custom',
+    viLabel: 'Khác / Tùy chỉnh (không bắt buộc)',
+    enLabel: 'Other / Custom (optional)',
   ),
   TicketIssuePreset(
     code: 'cannotLogin',
@@ -149,8 +149,8 @@ const List<TicketResolutionPreset> kTicketResolutionPresets = [
   TicketResolutionPreset(
     code: 'CUSTOM',
     issueCodes: [],
-    viLabel: 'Khác / Tùy chỉnh',
-    enLabel: 'Other / Custom',
+    viLabel: 'Khác / Tùy chỉnh (không bắt buộc)',
+    enLabel: 'Other / Custom (optional)',
     viText: '',
     enText: '',
   ),

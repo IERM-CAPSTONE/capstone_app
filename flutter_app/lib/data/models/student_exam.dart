@@ -101,6 +101,7 @@ class StudentExam {
   final String? studentName;
   final String? studentCode;
   final String? studentAvatarUrl;
+  final bool hasFaceRegistered;
   final Map<String, dynamic>? rawStudent;
   final int? stt;
   final List<StudentExamPartInfo> parts;
@@ -122,6 +123,7 @@ class StudentExam {
     this.studentName,
     this.studentCode,
     this.studentAvatarUrl,
+    this.hasFaceRegistered = false,
     this.rawStudent,
     this.stt,
     this.parts = const [],
@@ -163,6 +165,7 @@ class StudentExam {
       studentAvatarUrl: json['studentAvatarUrl'] as String? ??
           json['avatarUrl'] as String? ??
           student?['avatarUrl'] as String?,
+      hasFaceRegistered: json['hasFaceRegistered'] as bool? ?? false,
       rawStudent: student,
       stt: json['stt'] as int?,
       parts: partsJson
@@ -172,7 +175,10 @@ class StudentExam {
     );
   }
 
-  Map<String, dynamic> toJson() => _$StudentExamToJson(this);
+  Map<String, dynamic> toJson() => {
+        ..._$StudentExamToJson(this),
+        'hasFaceRegistered': hasFaceRegistered,
+      };
 
   bool get isPresent =>
       status == StudentExamStatus.checkedIn ||

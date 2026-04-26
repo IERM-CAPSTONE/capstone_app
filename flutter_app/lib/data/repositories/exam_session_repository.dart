@@ -1,4 +1,5 @@
 import '../models/exam_session.dart';
+import '../models/attendance_snapshot.dart';
 import '../models/student_exam.dart';
 import '../models/subject_part_option.dart';
 import '../models/user_model.dart';
@@ -171,6 +172,53 @@ class ExamSessionRepository {
       return response.data;
     } catch (e) {
       return [];
+    }
+  }
+
+  Future<AttendanceSnapshot?> getLatestStudentAttendanceSnapshot({
+    required String examSessionId,
+    required String studentId,
+    String? examPartCode,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/face-recognition/attendance-snapshots',
+        queryParameters: {
+          'page': 1,
+          'limit': 10,
+          'examSessionId': examSessionId,
+          'actorType': 'STUDENT',
+          'matchedUserId': studentId,
+        },
+      );
+
+      final payload = response.data;
+      final data = payload is Map<String, dynamic> ? payload['data'] : null;
+      final rawItems = data is List
+          ? data
+          : data is Map<String, dynamic>
+              ? data['data']
+              : const [];
+      final snapshots = (rawItems as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AttendanceSnapshot.fromJson)
+          .toList();
+
+      if (snapshots.isEmpty) return null;
+
+      final normalizedPart = examPartCode?.trim().toUpperCase();
+      if (normalizedPart != null && normalizedPart.isNotEmpty) {
+        for (final snapshot in snapshots) {
+          if ((snapshot.examPartCode ?? '').trim().toUpperCase() ==
+              normalizedPart) {
+            return snapshot;
+          }
+        }
+      }
+
+      return snapshots.first;
+    } catch (e) {
+      return null;
     }
   }
 

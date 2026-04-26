@@ -19,24 +19,35 @@ class SeatingLegend extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildLegendItem(
-            color: const Color(0xFFE0E0E0),
-            label: 'AVAILABLE',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildLegendItem(
+                color: const Color(0xFFE0E0E0),
+                label: 'AVAILABLE',
+              ),
+              _buildLegendItem(
+                color: const Color(0xFF4CAF50),
+                label: 'PRESENT',
+              ),
+              _buildLegendItem(
+                color: const Color(0xFFD97706),
+                label: 'ABSENT',
+              ),
+              _buildLegendItem(
+                color: const Color(0xFFBDBDBD),
+                label: 'LOCKED',
+              ),
+            ],
           ),
-          _buildLegendItem(
-            color: const Color(0xFF4CAF50),
-            label: 'PRESENT',
-          ),
-          _buildLegendItem(
-            color: const Color(0xFFD97706),
-            label: 'ABSENT',
-          ),
-          _buildLegendItem(
-            color: const Color(0xFFBDBDBD),
-            label: 'LOCKED',
+          const SizedBox(height: 10),
+          _buildIconLegendItem(
+            icon: Icons.warning_amber_rounded,
+            color: const Color(0xFFDC2626),
+            label: 'CHƯA ĐĂNG KÝ KHUÔN MẶT',
           ),
         ],
       ),
@@ -65,6 +76,45 @@ class SeatingLegend extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: Colors.grey[700],
             letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIconLegendItem({
+    required IconData icon,
+    required Color color,
+    required String label,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 1.5),
+          ),
+          child: Icon(
+            icon,
+            size: 12,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey[700],
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ],

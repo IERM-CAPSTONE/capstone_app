@@ -35,6 +35,14 @@ class SeatWidget extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          if (seat.studentExam != null)
+            Positioned(
+              top: 6,
+              left: 6,
+              child: _FaceRegistrationBadge(
+                hasFaceRegistered: seat.studentExam!.hasFaceRegistered,
+              ),
+            ),
           if (isSelected)
             Positioned(
               top: 6,
@@ -110,5 +118,49 @@ class SeatWidget extends StatelessWidget {
       case SeatStatus.locked:
         return Colors.white;
     }
+  }
+}
+
+class _FaceRegistrationBadge extends StatelessWidget {
+  final bool hasFaceRegistered;
+
+  const _FaceRegistrationBadge({
+    required this.hasFaceRegistered,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = hasFaceRegistered
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFDC2626);
+    final icon = hasFaceRegistered ? Icons.face : Icons.warning_amber_rounded;
+    final label = hasFaceRegistered
+        ? 'Đã đăng ký khuôn mặt'
+        : 'Chưa đăng ký khuôn mặt';
+
+    return Tooltip(
+      message: label,
+      child: Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.12 * 255).round()),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: 13,
+          color: color,
+        ),
+      ),
+    );
   }
 }

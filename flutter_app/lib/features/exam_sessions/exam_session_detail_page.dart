@@ -6,6 +6,7 @@ import 'dart:async';
 import '../../config/env.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/models/exam_session.dart';
+import '../../data/models/attendance_snapshot.dart';
 import '../../data/models/seat.dart';
 import '../../data/models/student_exam.dart';
 import '../../data/models/subject_part_option.dart';
@@ -16,6 +17,7 @@ import '../../data/services/socket_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
+import 'package:image/image.dart' as img;
 import 'dart:io';
 import '../auth/face_authenticate/face_authenticate_page.dart';
 import '../auth/proctor_face_checkin/proctor_face_checkin_page.dart';
@@ -26,19 +28,22 @@ import '../profile/proctor_profile_controller.dart';
 import '../profile/proctor_profile_state.dart';
 
 final examSessionDetailProvider =
-    FutureProvider.family<Map<String, dynamic>?, String>((ref, examSessionId) async {
+    FutureProvider.family<Map<String, dynamic>?, String>(
+        (ref, examSessionId) async {
   final repository = DependencyInjection.get<ExamSessionRepository>();
   return repository.getExamSessionById(examSessionId);
 });
 
 final sessionStudentsProvider =
-    FutureProvider.family<List<StudentExam>, String>((ref, examSessionId) async {
+    FutureProvider.family<List<StudentExam>, String>(
+        (ref, examSessionId) async {
   final repository = DependencyInjection.get<ExamSessionRepository>();
   return repository.getExamStudents(examSessionId);
 });
 
 final sessionSubjectPartsProvider =
-    FutureProvider.family<List<SubjectPartOption>, String?>((ref, subjectCode) async {
+    FutureProvider.family<List<SubjectPartOption>, String?>(
+        (ref, subjectCode) async {
   if (subjectCode == null || subjectCode.trim().isEmpty) {
     return [];
   }
@@ -57,7 +62,8 @@ class ExamSessionDetailPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ExamSessionDetailPage> createState() => _ExamSessionDetailPageState();
+  ConsumerState<ExamSessionDetailPage> createState() =>
+      _ExamSessionDetailPageState();
 }
 
 class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
@@ -170,16 +176,19 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       id: fetched.id,
       examRoomId: fetched.examRoomId ?? fallback.examRoomId,
       proctorId: fetched.proctorId ?? fallback.proctorId,
-      hallInvigilatorId: fetched.hallInvigilatorId ?? fallback.hallInvigilatorId,
+      hallInvigilatorId:
+          fetched.hallInvigilatorId ?? fallback.hallInvigilatorId,
       subjectCode: fetched.subjectCode ?? fallback.subjectCode,
       examCode: fetched.examCode ?? fallback.examCode,
       openCode: fetched.openCode ?? fallback.openCode,
       roomNumber: fetched.roomNumber ?? fallback.roomNumber,
       examOpenTime: fetched.examOpenTime ?? fallback.examOpenTime,
       examCloseTime: fetched.examCloseTime ?? fallback.examCloseTime,
-      proctorCheckedInAt: fetched.proctorCheckedInAt ?? fallback.proctorCheckedInAt,
+      proctorCheckedInAt:
+          fetched.proctorCheckedInAt ?? fallback.proctorCheckedInAt,
       status: fetched.status,
-      examType: fetched.examType.isNotEmpty ? fetched.examType : fallback.examType,
+      examType:
+          fetched.examType.isNotEmpty ? fetched.examType : fallback.examType,
       semester: fetched.semester ?? fallback.semester,
       note: fetched.note ?? fallback.note,
       createdAt: fetched.createdAt,
@@ -252,7 +261,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   }
 
   Future<Map<String, dynamic>?> _predictTicketFromImage(File imageFile) async {
+    File? preparedImage;
     try {
+      preparedImage = await _prepareImageForAi(imageFile);
+      final uploadFile = preparedImage ?? imageFile;
       final aiDio = Dio(
         BaseOptions(
           baseUrl: Env.aiApiBaseUrl,
@@ -266,9 +278,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(
-          imageFile.path,
-          filename: imageFile.uri.pathSegments.isNotEmpty
-              ? imageFile.uri.pathSegments.last
+          uploadFile.path,
+          filename: uploadFile.uri.pathSegments.isNotEmpty
+              ? uploadFile.uri.pathSegments.last
               : 'ticket_attachment.jpg',
         ),
       });
@@ -284,6 +296,53 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     } catch (e) {
       debugPrint('AI predict error: $e');
       return null;
+    } finally {
+      if (preparedImage != null && preparedImage.path != imageFile.path) {
+        unawaited(preparedImage.delete().catchError((_) {}));
+      }
+    }
+  }
+
+  Future<File?> _prepareImageForAi(File imageFile) async {
+    try {
+      final originalBytes = await imageFile.readAsBytes();
+      final decoded = img.decodeImage(originalBytes);
+      if (decoded == null) return null;
+
+      final normalized = img.bakeOrientation(decoded);
+      const maxDimension = 1600;
+      const jpegQuality = 82;
+
+      final longestEdge = normalized.width > normalized.height
+          ? normalized.width
+          : normalized.height;
+
+      img.Image processed = normalized;
+      if (longestEdge > maxDimension) {
+        final scale = maxDimension / longestEdge;
+        processed = img.copyResize(
+          normalized,
+          width: (normalized.width * scale).round(),
+          height: (normalized.height * scale).round(),
+          interpolation: img.Interpolation.average,
+        );
+      }
+
+      final compressedBytes = img.encodeJpg(processed, quality: jpegQuality);
+      final shouldReuseOriginal = longestEdge <= maxDimension &&
+          compressedBytes.length >= originalBytes.length;
+      if (shouldReuseOriginal) {
+        return null;
+      }
+
+      final tempFile = File(
+        '${Directory.systemTemp.path}${Platform.pathSeparator}ticket_ai_${DateTime.now().microsecondsSinceEpoch}.jpg',
+      );
+      await tempFile.writeAsBytes(compressedBytes, flush: true);
+      return tempFile;
+    } catch (e) {
+      debugPrint('Prepare AI image error: $e');
+      return null;
     }
   }
 
@@ -292,23 +351,29 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       case 'cannotLogin':
         return _text(context, vi: 'Không đăng nhập được', en: 'Cannot log in');
       case 'eosClientError':
-        return _text(context, vi: 'Phần mềm thi bị lỗi', en: 'Exam client error');
+        return _text(context,
+            vi: 'Phần mềm thi bị lỗi', en: 'Exam client error');
       case 'spinningScreen':
-        return _text(context, vi: 'Màn hình xoay liên tục', en: 'Screen keeps spinning');
+        return _text(context,
+            vi: 'Màn hình xoay liên tục', en: 'Screen keeps spinning');
       case 'needReassign':
-        return _text(context, vi: 'Cần cấp lại phiên đăng nhập', en: 'Need reassign');
+        return _text(context,
+            vi: 'Cần cấp lại phiên đăng nhập', en: 'Need reassign');
       case 'lostServerConn':
-        return _text(context, vi: 'Mất kết nối tới máy chủ thi', en: 'Lost server connection');
+        return _text(context,
+            vi: 'Mất kết nối tới máy chủ thi', en: 'Lost server connection');
       case 'wrongExamCode':
         return _text(context, vi: 'Sai mã thi', en: 'Wrong exam code');
       case 'notInExamList':
-        return _text(context, vi: 'Không có trong danh sách thi', en: 'Not in exam list');
+        return _text(context,
+            vi: 'Không có trong danh sách thi', en: 'Not in exam list');
       case 'deviceViolation':
         return _text(context, vi: 'Vi phạm thiết bị', en: 'Device violation');
       case 'cheatingBehavior':
         return _text(context, vi: 'Hành vi gian lận', en: 'Cheating behavior');
       case 'focusLostRepeat':
-        return _text(context, vi: 'Rời màn hình nhiều lần', en: 'Repeated focus lost');
+        return _text(context,
+            vi: 'Rời màn hình nhiều lần', en: 'Repeated focus lost');
       case 'cccdMismatch':
         return _text(context, vi: 'CCCD không khớp', en: 'ID mismatch');
       case 'submissionFailed':
@@ -331,7 +396,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       case 'Technical Issue':
         return _text(context, vi: 'Sự cố kỹ thuật', en: 'Technical Issue');
       case 'Academic Violation':
-        return _text(context, vi: 'Vi phạm học thuật', en: 'Academic Violation');
+        return _text(context,
+            vi: 'Vi phạm học thuật', en: 'Academic Violation');
       case 'Room Management':
         return _text(context, vi: 'Quản lý phòng', en: 'Room Management');
       case 'Face Mismatch':
@@ -396,7 +462,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
   String _displayAiMessage(Map<String, dynamic> prediction) {
     final issueName = (prediction['issue_name'] ?? '').toString().trim();
-    final displayMessage = (prediction['display_message'] ?? '').toString().trim();
+    final displayMessage =
+        (prediction['display_message'] ?? '').toString().trim();
     if (Localizations.localeOf(context).languageCode == 'vi') {
       return _localizedAiMessageByIssue(issueName);
     }
@@ -406,15 +473,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     return _localizedAiMessageByIssue(issueName);
   }
 
-  String _displayAiEvidence(Map<String, dynamic> prediction) {
-    return (prediction['evidence_text'] ?? '').toString().trim();
-  }
-
   String _buildAiDescription(Map<String, dynamic> prediction) {
     final message = _displayAiMessage(prediction).trim();
-    final evidence = _displayAiEvidence(prediction).trim();
-    if (evidence.isEmpty) return message;
-    return '$message\n${_text(context, vi: 'Dấu hiệu OCR', en: 'OCR evidence')}: $evidence';
+    return message;
   }
 
   String _defaultAssignmentType(Map<String, dynamic>? prediction) {
@@ -442,7 +503,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     if (assignmentType == 'HALL_INVIGILATOR') {
       final hallInvigilatorUsername = session.hallInvigilatorUsername?.trim();
       final hallInvigilatorName = session.hallInvigilatorName?.trim();
-      final displayName = (hallInvigilatorUsername != null && hallInvigilatorUsername.isNotEmpty)
+      final displayName = (hallInvigilatorUsername != null &&
+              hallInvigilatorUsername.isNotEmpty)
           ? hallInvigilatorUsername
           : hallInvigilatorName;
       if (displayName != null && displayName.isNotEmpty) {
@@ -467,7 +529,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   }
 
   String _displayAssignmentReason(Map<String, dynamic> prediction) {
-    final raw = (prediction['recommended_assignment_reason'] ?? '').toString().trim();
+    final raw =
+        (prediction['recommended_assignment_reason'] ?? '').toString().trim();
     if (raw.isNotEmpty) {
       return raw;
     }
@@ -611,6 +674,60 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
+  Widget _buildLockedStudentField({
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 4),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.lock_outline,
+                size: 18,
+                color: Color(0xFF64748B),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAiSuggestionCard(Map<String, dynamic> prediction) {
     final needsReview = (prediction['needs_human_review'] ?? false) == true;
     final suggestedAssignmentType = _defaultAssignmentType(prediction);
@@ -628,7 +745,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCEAFE),
                   borderRadius: BorderRadius.circular(999),
@@ -686,7 +804,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _text(context, vi: 'Bộ phận đề xuất', en: 'Recommended assignment'),
+                  _text(context,
+                      vi: 'Bộ phận đề xuất', en: 'Recommended assignment'),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -714,25 +833,6 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               ],
             ),
           ),
-          if (_displayAiEvidence(prediction).isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Text(
-                '${_text(context, vi: 'Dấu hiệu OCR', en: 'OCR evidence')}: ${_displayAiEvidence(prediction)}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF475569),
-                ),
-              ),
-            ),
-          ],
           if (needsReview) ...[
             const SizedBox(height: 10),
             Text(
@@ -800,7 +900,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final sessionAsync = ref.watch(examSessionDetailProvider(widget.examSessionId));
+    final sessionAsync =
+        ref.watch(examSessionDetailProvider(widget.examSessionId));
 
     return Scaffold(
       backgroundColor: const Color(0xFFFF6B35),
@@ -823,10 +924,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     final session = _mergeSessionFallback(
                       sessionData['session'] as ExamSession,
                     );
-                    final studentsAsync =
-                        ref.watch(sessionStudentsProvider(widget.examSessionId));
-                    final subjectPartsAsync =
-                        ref.watch(sessionSubjectPartsProvider(session.subjectCode));
+                    final studentsAsync = ref
+                        .watch(sessionStudentsProvider(widget.examSessionId));
+                    final subjectPartsAsync = ref.watch(
+                        sessionSubjectPartsProvider(session.subjectCode));
 
                     return _buildLoadedContent(
                       session: session,
@@ -835,9 +936,11 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       l10n: l10n,
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (_, __) => Center(
-                    child: Text(_text(context, vi: 'No session', en: 'No session')),
+                    child: Text(
+                        _text(context, vi: 'No session', en: 'No session')),
                   ),
                 ),
               ),
@@ -857,14 +960,17 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     return studentsAsync.when(
       data: (students) {
         final canManageSessionActions = _canManageSessionActions(session);
-        final subjectParts = subjectPartsAsync.valueOrNull ?? const <SubjectPartOption>[];
+        final subjectParts =
+            subjectPartsAsync.valueOrNull ?? const <SubjectPartOption>[];
         final selectedExamPartCode = _resolveSelectedExamPartCode(subjectParts);
         final seatingPlan = SeatingPlan.fromExamData(
           maxRows: session.maxRows ?? 6,
           maxColumns: session.maxColumns ?? 6,
-          totalSeats: session.totalSeats ?? ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
+          totalSeats: session.totalSeats ??
+              ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
           studentExams: students,
-          selectedExamPartCode: subjectParts.isNotEmpty ? selectedExamPartCode : null,
+          selectedExamPartCode:
+              subjectParts.isNotEmpty ? selectedExamPartCode : null,
         );
 
         return SingleChildScrollView(
@@ -900,7 +1006,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 Padding(
                   padding: const EdgeInsets.all(32),
                   child: Center(
-                    child: Text(_text(context, vi: 'No session', en: 'No session')),
+                    child: Text(
+                        _text(context, vi: 'No session', en: 'No session')),
                   ),
                 )
               else
@@ -971,7 +1078,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: _getStatusColor(session.status),
                   borderRadius: BorderRadius.circular(12),
@@ -990,11 +1098,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           const SizedBox(height: 12),
           const Divider(color: Colors.white24, height: 1),
           const SizedBox(height: 12),
-          _buildInfoRow(Icons.book, l10n.subject, session.subjectCode ?? l10n.tba),
+          _buildInfoRow(
+              Icons.book, l10n.subject, session.subjectCode ?? l10n.tba),
           const SizedBox(height: 8),
-          _buildInfoRow(Icons.calendar_month, l10n.semester, session.semester ?? l10n.tba),
+          _buildInfoRow(Icons.calendar_month, l10n.semester,
+              session.semester ?? l10n.tba),
           const SizedBox(height: 8),
-          _buildInfoRow(Icons.meeting_room, l10n.examRoom, session.roomNumber ?? l10n.tba),
+          _buildInfoRow(Icons.meeting_room, l10n.examRoom,
+              session.roomNumber ?? l10n.tba),
           const SizedBox(height: 8),
           if (session.examOpenTime != null) ...[
             _buildInfoRow(
@@ -1070,7 +1181,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildPartSelector(List<SubjectPartOption> parts, String? selectedExamPartCode) {
+  Widget _buildPartSelector(
+      List<SubjectPartOption> parts, String? selectedExamPartCode) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Container(
@@ -1090,7 +1202,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _text(context, vi: 'Chọn phần thi điểm danh', en: 'Choose exam part'),
+              _text(context,
+                  vi: 'Chọn phần thi điểm danh', en: 'Choose exam part'),
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
@@ -1108,18 +1221,23 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                   borderRadius: BorderRadius.circular(12),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 160),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF2196F3) : Colors.white,
+                      color:
+                          isSelected ? const Color(0xFF2196F3) : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE0E0E0),
+                        color: isSelected
+                            ? const Color(0xFF2196F3)
+                            : const Color(0xFFE0E0E0),
                       ),
                     ),
                     child: Text(
                       part.displayLabel,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFF333333),
+                        color:
+                            isSelected ? Colors.white : const Color(0xFF333333),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1178,7 +1296,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     }
 
     final profileState = ref.watch(proctorProfileControllerProvider);
-    final deviceIsActive = profileState.deviceStatus == DeviceRegistrationStatus.active;
+    final deviceIsActive =
+        profileState.deviceStatus == DeviceRegistrationStatus.active;
     final requiresPartSelection = subjectParts.isNotEmpty;
     final attendanceOpen = _isAttendanceOpenNow(session);
     final attendanceLockMessage = _attendanceLockMessage(session);
@@ -1218,111 +1337,123 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-              onPressed: () async {
-                if (!attendanceOpen) {
-                  if (context.mounted && attendanceLockMessage != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(attendanceLockMessage), backgroundColor: Colors.orange),
-                    );
-                  }
-                  return;
-                }
-
-                if (!deviceIsActive) {
-                  final message = profileState.deviceStatus == DeviceRegistrationStatus.none
-                      ? _text(
-                          context,
-                          vi: 'Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.',
-                          en: 'This device is not registered yet. Please register it before using FA Checkin.',
-                        )
-                      : _text(
-                          context,
-                          vi: 'Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.',
-                          en: 'This device is pending approval. Please wait for confirmation.',
+                  onPressed: () async {
+                    if (!attendanceOpen) {
+                      if (context.mounted && attendanceLockMessage != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(attendanceLockMessage),
+                              backgroundColor: Colors.orange),
                         );
+                      }
+                      return;
+                    }
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(message), backgroundColor: Colors.red),
-                    );
-                  }
-                  return;
-                }
+                    if (!deviceIsActive) {
+                      final message = profileState.deviceStatus ==
+                              DeviceRegistrationStatus.none
+                          ? _text(
+                              context,
+                              vi: 'Thiết bị chưa được đăng ký. Vui lòng đăng ký trước khi FA Checkin.',
+                              en: 'This device is not registered yet. Please register it before using FA Checkin.',
+                            )
+                          : _text(
+                              context,
+                              vi: 'Thiết bị đang chờ duyệt. Vui lòng đợi xác nhận.',
+                              en: 'This device is pending approval. Please wait for confirmation.',
+                            );
 
-                if (requiresPartSelection &&
-                    (selectedExamPartCode == null || selectedExamPartCode.isEmpty)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        _text(
-                          context,
-                          vi: 'Vui lòng chọn phần thi trước khi điểm danh.',
-                          en: 'Please choose an exam part before check-in.',
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(message),
+                              backgroundColor: Colors.red),
+                        );
+                      }
+                      return;
+                    }
+
+                    if (requiresPartSelection &&
+                        (selectedExamPartCode == null ||
+                            selectedExamPartCode.isEmpty)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _text(
+                              context,
+                              vi: 'Vui lòng chọn phần thi trước khi điểm danh.',
+                              en: 'Please choose an exam part before check-in.',
+                            ),
+                          ),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FaceAuthenticatePage(
+                          examSessionId: widget.examSessionId,
+                          examPartCode: selectedExamPartCode,
                         ),
                       ),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
+                    );
 
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FaceAuthenticatePage(
-                      examSessionId: widget.examSessionId,
-                      examPartCode: selectedExamPartCode,
-                    ),
+                    if (result == true) {
+                      await _refreshSessionData();
+                    }
+                  },
+                  icon: const Icon(Icons.camera_alt, size: 20),
+                  label: Text(l10n.faCheckin,
+                      style: const TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: attendanceOpen
+                        ? const Color(0xFF4CAF50)
+                        : Colors.grey.shade400,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                );
-
-                if (result == true) {
-                  await _refreshSessionData();
-                }
-              },
-              icon: const Icon(Icons.camera_alt, size: 20),
-              label: Text(l10n.faCheckin, style: const TextStyle(fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: attendanceOpen ? const Color(0xFF4CAF50) : Colors.grey.shade400,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-              onPressed: () {
-                if (!_isTicketSelectionMode) {
-                  _openSingleTicketDialog(context, session, students, <String>{});
-                  return;
-                }
-                _handleCreateTicket(context, session, students);
-              },
-              icon: Icon(
-                _isTicketSelectionMode
-                    ? Icons.checklist_rtl_outlined
-                    : Icons.confirmation_number_outlined,
-                size: 20,
-              ),
-              label: Text(
-                _isTicketSelectionMode
-                    ? l10n.createTicket +
-                        ' (' +
-                        _selectedTicketStudentIds.length.toString() +
-                        ')'
-                    : l10n.createTicket,
-                style: const TextStyle(fontSize: 13),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isTicketSelectionMode
-                    ? const Color(0xFF1565C0)
-                    : const Color(0xFF2196F3),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
+                  onPressed: () {
+                    if (!_isTicketSelectionMode) {
+                      _openSingleTicketDialog(
+                          context, session, students, <String>{});
+                      return;
+                    }
+                    _handleCreateTicket(context, session, students);
+                  },
+                  icon: Icon(
+                    _isTicketSelectionMode
+                        ? Icons.checklist_rtl_outlined
+                        : Icons.confirmation_number_outlined,
+                    size: 20,
+                  ),
+                  label: Text(
+                    _isTicketSelectionMode
+                        ? l10n.createTicket +
+                            ' (' +
+                            _selectedTicketStudentIds.length.toString() +
+                            ')'
+                        : l10n.createTicket,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isTicketSelectionMode
+                        ? const Color(0xFF1565C0)
+                        : const Color(0xFF2196F3),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
             ],
@@ -1431,7 +1562,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                   _hasProctorCheckedIn
                       ? _text(
                           context,
-                    vi: 'Đã xác nhận giám thị có mặt trong phòng thi.',
+                          vi: 'Đã xác nhận giám thị có mặt trong phòng thi.',
                           en: 'Proctor marked as present in the exam room.',
                         )
                       : _text(
@@ -1440,8 +1571,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           en: 'Proctor presence confirmation removed.',
                         ),
                 ),
-                backgroundColor:
-                    _hasProctorCheckedIn ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+                backgroundColor: _hasProctorCheckedIn
+                    ? const Color(0xFF2E7D32)
+                    : Colors.grey.shade700,
               ),
             );
           },
@@ -1464,11 +1596,13 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                _hasProctorCheckedIn ? const Color(0xFF2E7D32) : const Color(0xFFFF9800),
+            backgroundColor: _hasProctorCheckedIn
+                ? const Color(0xFF2E7D32)
+                : const Color(0xFFFF9800),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ),
@@ -1535,11 +1669,13 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                hasCheckedIn ? const Color(0xFF2E7D32) : const Color(0xFFFF9800),
+            backgroundColor: hasCheckedIn
+                ? const Color(0xFF2E7D32)
+                : const Color(0xFFFF9800),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ),
@@ -1661,55 +1797,54 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
-              onPressed: () {
-                setState(() {
-                  if (_isTicketSelectionMode) {
-                    _isTicketSelectionMode = false;
-                    _selectedTicketStudentIds.clear();
-                  } else {
-                    _isTicketSelectionMode = true;
-                    _selectedTicketStudentIds.clear();
-                  }
-                });
-              },
-              icon: Icon(
-                _isTicketSelectionMode
-                    ? Icons.close_fullscreen_outlined
-                    : Icons.select_all_outlined,
-                size: 18,
-              ),
-              label: Text(
-                _isTicketSelectionMode
-                    ? _text(
-                        context,
-                        vi: 'Tắt chọn ghế tạo ticket',
-                        en: 'Turn off seat ticket selection',
-                      )
-                    : _text(
-                        context,
-                        vi: 'Chọn ghế để tạo ticket',
-                        en: 'Select seats to create tickets',
-                      ),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _isTicketSelectionMode
-                    ? const Color(0xFF1565C0)
-                    : const Color(0xFF475569),
-                side: BorderSide(
-                  color: _isTicketSelectionMode
-                      ? const Color(0xFF90CAF9)
-                      : const Color(0xFFD0D7E2),
-                ),
-                backgroundColor: _isTicketSelectionMode
-                    ? const Color(0xFFE3F2FD)
-                    : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 11),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+          onPressed: () {
+            setState(() {
+              if (_isTicketSelectionMode) {
+                _isTicketSelectionMode = false;
+                _selectedTicketStudentIds.clear();
+              } else {
+                _isTicketSelectionMode = true;
+                _selectedTicketStudentIds.clear();
+              }
+            });
+          },
+          icon: Icon(
+            _isTicketSelectionMode
+                ? Icons.close_fullscreen_outlined
+                : Icons.select_all_outlined,
+            size: 18,
+          ),
+          label: Text(
+            _isTicketSelectionMode
+                ? _text(
+                    context,
+                    vi: 'Tắt chọn ghế tạo ticket',
+                    en: 'Turn off seat ticket selection',
+                  )
+                : _text(
+                    context,
+                    vi: 'Chọn ghế để tạo ticket',
+                    en: 'Select seats to create tickets',
+                  ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _isTicketSelectionMode
+                ? const Color(0xFF1565C0)
+                : const Color(0xFF475569),
+            side: BorderSide(
+              color: _isTicketSelectionMode
+                  ? const Color(0xFF90CAF9)
+                  : const Color(0xFFD0D7E2),
             ),
+            backgroundColor:
+                _isTicketSelectionMode ? const Color(0xFFE3F2FD) : Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1846,6 +1981,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: const BoxDecoration(
@@ -1853,10 +1989,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.82,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               children: [
                 Container(
@@ -1869,7 +2009,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                   child: Center(
                     child: student.studentAvatarUrl?.isNotEmpty == true
                         ? GestureDetector(
-                            onTap: () => _showAvatarPreview(student.studentAvatarUrl!),
+                            onTap: () =>
+                                _showAvatarPreview(student.studentAvatarUrl!),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Image.network(
@@ -1911,7 +2052,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           vi: 'Ghế ${student.stt ?? seat.stt}',
                           en: 'Seat ${student.stt ?? seat.stt}',
                         ),
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         displayStatus,
@@ -1930,13 +2072,15 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               ],
             ),
             const Divider(height: 32),
-            _buildDetailRow(l10n.studentId, student.studentCode ?? student.studentId),
+            _buildDetailRow(
+                l10n.studentId, student.studentCode ?? student.studentId),
             const SizedBox(height: 12),
-              _buildDetailRow(
+            _buildDetailRow(
               _text(context, vi: 'Họ và tên', en: 'Student name'),
               student.studentName ?? '-',
             ),
-            if (selectedExamPartCode != null && selectedExamPartCode.isNotEmpty) ...[
+            if (selectedExamPartCode != null &&
+                selectedExamPartCode.isNotEmpty) ...[
               const SizedBox(height: 12),
               _buildDetailRow(
                 _text(context, vi: 'Phần thi', en: 'Exam part'),
@@ -1951,7 +2095,124 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               const SizedBox(height: 12),
               _buildDetailRow(l10n.checkinTime, _formatDateTime(checkInTime)),
             ],
+            const SizedBox(height: 20),
+            _buildAttendanceSnapshotSection(
+              student: student,
+              selectedExamPartCode: selectedExamPartCode,
+            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttendanceSnapshotSection({
+    required StudentExam student,
+    required String? selectedExamPartCode,
+  }) {
+    final repository = DependencyInjection.get<ExamSessionRepository>();
+
+    return FutureBuilder<AttendanceSnapshot?>(
+      future: repository.getLatestStudentAttendanceSnapshot(
+        examSessionId: widget.examSessionId,
+        studentId: student.studentId,
+        examPartCode: selectedExamPartCode,
+      ),
+      builder: (context, snapshot) {
+        final attendanceSnapshot = snapshot.data;
+        final imageUrl = attendanceSnapshot?.imageUrl;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.photo_camera_outlined,
+                    size: 18, color: Colors.orange),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _text(
+                      context,
+                      vi: 'Ảnh điểm danh',
+                      en: 'Attendance photo',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (attendanceSnapshot?.captureTimestamp != null)
+                  Text(
+                    DateFormat('HH:mm dd/MM').format(
+                      attendanceSnapshot!.captureTimestamp!.toLocal(),
+                    ),
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              Container(
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(child: CircularProgressIndicator()),
+              )
+            else if (imageUrl != null && imageUrl.isNotEmpty)
+              GestureDetector(
+                onTap: () => _showAvatarPreview(imageUrl),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.network(
+                    imageUrl,
+                    height: 190,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildNoSnapshotBox(),
+                  ),
+                ),
+              )
+            else
+              _buildNoSnapshotBox(),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildNoSnapshotBox() {
+    return Container(
+      height: 150,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            _text(
+              context,
+              vi: 'Chưa có ảnh điểm danh cho sinh viên này.',
+              en: 'No attendance photo for this student yet.',
+            ),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
@@ -1974,7 +2235,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               final code = student.studentCode ?? '';
               if (excludedStudentCodes.contains(code)) return false;
               final haystack =
-                  '${student.studentCode ?? ''} ${student.studentName ?? ''}'.toLowerCase();
+                  '${student.studentCode ?? ''} ${student.studentName ?? ''}'
+                      .toLowerCase();
               return haystack.contains(query.toLowerCase());
             }).toList();
 
@@ -2049,14 +2311,16 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             )
                           : ListView.separated(
                               itemCount: filteredStudents.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
                               itemBuilder: (_, index) {
                                 final student = filteredStudents[index];
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   title: Text(
                                     student.studentCode ?? '-',
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600),
                                   ),
                                   subtitle: Text(
                                     student.studentName ?? '-',
@@ -2064,7 +2328,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   trailing: const Icon(Icons.chevron_right),
-                                  onTap: () => Navigator.of(sheetContext).pop(student),
+                                  onTap: () =>
+                                      Navigator.of(sheetContext).pop(student),
                                 );
                               },
                             ),
@@ -2132,13 +2397,16 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   }
 
   Color _getStatusColor(ExamSessionStatus status) {
-    if (status == ExamSessionStatus.scheduled || status == ExamSessionStatus.scheduledLower) {
+    if (status == ExamSessionStatus.scheduled ||
+        status == ExamSessionStatus.scheduledLower) {
       return const Color(0xFF2196F3);
     }
-    if (status == ExamSessionStatus.ongoing || status == ExamSessionStatus.ongoingLower) {
+    if (status == ExamSessionStatus.ongoing ||
+        status == ExamSessionStatus.ongoingLower) {
       return const Color(0xFF4CAF50);
     }
-    if (status == ExamSessionStatus.ended || status == ExamSessionStatus.endedLower) {
+    if (status == ExamSessionStatus.ended ||
+        status == ExamSessionStatus.endedLower) {
       return const Color(0xFF757575);
     }
     return Colors.grey;
@@ -2218,8 +2486,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     return DateFormat('dd/MM/yyyy HH:mm', locale).format(dateTime);
   }
 
-  bool _isVietnamese(BuildContext context) =>
-      Localizations.localeOf(context).languageCode.toLowerCase().startsWith('vi');
+  bool _isVietnamese(BuildContext context) => Localizations.localeOf(context)
+      .languageCode
+      .toLowerCase()
+      .startsWith('vi');
 
   bool _isCompactTicketFlow(BuildContext context) =>
       MediaQuery.sizeOf(context).width < 640;
@@ -2293,14 +2563,34 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
+            final isCompact = _isCompactTicketFlow(context);
+            final dialogSize = MediaQuery.sizeOf(context);
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(isCompact ? 20 : 24),
               ),
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
-              contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
-              actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 16 : 20,
+                vertical: isCompact ? 18 : 24,
+              ),
+              titlePadding: EdgeInsets.fromLTRB(
+                isCompact ? 20 : 24,
+                isCompact ? 20 : 22,
+                isCompact ? 20 : 24,
+                0,
+              ),
+              contentPadding: EdgeInsets.fromLTRB(
+                isCompact ? 20 : 24,
+                18,
+                isCompact ? 20 : 24,
+                0,
+              ),
+              actionsPadding: EdgeInsets.fromLTRB(
+                isCompact ? 16 : 20,
+                8,
+                isCompact ? 16 : 20,
+                isCompact ? 14 : 18,
+              ),
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2315,287 +2605,331 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                   ),
                 ],
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (attachmentImage != null || aiPrediction != null || isAiAnalyzing) ...[
-                      _buildDialogSectionTitle(_text(context, vi: 'Ảnh và AI', en: 'Attachment and AI')),
-                      if (attachmentImage != null) ...[
-                        SizedBox(
-                          height: 132,
-                          width: double.maxFinite,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: Image.file(
-                              attachmentImage!,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (isAiAnalyzing) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: const Row(
-                            children: [
-                              SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+              content: SizedBox(
+                width: isCompact ? dialogSize.width : 420,
+                height: isCompact ? dialogSize.height * 0.72 : null,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: isCompact ? 28 : 18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (attachmentImage != null ||
+                          aiPrediction != null ||
+                          isAiAnalyzing) ...[
+                        _buildDialogSectionTitle(_text(context,
+                            vi: 'Ảnh và AI', en: 'Attachment and AI')),
+                        if (attachmentImage != null) ...[
+                          SizedBox(
+                            height: 132,
+                            width: double.maxFinite,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: Image.file(
+                                attachmentImage!,
+                                fit: BoxFit.cover,
                               ),
-                              SizedBox(width: 10),
-                              Expanded(child: Text('Đang phân tích ảnh bằng AI...')),
-                            ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
+                          const SizedBox(height: 12),
+                        ],
+                        if (isAiAnalyzing) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14),
+                              border:
+                                  Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: const Row(
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                    child:
+                                        Text('Đang phân tích ảnh bằng AI...')),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (aiPrediction != null) ...[
+                          _buildAiSuggestionCard(aiPrediction!),
+                          const SizedBox(height: 16),
+                        ],
                       ],
-                      if (aiPrediction != null) ...[
-                        _buildAiSuggestionCard(aiPrediction!),
-                        const SizedBox(height: 16),
-                      ],
-                    ],
-                    _buildDialogSurface(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          initialValue: issueType,
-                          items: [
-                            DropdownMenuItem(
-                              value: 'Technical Issue',
-                              child: Text(_text(context, vi: 'Sự cố kỹ thuật', en: 'Technical Issue')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Academic Violation',
-                              child: Text(_text(context, vi: 'Vi phạm học thuật', en: 'Academic Violation')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Room Management',
-                              child: Text(_text(context, vi: 'Quản lý phòng', en: 'Room Management')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Face Mismatch',
-                              child: Text(_text(context, vi: 'Sai thông tin', en: 'Face Mismatch')),
-                            ),
-                          ],
-                          onChanged: (v) => issueType = v ?? issueType,
-                          decoration: _ticketFieldDecoration(label: l10n.issueType),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          initialValue: priority,
-                          items: [
-                            DropdownMenuItem(
-                              value: 'Normal',
-                              child: Text(_text(context, vi: 'Bình thường', en: 'Normal')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Urgent',
-                              child: Text(_text(context, vi: 'Khẩn cấp', en: 'Urgent')),
-                            ),
-                          ],
-                          onChanged: (v) => priority = v ?? priority,
-                          decoration: _ticketFieldDecoration(label: l10n.priority),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: issueNameCtrl,
-                          decoration: _ticketFieldDecoration(label: l10n.issueName),
-                        ),
-                        const SizedBox(height: 12),
-                        if (lockStudentSelection)
-                          TextFormField(
-                            initialValue:
-                                '${selectedStudent.studentCode ?? '-'} - ${selectedStudent.studentName ?? ''}',
-                            readOnly: true,
-                            maxLines: 2,
-                            decoration: _ticketFieldDecoration(
+                      _buildDialogSurface(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            initialValue: issueType,
+                            items: [
+                              DropdownMenuItem(
+                                value: 'Technical Issue',
+                                child: Text(_text(context,
+                                    vi: 'Sự cố kỹ thuật',
+                                    en: 'Technical Issue')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Academic Violation',
+                                child: Text(_text(context,
+                                    vi: 'Vi phạm học thuật',
+                                    en: 'Academic Violation')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Room Management',
+                                child: Text(_text(context,
+                                    vi: 'Quản lý phòng',
+                                    en: 'Room Management')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Face Mismatch',
+                                child: Text(_text(context,
+                                    vi: 'Sai thông tin', en: 'Face Mismatch')),
+                              ),
+                            ],
+                            onChanged: (v) => issueType = v ?? issueType,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.issueType),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: priority,
+                            items: [
+                              DropdownMenuItem(
+                                value: 'Normal',
+                                child: Text(_text(context,
+                                    vi: 'Bình thường', en: 'Normal')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Urgent',
+                                child: Text(_text(context,
+                                    vi: 'Khẩn cấp', en: 'Urgent')),
+                              ),
+                            ],
+                            onChanged: (v) => priority = v ?? priority,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.priority),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: issueNameCtrl,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.issueName),
+                          ),
+                          const SizedBox(height: 12),
+                          if (lockStudentSelection)
+                            _buildLockedStudentField(
                               label: l10n.student,
-                              suffixIcon: const Icon(Icons.lock_outline, size: 18),
-                            ),
-                          )
-                        else
-                          DropdownButtonFormField<StudentExam>(
-                            initialValue: selectedStudent,
-                            items: students
-                                .map(
-                                  (student) => DropdownMenuItem<StudentExam>(
-                                    value: student,
-                                    child: Text(
-                                      '${student.studentCode ?? '-'} - ${student.studentName ?? ''}',
-                                      overflow: TextOverflow.ellipsis,
+                              value: selectedStudent.studentCode ?? '-',
+                            )
+                          else
+                            DropdownButtonFormField<StudentExam>(
+                              initialValue: selectedStudent,
+                              isExpanded: true,
+                              items: students
+                                  .map(
+                                    (student) => DropdownMenuItem<StudentExam>(
+                                      value: student,
+                                      child: Text(
+                                        student.studentCode ?? '-',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
+                                  )
+                                  .toList(),
+                              selectedItemBuilder: (context) => students
+                                  .map(
+                                    (student) => Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        student.studentCode ?? '-',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (student) {
+                                if (student == null) return;
+                                setDialogState(() {
+                                  selectedStudent = student;
+                                });
+                              },
+                              decoration:
+                                  _ticketFieldDecoration(label: l10n.student),
+                            ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: descriptionCtrl,
+                            maxLines: 4,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.description),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDialogSectionTitle('Ảnh đính kèm'),
+                      // â”€â”€ Attachment Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      _buildDialogSurface(
+                        children: [
+                          Text(
+                            l10n.attachmentOptional,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildAttachmentButtons(
+                            leftLabel: l10n.takePhoto,
+                            rightLabel: l10n.gallery,
+                            onTakePhoto: () async {
+                              if (isPickerActive) return;
+                              isPickerActive = true;
+                              try {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                  imageQuality: 70,
+                                );
+                                if (picked != null) {
+                                  final file = File(picked.path);
+                                  setDialogState(() {
+                                    attachmentImage = file;
+                                    aiPrediction = null;
+                                    isAiAnalyzing = true;
+                                  });
+                                  final prediction =
+                                      await _predictTicketFromImage(file);
+                                  if (!mounted) return;
+                                  setDialogState(() {
+                                    aiPrediction = prediction;
+                                    isAiAnalyzing = false;
+                                    _applyAiPredictionToTicketForm(
+                                      prediction: prediction,
+                                      issueNameCtrl: issueNameCtrl,
+                                      descriptionCtrl: descriptionCtrl,
+                                      setIssueType: (nextIssueType) {
+                                        issueType = nextIssueType;
+                                      },
+                                      setAssignmentType: (nextAssignmentType) {
+                                        confirmedAssignmentType =
+                                            nextAssignmentType;
+                                      },
+                                    );
+                                  });
+                                }
+                              } finally {
+                                isPickerActive = false;
+                              }
+                            },
+                            onPickGallery: () async {
+                              if (isPickerActive) return;
+                              isPickerActive = true;
+                              try {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                  imageQuality: 70,
+                                );
+                                if (picked != null) {
+                                  final file = File(picked.path);
+                                  setDialogState(() {
+                                    attachmentImage = file;
+                                    aiPrediction = null;
+                                    isAiAnalyzing = true;
+                                  });
+                                  final prediction =
+                                      await _predictTicketFromImage(file);
+                                  if (!mounted) return;
+                                  setDialogState(() {
+                                    aiPrediction = prediction;
+                                    isAiAnalyzing = false;
+                                    _applyAiPredictionToTicketForm(
+                                      prediction: prediction,
+                                      issueNameCtrl: issueNameCtrl,
+                                      descriptionCtrl: descriptionCtrl,
+                                      setIssueType: (nextIssueType) {
+                                        issueType = nextIssueType;
+                                      },
+                                      setAssignmentType: (nextAssignmentType) {
+                                        confirmedAssignmentType =
+                                            nextAssignmentType;
+                                      },
+                                    );
+                                  });
+                                }
+                              } finally {
+                                isPickerActive = false;
+                              }
+                            },
+                          ),
+                          if (isAiAnalyzing) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(14),
+                                border:
+                                    Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   ),
-                                )
-                                .toList(),
-                            onChanged: (student) {
-                              if (student == null) return;
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                      child: Text(
+                                          'Đang phân tích ảnh bằng AI...')),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _buildDialogSectionTitle(
+                        _text(context,
+                            vi: 'Giao ticket cho', en: 'Assign ticket to'),
+                      ),
+                      _buildDialogSurface(
+                        children: [
+                          _buildAssignmentSelector(
+                            session: session,
+                            selectedAssignmentType: confirmedAssignmentType,
+                            onChanged: (nextAssignmentType) {
                               setDialogState(() {
-                                selectedStudent = student;
+                                confirmedAssignmentType = nextAssignmentType;
                               });
                             },
-                            decoration: _ticketFieldDecoration(label: l10n.student),
                           ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: descriptionCtrl,
-                          maxLines: 4,
-                          decoration: _ticketFieldDecoration(label: l10n.description),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDialogSectionTitle('Ảnh đính kèm'),
-                    // â”€â”€ Attachment Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    _buildDialogSurface(
-                      children: [
-                        Text(
-                          l10n.attachmentOptional,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildAttachmentButtons(
-                          leftLabel: l10n.takePhoto,
-                          rightLabel: l10n.gallery,
-                          onTakePhoto: () async {
-                            if (isPickerActive) return;
-                            isPickerActive = true;
-                            try {
-                              final picker = ImagePicker();
-                              final picked = await picker.pickImage(
-                                source: ImageSource.camera,
-                                imageQuality: 70,
-                              );
-                              if (picked != null) {
-                                final file = File(picked.path);
-                                setDialogState(() {
-                                  attachmentImage = file;
-                                  aiPrediction = null;
-                                  isAiAnalyzing = true;
-                                });
-                                final prediction = await _predictTicketFromImage(file);
-                                if (!mounted) return;
-                                setDialogState(() {
-                                  aiPrediction = prediction;
-                                  isAiAnalyzing = false;
-                                  _applyAiPredictionToTicketForm(
-                                    prediction: prediction,
-                                    issueNameCtrl: issueNameCtrl,
-                                    descriptionCtrl: descriptionCtrl,
-                                    setIssueType: (nextIssueType) {
-                                      issueType = nextIssueType;
-                                    },
-                                    setAssignmentType: (nextAssignmentType) {
-                                      confirmedAssignmentType = nextAssignmentType;
-                                    },
-                                  );
-                                });
-                              }
-                            } finally {
-                              isPickerActive = false;
-                            }
-                          },
-                          onPickGallery: () async {
-                            if (isPickerActive) return;
-                            isPickerActive = true;
-                            try {
-                              final picker = ImagePicker();
-                              final picked = await picker.pickImage(
-                                source: ImageSource.gallery,
-                                imageQuality: 70,
-                              );
-                              if (picked != null) {
-                                final file = File(picked.path);
-                                setDialogState(() {
-                                  attachmentImage = file;
-                                  aiPrediction = null;
-                                  isAiAnalyzing = true;
-                                });
-                                final prediction = await _predictTicketFromImage(file);
-                                if (!mounted) return;
-                                setDialogState(() {
-                                  aiPrediction = prediction;
-                                  isAiAnalyzing = false;
-                                  _applyAiPredictionToTicketForm(
-                                    prediction: prediction,
-                                    issueNameCtrl: issueNameCtrl,
-                                    descriptionCtrl: descriptionCtrl,
-                                    setIssueType: (nextIssueType) {
-                                      issueType = nextIssueType;
-                                    },
-                                    setAssignmentType: (nextAssignmentType) {
-                                      confirmedAssignmentType = nextAssignmentType;
-                                    },
-                                  );
-                                });
-                              }
-                            } finally {
-                              isPickerActive = false;
-                            }
-                          },
-                        ),
-                    if (isAiAnalyzing) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: const Row(
-                          children: [
-                            SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(child: Text('Đang phân tích ảnh bằng AI...')),
-                          ],
-                        ),
+                        ],
                       ),
+                      // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     ],
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _buildDialogSectionTitle(
-                      _text(context, vi: 'Giao ticket cho', en: 'Assign ticket to'),
-                    ),
-                    _buildDialogSurface(
-                      children: [
-                        _buildAssignmentSelector(
-                          session: session,
-                          selectedAssignmentType: confirmedAssignmentType,
-                          onChanged: (nextAssignmentType) {
-                            setDialogState(() {
-                              confirmedAssignmentType = nextAssignmentType;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                  ],
+                  ),
                 ),
               ),
               actions: [
                 TextButton(
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF475569),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                   ),
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(_text(context, vi: 'Hủy', en: 'Cancel')),
@@ -2605,17 +2939,21 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     backgroundColor: const Color(0xFF2196F3),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   onPressed: () async {
                     final issueName = issueNameCtrl.text.trim();
-                    final studentCode = (selectedStudent.studentCode ?? '').trim();
+                    final studentCode =
+                        (selectedStudent.studentCode ?? '').trim();
                     if (issueName.isEmpty || studentCode.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Issue name and student are required')),
+                        const SnackBar(
+                            content:
+                                Text('Issue name and student are required')),
                       );
                       return;
                     }
@@ -2630,8 +2968,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             content: Row(
                               children: [
                                 const SizedBox(
-                                  width: 18, height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
@@ -2648,7 +2988,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                         );
                       }
                       uploadedUrl = await _uploadImage(attachmentImage!);
-                      if (context.mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      if (context.mounted)
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     } else {
                       Navigator.of(ctx).pop();
                     }
@@ -2665,14 +3006,23 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                         'confirmedAssignmentType': confirmedAssignmentType,
                         if (uploadedUrl != null) 'attachment': uploadedUrl,
                         if (aiPrediction != null) ...{
-                          'ocrText': (aiPrediction!['ocr_text'] ?? '').toString(),
-                          'aiPredictedIssueName': (aiPrediction!['issue_name'] ?? '').toString(),
-                          'aiPredictedIssueType': (aiPrediction!['issue_type'] ?? '').toString(),
+                          'ocrText':
+                              (aiPrediction!['ocr_text'] ?? '').toString(),
+                          'aiPredictedIssueName':
+                              (aiPrediction!['issue_name'] ?? '').toString(),
+                          'aiPredictedIssueType':
+                              (aiPrediction!['issue_type'] ?? '').toString(),
                           'aiConfidence': aiPrediction!['confidence'],
-                          'aiDisplayMessage': (aiPrediction!['display_message'] ?? '').toString(),
-                          'aiEvidenceText': (aiPrediction!['evidence_text'] ?? '').toString(),
+                          'aiDisplayMessage':
+                              (aiPrediction!['display_message'] ?? '')
+                                  .toString(),
+                          'aiEvidenceText':
+                              (aiPrediction!['evidence_text'] ?? '').toString(),
                           'aiModelVersion': 'text_baseline_v1',
-                          'aiRecommendedAssignmentType': (aiPrediction!['recommended_assignment_type'] ?? '').toString(),
+                          'aiRecommendedAssignmentType':
+                              (aiPrediction!['recommended_assignment_type'] ??
+                                      '')
+                                  .toString(),
                         },
                       },
                     );
@@ -2776,17 +3126,21 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               ),
               content: SizedBox(
                 width: isCompact ? MediaQuery.sizeOf(context).width : 420,
-                height: isCompact ? MediaQuery.sizeOf(context).height - 180 : null,
+                height:
+                    isCompact ? MediaQuery.sizeOf(context).height - 180 : null,
                 child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                      if (bulkAttachmentImage != null || aiPrediction != null || isAiAnalyzing) ...[
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (bulkAttachmentImage != null ||
+                          aiPrediction != null ||
+                          isAiAnalyzing) ...[
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            _text(context, vi: 'Ảnh và AI', en: 'Attachment and AI'),
+                            _text(context,
+                                vi: 'Ảnh và AI', en: 'Attachment and AI'),
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
@@ -2811,7 +3165,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -2847,7 +3202,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         _text(
@@ -2855,7 +3211,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                           vi: 'Sinh viên đã chọn',
                                           en: 'Selected students',
                                         ),
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w700),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -2872,15 +3229,21 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                     ],
                                   ),
                                 ),
-                                if (aiPrediction != null && (aiPrediction!['needs_human_review'] ?? false) == true)
+                                if (aiPrediction != null &&
+                                    (aiPrediction!['needs_human_review'] ??
+                                            false) ==
+                                        true)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFFFEDD5),
                                       borderRadius: BorderRadius.circular(999),
                                     ),
                                     child: Text(
-                                      _text(context, vi: 'Cần kiểm tra', en: 'Needs review'),
+                                      _text(context,
+                                          vi: 'Cần kiểm tra',
+                                          en: 'Needs review'),
                                       style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
@@ -2907,15 +3270,18 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               ...selectedStudents.map(
                                 (s) => Container(
                                   margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    border: Border.all(
+                                        color: const Color(0xFFE2E8F0)),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.person_outline, size: 18, color: Color(0xFF2563EB)),
+                                      const Icon(Icons.person_outline,
+                                          size: 18, color: Color(0xFF2563EB)),
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
@@ -2927,10 +3293,13 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                       IconButton(
                                         onPressed: () {
                                           final code = s.studentCode;
-                                          if (code == null || code.isEmpty) return;
+                                          if (code == null || code.isEmpty)
+                                            return;
                                           setModalState(() {
                                             selected.remove(code);
-                                            if (selectedStudentToAdd?.studentCode == code) {
+                                            if (selectedStudentToAdd
+                                                    ?.studentCode ==
+                                                code) {
                                               selectedStudentToAdd = null;
                                             }
                                           });
@@ -2949,7 +3318,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             const SizedBox(height: 8),
                             OutlinedButton.icon(
                               onPressed: () async {
-                                final pickedStudent = await _showStudentPickerSheet(
+                                final pickedStudent =
+                                    await _showStudentPickerSheet(
                                   students,
                                   selected,
                                 );
@@ -2958,7 +3328,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                   selectedStudentToAdd = pickedStudent;
                                 });
                               },
-                              icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+                              icon: const Icon(Icons.person_add_alt_1_outlined,
+                                  size: 18),
                               label: Text(
                                 selectedStudentToAdd == null
                                     ? _text(
@@ -2973,7 +3344,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size.fromHeight(48),
                                 alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -2983,8 +3355,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                 onPressed: selectedStudentToAdd == null
                                     ? null
                                     : () {
-                                        final code = selectedStudentToAdd!.studentCode;
-                                        if (code == null || code.isEmpty) return;
+                                        final code =
+                                            selectedStudentToAdd!.studentCode;
+                                        if (code == null || code.isEmpty)
+                                          return;
                                         setModalState(() {
                                           selected.add(code);
                                           selectedStudentToAdd = null;
@@ -3005,7 +3379,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       ),
                       const SizedBox(height: 16),
                       _buildDialogSectionTitle(
-                        _text(context, vi: 'Thông tin ticket', en: 'Ticket details'),
+                        _text(context,
+                            vi: 'Thông tin ticket', en: 'Ticket details'),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -3013,23 +3388,29 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                         items: [
                           DropdownMenuItem(
                             value: 'Technical Issue',
-                            child: Text(_text(context, vi: 'Sự cố kỹ thuật', en: 'Technical Issue')),
+                            child: Text(_text(context,
+                                vi: 'Sự cố kỹ thuật', en: 'Technical Issue')),
                           ),
                           DropdownMenuItem(
                             value: 'Academic Violation',
-                            child: Text(_text(context, vi: 'Vi phạm học thuật', en: 'Academic Violation')),
+                            child: Text(_text(context,
+                                vi: 'Vi phạm học thuật',
+                                en: 'Academic Violation')),
                           ),
                           DropdownMenuItem(
                             value: 'Room Management',
-                            child: Text(_text(context, vi: 'Quản lý phòng', en: 'Room Management')),
+                            child: Text(_text(context,
+                                vi: 'Quản lý phòng', en: 'Room Management')),
                           ),
                           DropdownMenuItem(
                             value: 'Face Mismatch',
-                            child: Text(_text(context, vi: 'Sai thông tin', en: 'Face Mismatch')),
+                            child: Text(_text(context,
+                                vi: 'Sai thông tin', en: 'Face Mismatch')),
                           ),
                         ],
                         onChanged: (v) => issueType = v ?? issueType,
-                        decoration: _ticketFieldDecoration(label: l10n.issueType),
+                        decoration:
+                            _ticketFieldDecoration(label: l10n.issueType),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -3037,26 +3418,31 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                         items: [
                           DropdownMenuItem(
                             value: 'Normal',
-                            child: Text(_text(context, vi: 'Bình thường', en: 'Normal')),
+                            child: Text(_text(context,
+                                vi: 'Bình thường', en: 'Normal')),
                           ),
                           DropdownMenuItem(
                             value: 'Urgent',
-                            child: Text(_text(context, vi: 'Khẩn cấp', en: 'Urgent')),
+                            child: Text(
+                                _text(context, vi: 'Khẩn cấp', en: 'Urgent')),
                           ),
                         ],
                         onChanged: (v) => priority = v ?? priority,
-                        decoration: _ticketFieldDecoration(label: l10n.priority),
+                        decoration:
+                            _ticketFieldDecoration(label: l10n.priority),
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: issueNameCtrl,
-                        decoration: _ticketFieldDecoration(label: l10n.issueName),
+                        decoration:
+                            _ticketFieldDecoration(label: l10n.issueName),
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: descriptionCtrl,
                         maxLines: 2,
-                        decoration: _ticketFieldDecoration(label: l10n.description),
+                        decoration:
+                            _ticketFieldDecoration(label: l10n.description),
                       ),
                       const SizedBox(height: 16),
                       Align(
@@ -3083,7 +3469,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             vi: 'Ảnh dùng chung cho tất cả ticket tạo trong lần này.',
                             en: 'This attachment will be shared across all created tickets.',
                           ),
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF64748B)),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -3111,7 +3498,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                       aiPrediction = null;
                                       isAiAnalyzing = true;
                                     });
-                                    final prediction = await _predictTicketFromImage(file);
+                                    final prediction =
+                                        await _predictTicketFromImage(file);
                                     if (!mounted) return;
                                     setModalState(() {
                                       aiPrediction = prediction;
@@ -3123,8 +3511,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                         setIssueType: (nextIssueType) {
                                           issueType = nextIssueType;
                                         },
-                                        setAssignmentType: (nextAssignmentType) {
-                                          confirmedAssignmentType = nextAssignmentType;
+                                        setAssignmentType:
+                                            (nextAssignmentType) {
+                                          confirmedAssignmentType =
+                                              nextAssignmentType;
                                         },
                                       );
                                     });
@@ -3158,7 +3548,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                       aiPrediction = null;
                                       isAiAnalyzing = true;
                                     });
-                                    final prediction = await _predictTicketFromImage(file);
+                                    final prediction =
+                                        await _predictTicketFromImage(file);
                                     if (!mounted) return;
                                     setModalState(() {
                                       aiPrediction = prediction;
@@ -3170,8 +3561,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                         setIssueType: (nextIssueType) {
                                           issueType = nextIssueType;
                                         },
-                                        setAssignmentType: (nextAssignmentType) {
-                                          confirmedAssignmentType = nextAssignmentType;
+                                        setAssignmentType:
+                                            (nextAssignmentType) {
+                                          confirmedAssignmentType =
+                                              nextAssignmentType;
                                         },
                                       );
                                     });
@@ -3210,7 +3603,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          _text(context, vi: 'Giao ticket cho', en: 'Assign ticket to'),
+                          _text(context,
+                              vi: 'Giao ticket cho', en: 'Assign ticket to'),
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -3262,8 +3656,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             content: Row(
                               children: [
                                 const SizedBox(
-                                  width: 18, height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
@@ -3280,7 +3676,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                         );
                       }
                       sharedUrl = await _uploadImage(bulkAttachmentImage!);
-                      if (context.mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      if (context.mounted)
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     } else {
                       Navigator.of(ctx).pop();
                     }
@@ -3299,14 +3696,24 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           'confirmedAssignmentType': confirmedAssignmentType,
                           if (sharedUrl != null) 'attachment': sharedUrl,
                           if (aiPrediction != null) ...{
-                            'ocrText': (aiPrediction!['ocr_text'] ?? '').toString(),
-                            'aiPredictedIssueName': (aiPrediction!['issue_name'] ?? '').toString(),
-                            'aiPredictedIssueType': (aiPrediction!['issue_type'] ?? '').toString(),
+                            'ocrText':
+                                (aiPrediction!['ocr_text'] ?? '').toString(),
+                            'aiPredictedIssueName':
+                                (aiPrediction!['issue_name'] ?? '').toString(),
+                            'aiPredictedIssueType':
+                                (aiPrediction!['issue_type'] ?? '').toString(),
                             'aiConfidence': aiPrediction!['confidence'],
-                            'aiDisplayMessage': (aiPrediction!['display_message'] ?? '').toString(),
-                            'aiEvidenceText': (aiPrediction!['evidence_text'] ?? '').toString(),
+                            'aiDisplayMessage':
+                                (aiPrediction!['display_message'] ?? '')
+                                    .toString(),
+                            'aiEvidenceText':
+                                (aiPrediction!['evidence_text'] ?? '')
+                                    .toString(),
                             'aiModelVersion': 'text_baseline_v1',
-                            'aiRecommendedAssignmentType': (aiPrediction!['recommended_assignment_type'] ?? '').toString(),
+                            'aiRecommendedAssignmentType':
+                                (aiPrediction!['recommended_assignment_type'] ??
+                                        '')
+                                    .toString(),
                           },
                         },
                         showToast: false,
@@ -3378,7 +3785,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           timestamp == null) {
         throw Exception('Missing Cloudinary signed upload params');
       }
-      if (expiresAt is num && DateTime.now().millisecondsSinceEpoch ~/ 1000 > expiresAt) {
+      if (expiresAt is num &&
+          DateTime.now().millisecondsSinceEpoch ~/ 1000 > expiresAt) {
         throw Exception('Cloudinary signed upload params expired');
       }
 
@@ -3404,7 +3812,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         'public_id': publicId,
       });
       final response = await directUploadDio.post(uploadUrl, data: formData);
-      final url = response.data is Map ? response.data['secure_url'] as String? : null;
+      final url =
+          response.data is Map ? response.data['secure_url'] as String? : null;
       return url;
     } catch (e) {
       debugPrint('Upload image error: $e');
@@ -3458,7 +3867,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           en: 'The ticket service is not yet synced with the AI fields. Please restart the backend after updating the schema.',
         );
       }
-      if (statusCode == 400 && backendMessage != null && backendMessage.isNotEmpty) {
+      if (statusCode == 400 &&
+          backendMessage != null &&
+          backendMessage.isNotEmpty) {
         return backendMessage;
       }
       if (statusCode == 401) {
@@ -3532,9 +3943,3 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     }
   }
 }
-
-
-
-
-
-

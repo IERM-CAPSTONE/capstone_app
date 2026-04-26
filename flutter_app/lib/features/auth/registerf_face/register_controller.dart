@@ -36,7 +36,8 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
   static const int _requiredClosedFrames = 1;
   static const int _requiredReopenedFrames = 1;
   static const double _hMin = 12.0;
-  static const double _vUpMin = 3.0;
+  static const double _hRightMin = 9.0;
+  static const double _vUpMin = 8.0;
   static const double _vDownMin = 5.0;
   static const double _centerThreshold = 12.0;
   static const double _eyeClosedThreshold = 0.40;
@@ -45,6 +46,8 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
   static const double _minFaceHeightRatio = 0.32;
   static const double _maxFaceOffsetXRatio = 0.18;
   static const double _maxFaceOffsetYRatio = 0.22;
+  static const double _maxTurnedFaceOffsetXRatio = 0.28;
+  static const double _maxTurnedFaceOffsetYRatio = 0.26;
 
   bool _blinkDetected = false;
   int _blinkCount = 0;
@@ -222,7 +225,14 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       }
 
       final face = faces.first;
-      if (!_isFaceWellPositioned(face, inputImage.metadata!.size)) {
+      final headY = face.headEulerAngleY ?? 0;
+      final headX = face.headEulerAngleX ?? 0;
+
+      if (!_isFaceWellPositioned(
+        face,
+        inputImage.metadata!.size,
+        state.currentPose,
+      )) {
         _poseStableCount = 0;
         state = state.copyWith(
           status: FaceScanStatus.faceDetected,
@@ -230,9 +240,6 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
         );
         return;
       }
-
-      final headY = face.headEulerAngleY ?? 0;
-      final headX = face.headEulerAngleX ?? 0;
 
       if (state.currentPose == HeadPose.center) {
         _detectBlink(face);
@@ -336,7 +343,7 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     _eyesReopenedFrames = 0;
   }
 
-  bool _isFaceWellPositioned(Face face, Size imageSize) {
+  bool _isFaceWellPositioned(Face face, Size imageSize, HeadPose pose) {
     final boundingBox = face.boundingBox;
     final widthRatio = boundingBox.width / imageSize.width;
     final heightRatio = boundingBox.height / imageSize.height;
@@ -346,11 +353,17 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
         (centerX - imageSize.width / 2).abs() / imageSize.width;
     final offsetYRatio =
         (centerY - imageSize.height / 2).abs() / imageSize.height;
+    final maxOffsetX = pose == HeadPose.center
+        ? _maxFaceOffsetXRatio
+        : _maxTurnedFaceOffsetXRatio;
+    final maxOffsetY = pose == HeadPose.center
+        ? _maxFaceOffsetYRatio
+        : _maxTurnedFaceOffsetYRatio;
 
     return widthRatio >= _minFaceWidthRatio &&
         heightRatio >= _minFaceHeightRatio &&
-        offsetXRatio <= _maxFaceOffsetXRatio &&
-        offsetYRatio <= _maxFaceOffsetYRatio;
+        offsetXRatio <= maxOffsetX &&
+        offsetYRatio <= maxOffsetY;
   }
 
   bool _checkPoseMatch(HeadPose requiredPose, double eulerY, double eulerX) {
@@ -361,7 +374,7 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       case HeadPose.left:
         return eulerY > _hMin;
       case HeadPose.right:
-        return eulerY < -_hMin;
+        return eulerY < -_hRightMin;
       case HeadPose.up:
         return eulerX > _vUpMin;
       case HeadPose.down:
