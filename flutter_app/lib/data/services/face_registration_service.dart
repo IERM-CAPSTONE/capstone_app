@@ -10,6 +10,8 @@ class FaceRegistrationService {
     required Map<HeadPose, String> capturedImages,
     String? studentId,
     String? studentCode,
+    String? otp,
+    String? retentionPolicy,
     bool isEncrypted = true,
   }) async {
     try {
@@ -21,6 +23,8 @@ class FaceRegistrationService {
       final requestData = {
         'studentId': studentId,
         'studentCode': studentCode,
+        'otp': otp,
+        'retentionPolicy': retentionPolicy,
         'encryptedImages': encryptedImagesMap,
         'isEncrypted': isEncrypted,
       };

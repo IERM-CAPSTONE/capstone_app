@@ -44,6 +44,9 @@ class RegisterFaceState {
   final Map<HeadPose, String> capturedImages;
   final bool isWearingGlasses;
   final String? targetStudentCode;
+  final String? otp;
+  final String? retentionPolicy;
+  final String? pendingEnrollmentId;
   final RegisteredStudentInfo? registeredStudent;
 
   const RegisterFaceState({
@@ -56,6 +59,9 @@ class RegisterFaceState {
     this.capturedImages = const {},
     this.isWearingGlasses = false,
     this.targetStudentCode,
+    this.otp,
+    this.retentionPolicy,
+    this.pendingEnrollmentId,
     this.registeredStudent,
   });
 
@@ -69,6 +75,9 @@ class RegisterFaceState {
     Map<HeadPose, String>? capturedImages,
     bool? isWearingGlasses,
     Object? targetStudentCode = _unset,
+    Object? otp = _unset,
+    Object? retentionPolicy = _unset,
+    Object? pendingEnrollmentId = _unset,
     Object? registeredStudent = _unset,
   }) {
     return RegisterFaceState(
@@ -87,6 +96,13 @@ class RegisterFaceState {
       targetStudentCode: identical(targetStudentCode, _unset)
           ? this.targetStudentCode
           : targetStudentCode as String?,
+      otp: identical(otp, _unset) ? this.otp : otp as String?,
+      retentionPolicy: identical(retentionPolicy, _unset)
+          ? this.retentionPolicy
+          : retentionPolicy as String?,
+      pendingEnrollmentId: identical(pendingEnrollmentId, _unset)
+          ? this.pendingEnrollmentId
+          : pendingEnrollmentId as String?,
       registeredStudent: identical(registeredStudent, _unset)
           ? this.registeredStudent
           : registeredStudent as RegisteredStudentInfo?,

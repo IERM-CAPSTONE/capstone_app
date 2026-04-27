@@ -37,6 +37,17 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   String? _selectedCommentResolutionCode;
   bool _commentDraftHydrated = false;
 
+  // Staged changes for unified processing
+  String? _stagedStatus;
+  String? _stagedTargetRole;
+  UserModel? _stagedAssignee;
+  bool get _hasChanges =>
+      _stagedStatus != null ||
+      _stagedTargetRole != null ||
+      _stagedAssignee != null ||
+      _commentController.text.trim().isNotEmpty ||
+      _commentMode != 'discussion';
+
   ApiService get _api => DependencyInjection.get<ApiService>();
   AuthService get _auth => DependencyInjection.get<AuthService>();
 
@@ -88,13 +99,13 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   String _issueTypeLabel(String value) {
     switch (value) {
       case 'Technical Issue':
-        return _isVietnamese ? 'S\u1ef1 c\u1ed1 k\u1ef9 thu\u1eadt' : 'Technical Issue';
+        return _isVietnamese ? 'Sự cố kỹ thuật' : 'Technical Issue';
       case 'Academic Violation':
-        return _isVietnamese ? 'Vi ph\u1ea1m h\u1ecdc thu\u1eadt' : 'Academic Violation';
+        return _isVietnamese ? 'Vi phạm học thuật' : 'Academic Violation';
       case 'Room Management':
-        return _isVietnamese ? 'Qu\u1ea3n l\u00fd ph\u00f2ng thi' : 'Room Management';
+        return _isVietnamese ? 'Quản lý phòng thi' : 'Room Management';
       case 'Face Mismatch':
-        return _isVietnamese ? 'Sai th\u00f4ng tin khu\u00f4n m\u1eb7t' : 'Face Mismatch';
+        return _isVietnamese ? 'Sai thông tin khuôn mặt' : 'Face Mismatch';
       default:
         return value;
     }
@@ -103,15 +114,15 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   String _statusLabel(String value) {
     switch (value.toUpperCase()) {
       case 'OPEN':
-        return _isVietnamese ? 'M\u1edf' : 'Open';
+        return _isVietnamese ? 'Mở' : 'Open';
       case 'IN_PROGRESS':
-        return _isVietnamese ? '\u0110ang x\u1eed l\u00fd' : 'In Progress';
+        return _isVietnamese ? 'Đang xử lý' : 'In Progress';
       case 'SOLVED':
       case 'RESOLVED':
       case 'CLOSED':
-        return _isVietnamese ? '\u0110\u00e3 gi\u1ea3i quy\u1ebft' : 'Solved';
+        return _isVietnamese ? 'Đã giải quyết' : 'Solved';
       case 'CANCELLED':
-        return _isVietnamese ? '\u0110\u00e3 h\u1ee7y' : 'Cancelled';
+        return _isVietnamese ? 'Đã hủy' : 'Cancelled';
       default:
         return value;
     }
@@ -120,9 +131,9 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   String _priorityLabel(String value) {
     switch (value.toUpperCase()) {
       case 'URGENT':
-        return _isVietnamese ? 'Kh\u1ea9n c\u1ea5p' : 'Urgent';
+        return _isVietnamese ? 'Khẩn cấp' : 'Urgent';
       case 'NORMAL':
-        return _isVietnamese ? 'B\u00ecnh th\u01b0\u1eddng' : 'Normal';
+        return _isVietnamese ? 'Bình thường' : 'Normal';
       default:
         return value;
     }
@@ -148,19 +159,6 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
         'Room Management',
         'Face Mismatch',
       ];
-
-  String _extractAdditionalResolveNote(TicketModel ticket) {
-    final resolveNote = (ticket.resolveNote ?? '').trim();
-    final standardText = (ticket.resolutionStandardText ?? '').trim();
-    if (resolveNote.isEmpty) return '';
-    if (standardText.isEmpty) return resolveNote;
-    if (resolveNote == standardText) return '';
-    if (resolveNote.startsWith(standardText)) {
-      final remainder = resolveNote.substring(standardText.length).trim();
-      return remainder.replaceFirst(RegExp(r'^[-:\u2022\n\s]+'), '').trim();
-    }
-    return resolveNote;
-  }
 
   Color _statusColor(String status) {
     switch (status.toUpperCase()) {
@@ -266,6 +264,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
         return _isVietnamese ? 'hoàn thành ticket' : 'resolve';
       case 'start':
         return _isVietnamese ? 'bắt đầu xử lý' : 'start';
+      case 'reopen':
+        return _isVietnamese ? 'mở lại ticket' : 'reopen';
       default:
         return action ?? '';
     }
@@ -279,11 +279,21 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
       case 'Ticket Created':
         return _isVietnamese ? 'Tạo ticket' : payloadTitle;
       case 'Ticket Workflow':
-        return _isVietnamese ? 'Luồng xử lý ticket' : payloadTitle;
+      case 'Lifecycle updated':
+      case 'Status updated':
+        return _isVietnamese ? 'Cập nhật trạng thái' : payloadTitle;
       case 'Ticket Comment':
         return _isVietnamese ? 'Bình luận ticket' : payloadTitle;
+      case 'Conclusion updated':
+        return _isVietnamese ? 'Cập nhật kết luận' : payloadTitle;
+      case 'Conclusion deleted':
+        return _isVietnamese ? 'Xóa kết luận' : payloadTitle;
       case 'AI Review':
         return _isVietnamese ? 'Duyệt AI' : payloadTitle;
+      case 'Ticket routed':
+        return _isVietnamese ? 'Chuyển ticket' : payloadTitle;
+      case 'Auto assigned':
+        return _isVietnamese ? 'Tự động giao việc' : payloadTitle;
       default:
         return payloadTitle;
     }
@@ -301,12 +311,28 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     final meta = payload?['meta'] as Map<String, dynamic>?;
 
     if (event == 'TICKET_COMMENTED') {
-      final actorName = RegExp(r'^(.*) added a comment$')
+      final commentActor = RegExp(r'^(.*) added a comment$')
           .firstMatch(payloadMessage)
           ?.group(1)
           ?.trim();
-      if (actorName != null && actorName.isNotEmpty) {
-        return '$actorName đã thêm một bình luận';
+      if (commentActor != null && commentActor.isNotEmpty) {
+        return '$commentActor đã thêm một bình luận';
+      }
+
+      final conclusionUpdateActor = RegExp(r'^(.*) updated the current conclusion$')
+          .firstMatch(payloadMessage)
+          ?.group(1)
+          ?.trim();
+      if (conclusionUpdateActor != null) {
+        return '$conclusionUpdateActor đã cập nhật kết luận hiện tại';
+      }
+
+      final conclusionAddActor = RegExp(r'^(.*) added a conclusion$')
+          .firstMatch(payloadMessage)
+          ?.group(1)
+          ?.trim();
+      if (conclusionAddActor != null) {
+        return '$conclusionAddActor đã thêm kết luận xử lý';
       }
     }
 
@@ -317,7 +343,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
       }
     }
 
-    if (event == 'TICKET_ASSIGNED' || event == 'TICKET_REASSIGNED') {
+    if (event == 'TICKET_ASSIGNED' || event == 'TICKET_REASSIGNED' || event == 'TICKET_STARTED' || event == 'TICKET_RESOLVED' || event == 'TICKET_REOPENED') {
       final match =
           RegExp(r'^(.*) performed (.*) on ticket (.*)$').firstMatch(payloadMessage);
       final actorName = match?.group(1)?.trim();
@@ -326,6 +352,37 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
       if (actorName != null && actorName.isNotEmpty && ticketName != null) {
         return '$actorName đã ${_actionLabel(action)} cho ticket $ticketName';
       }
+    }
+
+    // Ticket routed
+    if (payloadMessage.startsWith('Routed to ')) {
+      final role = payloadMessage.replaceFirst('Routed to ', '').trim();
+      String localizedRole = role;
+      if (role == 'HALL_INVIGILATOR') localizedRole = 'Hành lang';
+      if (role == 'EXAM_OFFICER') localizedRole = 'Khảo thí';
+      if (role == 'IT_SUPPORT') localizedRole = 'Hỗ trợ IT';
+      if (role == 'PROCTOR') localizedRole = 'Giám thị phòng';
+      return 'Đã chuyển cho bộ phận $localizedRole';
+    }
+
+    // Auto assigned
+    if (payloadMessage.startsWith('System auto-assigned to ')) {
+      final actor = payloadMessage.replaceFirst('System auto-assigned to ', '').trim();
+      return 'Hệ thống tự động giao cho $actor';
+    }
+
+    // Status updated
+    final statusMatch = RegExp(r'^(.*) changed status from (.*) to (.*)$').firstMatch(payloadMessage);
+    if (statusMatch != null) {
+      final actor = statusMatch.group(1)?.trim();
+      final fromStatus = statusMatch.group(2)?.trim();
+      final toStatus = statusMatch.group(3)?.trim();
+      return '$actor đã thay đổi trạng thái từ ${_statusLabel(fromStatus ?? '')} sang ${_statusLabel(toStatus ?? '')}';
+    }
+
+    if (payloadMessage.contains('performed REOPEN')) {
+       final actor = payloadMessage.split(' performed REOPEN').first.trim();
+       return '$actor đã thực hiện mở lại ticket';
     }
 
     if (event == 'TICKET_AI_REVIEWED') {
@@ -356,16 +413,16 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
 
     switch (activity.activityType) {
       case 'TICKET_CREATED':
-        return _isVietnamese ? 'T\u1ea1o ticket' : 'Ticket created';
+        return _isVietnamese ? 'Tạo ticket' : 'Ticket created';
       case 'TICKET_ASSIGNED':
       case 'TICKET_REASSIGNED':
-        return _isVietnamese ? 'Chuy\u1ec3n x\u1eed l\u00fd' : 'Assigned';
+        return _isVietnamese ? 'Chuyển xử lý' : 'Assigned';
       case 'TICKET_STARTED':
-        return _isVietnamese ? 'B\u1eaft \u0111\u1ea7u x\u1eed l\u00fd' : 'Started';
+        return _isVietnamese ? 'Bắt đầu xử lý' : 'Started';
       case 'TICKET_RESOLVED':
-        return _isVietnamese ? 'Ho\u00e0n th\u00e0nh ticket' : 'Resolved';
+        return _isVietnamese ? 'Hoàn thành ticket' : 'Resolved';
       case 'TICKET_COMMENTED':
-        return _isVietnamese ? 'B\u00ecnh lu\u1eadn' : 'Comment';
+        return _isVietnamese ? 'Bình luận' : 'Comment';
       default:
         return activity.activityType;
     }
@@ -381,20 +438,20 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     switch (activity.activityType) {
       case 'TICKET_CREATED':
         return _isVietnamese
-            ? 'Ticket \u0111\u00e3 \u0111\u01b0\u1ee3c t\u1ea1o trong h\u1ec7 th\u1ed1ng.'
+            ? 'Ticket đã được tạo trong hệ thống.'
             : 'This ticket was created in the system.';
       case 'TICKET_ASSIGNED':
       case 'TICKET_REASSIGNED':
         return _isVietnamese
-            ? 'Ticket \u0111\u00e3 \u0111\u01b0\u1ee3c chuy\u1ec3n cho ng\u01b0\u1eddi x\u1eed l\u00fd kh\u00e1c.'
+            ? 'Ticket đã được chuyển cho người xử lý khác.'
             : 'This ticket was reassigned to another staff.';
       case 'TICKET_STARTED':
         return _isVietnamese
-            ? 'Ng\u01b0\u1eddi x\u1eed l\u00fd \u0111\u00e3 b\u1eaft \u0111\u1ea7u l\u00e0m vi\u1ec7c v\u1edbi ticket n\u00e0y.'
+            ? 'Người xử lý đã bắt đầu làm việc với ticket này.'
             : 'Processing has started for this ticket.';
       case 'TICKET_RESOLVED':
         return _isVietnamese
-            ? 'Ticket \u0111\u00e3 \u0111\u01b0\u1ee3c \u0111\u00e1nh d\u1ea5u ho\u00e0n th\u00e0nh.'
+            ? 'Ticket đã được đánh dấu hoàn thành.'
             : 'This ticket was marked as resolved.';
       default:
         return activity.description;
@@ -429,38 +486,6 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
               isError ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
         ),
       );
-  }
-
-  Future<void> _submitProcessAction(Map<String, dynamic> payload) async {
-    setState(() => _submitting = true);
-    try {
-      await _api.processTicket(widget.ticketId, payload);
-      _reloadTicket(silent: true);
-      if (!mounted) return;
-      _showSnack(_isVietnamese ? 'C\u1eadp nh\u1eadt ticket th\u00e0nh c\u00f4ng.' : 'Ticket updated.');
-    } catch (error) {
-      _showSnack(_extractReadableError(error), isError: true);
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
-
-  Future<void> _submitComment(String content) async {
-    setState(() => _submitting = true);
-    try {
-      await _api.commentTicket(widget.ticketId, {
-        'mode': 'DISCUSSION',
-        'body': content,
-      });
-      _commentController.clear();
-      _reloadTicket(silent: true);
-      if (!mounted) return;
-      _showSnack(_isVietnamese ? 'Đã thêm bình luận.' : 'Comment added.');
-    } catch (error) {
-      _showSnack(_extractReadableError(error), isError: true);
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
   }
 
   String _selectedCommentIssueLabel() {
@@ -543,152 +568,99 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     return lines.join('\n');
   }
 
-  Future<void> _submitCommentByMode(TicketModel ticket) async {
+  Future<void> _handleUnifiedSave(TicketModel ticket) async {
+    final note = _commentController.text.trim();
     final isStructuredMode = _commentMode != 'discussion';
-    final content =
-        _buildStructuredComment(includeResolutionFields: isStructuredMode);
+    final content = _buildStructuredComment(includeResolutionFields: isStructuredMode);
 
-    if (content.trim().isEmpty) {
-      _showSnack(
-        _isVietnamese
-            ? 'Vui lòng nhập nội dung bình luận.'
-            : 'Please enter a comment.',
-        isError: true,
-      );
+    if (!_hasChanges) {
+      _showSnack(_isVietnamese ? 'Không có thay đổi nào để lưu.' : 'No changes to save.', isError: true);
       return;
     }
 
-    if (!isStructuredMode) {
-      await _submitComment(content);
-      return;
-    }
-
-    final selectedIssueCode =
-        _selectedCommentIssueCode ?? kTicketIssuePresets.first.code;
-    final selectedIssueType =
-        _selectedCommentIssueType ?? 'Technical Issue';
-    final selectedResolution = _selectedCommentResolutionPreset();
-    final response = _responseController.text.trim();
-    final customIssueText = _customIssueController.text.trim();
-    final customResolutionText = _customResolutionController.text.trim();
-
-    if (selectedResolution == null) {
-      _showSnack(
-        _isVietnamese
-            ? 'Vui lòng chọn cách xử lý và nhập phản hồi.'
-            : 'Please choose a resolution.',
-        isError: true,
-      );
-      return;
-    }
-    final fallbackResponse = customResolutionText.isNotEmpty
-        ? customResolutionText
-        : _resolutionPresetText(selectedResolution);
-    final responseText = response.isNotEmpty
-        ? response
-        : (fallbackResponse.trim().isNotEmpty
-            ? fallbackResponse.trim()
-            : _selectedCommentResolutionLabel());
-
-    if (_commentMode == 'conclusion') {
-      setState(() => _submitting = true);
-      try {
-        await _api.commentTicket(widget.ticketId, {
-          'mode': 'CONCLUSION',
-          'body': content,
-          'useForAiTraining': _commentUseForAi,
-          'issueCode': selectedIssueCode,
-          'issueType': selectedIssueType,
-          'issueCustomText':
-              selectedIssueCode == 'OTHER' ? customIssueText : null,
-          'resolutionCode': selectedResolution.code,
-          'resolutionCustomText':
-              selectedResolution.code == 'CUSTOM' ? customResolutionText : null,
-          'responseText': responseText,
+    setState(() => _submitting = true);
+    try {
+      // 1. Assignment Change
+      if (_stagedTargetRole != null) {
+        await _api.routeTicket(widget.ticketId, {
+          'targetRole': _stagedTargetRole,
+          'reason': note.isNotEmpty ? note : (_isVietnamese ? 'Chuyển xử lý' : 'Route ticket'),
         });
+      } else if (_stagedAssignee != null) {
+        await _api.processTicket(widget.ticketId, {
+          'action': ticket.assigneeId != null ? 'reassign' : 'assign',
+          'assigneeId': _stagedAssignee!.id,
+          'note': note.isNotEmpty ? note : null,
+        });
+      }
+
+      // 2. Status Change
+      if (_stagedStatus != null) {
+        final currentStatus = ticket.status.toUpperCase();
+        if (_stagedStatus == 'IN_PROGRESS' && (currentStatus == 'SOLVED' || currentStatus == 'CLOSED')) {
+          await _api.lifecycleTicket(widget.ticketId, {'action': 'REOPEN'});
+        } else {
+          await _api.processTicket(widget.ticketId, {
+            'action': 'change_status',
+            'status': _stagedStatus,
+            'note': note.isNotEmpty ? note : null,
+          });
+        }
+      }
+
+      // 3. Comment / Conclusion
+      if (note.isNotEmpty || isStructuredMode) {
+        if (!isStructuredMode) {
+          await _api.commentTicket(widget.ticketId, {
+            'mode': 'DISCUSSION',
+            'body': content,
+          });
+        } else {
+          final selectedIssueCode = _selectedCommentIssueCode ?? kTicketIssuePresets.first.code;
+          final selectedIssueType = _selectedCommentIssueType ?? 'Technical Issue';
+          final selectedResolution = _selectedCommentResolutionPreset();
+          final response = _responseController.text.trim();
+          final customIssueText = _customIssueController.text.trim();
+          final customResolutionText = _customResolutionController.text.trim();
+
+          if (selectedResolution != null) {
+            final fallbackResponse = customResolutionText.isNotEmpty
+                ? customResolutionText
+                : _resolutionPresetText(selectedResolution);
+            final responseText = response.isNotEmpty
+                ? response
+                : (fallbackResponse.trim().isNotEmpty
+                    ? fallbackResponse.trim()
+                    : _selectedCommentResolutionLabel());
+
+            await _api.commentTicket(widget.ticketId, {
+              'mode': 'CONCLUSION',
+              'body': content,
+              'useForAiTraining': _commentUseForAi,
+              'issueCode': selectedIssueCode,
+              'issueType': selectedIssueType,
+              'issueCustomText': selectedIssueCode == 'OTHER' ? customIssueText : null,
+              'resolutionCode': selectedResolution.code,
+              'resolutionCustomText': selectedResolution.code == 'CUSTOM' ? customResolutionText : null,
+              'responseText': responseText,
+            });
+          }
+        }
+      }
+
+      _showSnack(_isVietnamese ? 'Đã lưu tất cả thay đổi.' : 'All changes saved.');
+
+      // Reset staged state
+      setState(() {
+        _stagedStatus = null;
+        _stagedTargetRole = null;
+        _stagedAssignee = null;
         _commentController.clear();
-        _reloadTicket(silent: true);
-        if (!mounted) return;
-        _showSnack(
-          _commentUseForAi
-              ? (_isVietnamese
-                  ? 'Đã cập nhật xử lý và tạo dữ liệu AI.'
-                  : 'Handling result updated and AI candidate created.')
-              : (_isVietnamese
-                  ? 'Đã cập nhật xử lý.'
-                  : 'Handling result updated.'),
-        );
-      } catch (error) {
-        _showSnack(_extractReadableError(error), isError: true);
-      } finally {
-        if (mounted) setState(() => _submitting = false);
-      }
-      return;
-    }
-
-    setState(() => _submitting = true);
-    try {
-      await _api.commentTicket(widget.ticketId, {
-        'mode': 'CONCLUSION',
-        'body': content,
-        'useForAiTraining': false,
-        'issueCode': selectedIssueCode,
-        'issueType': selectedIssueType,
-        'issueCustomText':
-            selectedIssueCode == 'OTHER' ? customIssueText : null,
-        'resolutionCode': selectedResolution.code,
-        'resolutionCustomText':
-            selectedResolution.code == 'CUSTOM' ? customResolutionText : null,
-        'responseText': responseText,
+        _commentMode = 'discussion';
+        _commentUseForAi = false;
       });
-      _commentController.clear();
+
       _reloadTicket(silent: true);
-      if (!mounted) return;
-      _showSnack(
-        _isVietnamese
-            ? 'Đã lưu kết quả xử lý.'
-            : 'Handling result saved.',
-      );
-    } catch (error) {
-      _showSnack(_extractReadableError(error), isError: true);
-    } finally {
-      if (mounted) {
-        setState(() => _submitting = false);
-      }
-    }
-  }
-
-  Future<List<UserModel>> _fetchUsersByRole(String role) async {
-    final response = await _api.getUsers(1, 100, role, null);
-    return response.data.where((user) => user.id != null).toList();
-  }
-
-  Future<void> _autoAssignToRole(TicketModel ticket, String targetRole) async {
-    setState(() => _submitting = true);
-    try {
-      final note = targetRole == 'EXAM_OFFICER'
-          ? (_isVietnamese
-              ? 'Chuyển khảo thí tự động.'
-              : 'Automatically assigned to Exam Officer.')
-          : (_isVietnamese
-              ? 'Chuyển xử lý tự động.'
-              : 'Automatically assigned.');
-
-      await _api.routeTicket(widget.ticketId, {
-        'targetRole': targetRole,
-        'reason': note,
-      });
-      _reloadTicket(silent: true);
-      if (!mounted) return;
-      _showSnack(
-        targetRole == 'EXAM_OFFICER'
-            ? (_isVietnamese
-                ? 'Đã chuyển khảo thí.'
-                : 'Assigned to Exam Officer.')
-            : (_isVietnamese
-                ? 'Đã chuyển xử lý.'
-                : 'Assigned successfully.'),
-      );
     } catch (error) {
       _showSnack(_extractReadableError(error), isError: true);
     } finally {
@@ -696,7 +668,128 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     }
   }
 
+  Widget _buildStagedChangesBanner() {
+    if (!_hasChanges) return const SizedBox.shrink();
+
+    final List<Widget> chips = [];
+    if (_stagedStatus != null) {
+      chips.add(_buildChangeChip(
+        icon: Icons.sync_alt_rounded,
+        label: '${_isVietnamese ? 'Trạng thái' : 'Status'}: ${_statusLabel(_stagedStatus!)}',
+        onDelete: () => setState(() => _stagedStatus = null),
+      ));
+    }
+    if (_stagedTargetRole != null) {
+      String roleLabel = _stagedTargetRole!;
+      if (_stagedTargetRole == 'EXAM_OFFICER') {
+        roleLabel = _isVietnamese ? 'Khảo thí' : 'Exam Officer';
+      } else if (_stagedTargetRole == 'IT_SUPPORT') {
+        roleLabel = _isVietnamese ? 'Hỗ trợ IT' : 'IT Support';
+      } else if (_stagedTargetRole == 'PROCTOR') {
+        roleLabel = _isVietnamese ? 'Giám thị phòng' : 'Proctor';
+      }
+      chips.add(_buildChangeChip(
+        icon: Icons.assignment_ind_rounded,
+        label: '${_isVietnamese ? 'Giao cho' : 'Assign to'}: $roleLabel',
+        onDelete: () => setState(() => _stagedTargetRole = null),
+      ));
+    }
+    if (_stagedAssignee != null) {
+      chips.add(_buildChangeChip(
+        icon: Icons.person_rounded,
+        label: '${_isVietnamese ? 'Giao cho' : 'Assign to'}: ${_stagedAssignee!.fullName ?? _stagedAssignee!.username ?? '...'}',
+        onDelete: () => setState(() => _stagedAssignee = null),
+      ));
+    }
+    if (_commentMode != 'discussion') {
+      chips.add(_buildChangeChip(
+        icon: Icons.assignment_turned_in_rounded,
+        label: _isVietnamese ? 'Có kết luận xử lý' : 'Has handling conclusion',
+        onDelete: () => setState(() => _commentMode = 'discussion'),
+      ));
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.pending_actions_rounded, size: 18, color: Color(0xFF2563EB)),
+              const SizedBox(width: 8),
+              Text(
+                _isVietnamese ? 'Thay đổi đang chờ' : 'Pending changes',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E40AF),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: chips,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChangeChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onDelete,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF2563EB)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1E40AF),
+            ),
+          ),
+          const SizedBox(width: 2),
+          IconButton(
+            constraints: const BoxConstraints(),
+            padding: EdgeInsets.zero,
+            iconSize: 16,
+            icon: const Icon(Icons.cancel_rounded, color: Color(0xFF94A3B8)),
+            onPressed: onDelete,
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showAssignTargetDialog(TicketModel ticket) async {
+    void autoAssignToRole(String targetRole) {
+      setState(() {
+        _stagedTargetRole = targetRole;
+        _stagedAssignee = null;
+      });
+    }
+
     await showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
@@ -705,11 +798,19 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                leading: const Icon(Icons.person_search_rounded),
+                title: Text(_isVietnamese ? 'Chuyển giám thị phòng' : 'Route to Proctor'),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  autoAssignToRole('PROCTOR');
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.computer_rounded),
                 title: Text(_isVietnamese ? 'Chuyển IT Support' : 'Route to IT Support'),
                 onTap: () async {
                   Navigator.of(sheetContext).pop();
-                  await _autoAssignToRole(ticket, 'IT_SUPPORT');
+                  autoAssignToRole('IT_SUPPORT');
                 },
               ),
               ListTile(
@@ -717,7 +818,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                 title: Text(_isVietnamese ? 'Chuyển khảo thí' : 'Route to Exam Officer'),
                 onTap: () async {
                   Navigator.of(sheetContext).pop();
-                  await _autoAssignToRole(ticket, 'EXAM_OFFICER');
+                  autoAssignToRole('EXAM_OFFICER');
                 },
               ),
             ],
@@ -758,7 +859,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
               return DropdownButtonFormField<String>(
-                value: selectedStatus,
+                initialValue: selectedStatus,
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: _isVietnamese ? 'Trạng thái' : 'Status',
@@ -784,320 +885,16 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
               child: Text(_isVietnamese ? 'Hủy' : 'Cancel'),
             ),
             FilledButton(
-              onPressed: () async {
+              onPressed: () {
                 Navigator.of(dialogContext).pop();
                 if (selectedStatus == currentStatus) {
                   return;
                 }
-
-                if (selectedStatus == 'IN_PROGRESS' &&
-                    (currentStatus == 'SOLVED' || currentStatus == 'CLOSED')) {
-                  await _api.lifecycleTicket(widget.ticketId, {'action': 'REOPEN'});
-                  _reloadTicket(silent: true);
-                } else {
-                  await _api.processTicket(widget.ticketId, {
-                    'action': 'change_status',
-                    'status': selectedStatus,
-                  });
-                  _reloadTicket(silent: true);
-                }
-              },
-              child: Text(_isVietnamese ? 'Cập nhật' : 'Update'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _showResolveDialog(TicketModel ticket) async {
-    final initialIssuePreset =
-        findTicketIssuePreset(ticket.finalIssueName ?? ticket.issueName) ??
-        findTicketIssuePreset(ticket.issueName) ??
-        kTicketIssuePresets.first;
-    String selectedIssueCode = initialIssuePreset.code;
-    String selectedIssueType = initialIssuePreset.issueType;
-
-    var availableTemplates = resolutionPresetsForIssue(selectedIssueCode);
-    TicketResolutionPreset selectedTemplate = availableTemplates.firstWhere(
-      (preset) => preset.code == ticket.resolutionCode,
-      orElse: () => availableTemplates.first,
-    );
-
-    final standardTextController = TextEditingController(
-      text: (ticket.resolutionStandardText ?? '').trim().isNotEmpty
-          ? ticket.resolutionStandardText!.trim()
-          : _resolutionPresetText(selectedTemplate),
-    );
-    final customIssueController = TextEditingController(
-      text: (ticket.finalIssueCustomText ?? '').trim(),
-    );
-    final customResolutionController = TextEditingController(
-      text: (ticket.resolutionCustomText ?? '').trim(),
-    );
-    final additionalNoteController = TextEditingController(
-      text: _extractAdditionalResolveNote(ticket),
-    );
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(_isVietnamese ? 'Hoàn thành ticket' : 'Resolve ticket'),
-          content: StatefulBuilder(
-            builder: (context, setStateDialog) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      value: selectedIssueCode,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText:
-                            _isVietnamese ? 'Lỗi cuối cùng' : 'Final issue',
-                      ),
-                      items: kTicketIssuePresets
-                          .map(
-                            (preset) => DropdownMenuItem<String>(
-                              value: preset.code,
-                              child: Text(
-                                _issueNameLabel(preset.code),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      selectedItemBuilder: (context) => kTicketIssuePresets
-                          .map(
-                            (preset) => Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                _issueNameLabel(preset.code),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          final issuePreset =
-                              findTicketIssuePreset(value) ?? kTicketIssuePresets.first;
-                          final nextTemplates = resolutionPresetsForIssue(value);
-                          setStateDialog(() {
-                            selectedIssueCode = value;
-                            if (value != 'OTHER') {
-                              selectedIssueType = issuePreset.issueType;
-                            }
-                            availableTemplates = nextTemplates;
-                            final preferredTemplate = nextTemplates.firstWhere(
-                              (preset) => preset.code == 'CUSTOM',
-                              orElse: () => nextTemplates.first,
-                            );
-                            selectedTemplate = value == 'OTHER'
-                                ? preferredTemplate
-                                : nextTemplates.first;
-                            standardTextController.text =
-                                _resolutionPresetText(selectedTemplate);
-                          });
-                        }
-                      },
-                    ),
-                    if (selectedIssueCode == 'OTHER') ...[
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: selectedIssueType,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText:
-                              _isVietnamese ? 'Loại vấn đề' : 'Issue type',
-                        ),
-                        items: _issueTypeOptions
-                            .map(
-                              (issueType) => DropdownMenuItem<String>(
-                                value: issueType,
-                                child: Text(_issueTypeLabel(issueType)),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setStateDialog(() => selectedIssueType = value);
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: customIssueController,
-                        minLines: 2,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: _isVietnamese
-                              ? 'Mô tả lỗi tùy chỉnh'
-                              : 'Custom issue text',
-                          hintText: _isVietnamese
-                              ? 'Nhập lỗi cuối cùng nếu chưa có trong danh mục...'
-                              : 'Describe the final issue when it is not in the catalog...',
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: selectedTemplate.code,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: _isVietnamese
-                            ? 'Cách xử lý chuẩn'
-                            : 'Resolution template',
-                      ),
-                      items: availableTemplates
-                          .map(
-                            (preset) => DropdownMenuItem<String>(
-                              value: preset.code,
-                              child: Text(
-                                _resolutionPresetLabel(preset),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      selectedItemBuilder: (context) => availableTemplates
-                          .map(
-                            (preset) => Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                _resolutionPresetLabel(preset),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        final nextTemplate = availableTemplates.firstWhere(
-                          (preset) => preset.code == value,
-                        );
-                        setStateDialog(() {
-                          selectedTemplate = nextTemplate;
-                          standardTextController.text =
-                              _resolutionPresetText(nextTemplate);
-                        });
-                      },
-                    ),
-                    if (selectedTemplate.code == 'CUSTOM') ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: customResolutionController,
-                        minLines: 2,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: _isVietnamese
-                              ? 'Cách xử lý tùy chỉnh'
-                              : 'Custom resolution text',
-                          hintText: _isVietnamese
-                              ? 'Nhập cách xử lý nếu chưa có trong danh mục...'
-                              : 'Describe the resolution when it is not in the catalog...',
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: standardTextController,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        labelText: _isVietnamese ? 'Phản hồi' : 'Response',
-                        hintText: _isVietnamese
-                            ? 'Nội dung phản hồi cho ticket này...'
-                            : 'Response content for this ticket...',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: additionalNoteController,
-                      minLines: 4,
-                      maxLines: 6,
-                      decoration: InputDecoration(
-                        labelText:
-                            _isVietnamese ? 'Ghi chú bổ sung' : 'Additional note',
-                        hintText: _isVietnamese
-                            ? 'Chi tiết riêng cho ticket này, nếu cần...'
-                            : 'Optional ticket-specific details...',
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(_isVietnamese ? 'Hủy' : 'Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final standardText = standardTextController.text.trim();
-                final additionalNote = additionalNoteController.text.trim();
-                final customIssueText = customIssueController.text.trim();
-                final customResolutionText = customResolutionController.text.trim();
-                if (selectedIssueCode.isEmpty || standardText.isEmpty) {
-                  _showSnack(
-                    _isVietnamese
-                        ? 'Vui lòng chọn lỗi cuối cùng và nhập phản hồi.'
-                        : 'Please choose the final issue and enter a response.',
-                    isError: true,
-                  );
-                  return;
-                }
-                if (selectedIssueCode == 'OTHER' && customIssueText.isEmpty) {
-                  _showSnack(
-                    _isVietnamese
-                        ? 'Vui lòng nhập mô tả lỗi tùy chỉnh.'
-                        : 'Please enter the custom issue text.',
-                    isError: true,
-                  );
-                  return;
-                }
-                if (selectedTemplate.code == 'CUSTOM' &&
-                    customResolutionText.isEmpty) {
-                  _showSnack(
-                    _isVietnamese
-                        ? 'Vui lòng nhập cách xử lý tùy chỉnh.'
-                        : 'Please enter the custom resolution text.',
-                    isError: true,
-                  );
-                  return;
-                }
-                final primaryResolutionText = standardText;
-                final resolveNote = additionalNote.isEmpty
-                    ? primaryResolutionText
-                    : '$primaryResolutionText\n$additionalNote';
-                Navigator.of(dialogContext).pop();
-                await _api.processTicket(widget.ticketId, {
-                  'action': 'resolve',
-                  'note': resolveNote,
-                  'resolveNote': resolveNote,
-                  'finalIssueName': selectedIssueCode,
-                  'finalIssueType': selectedIssueType,
-                  'finalIssueCustomText':
-                      selectedIssueCode == 'OTHER' ? customIssueText : null,
-                  'resolutionCode': selectedTemplate.code,
-                  'resolutionCustomText': selectedTemplate.code == 'CUSTOM'
-                      ? customResolutionText
-                      : null,
-                  'resolutionStandardText': primaryResolutionText,
+                setState(() {
+                  _stagedStatus = selectedStatus;
                 });
-                await _api.processTicket(widget.ticketId, {
-                  'action': 'change_status',
-                  'status': 'SOLVED',
-                });
-                _reloadTicket(silent: true);
               },
-              child: Text(_isVietnamese ? 'Hoàn thành' : 'Resolve'),
+              child: Text(_isVietnamese ? 'Chọn' : 'Select'),
             ),
           ],
         );
@@ -1151,6 +948,44 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     }
 
     return actions;
+  }
+
+  List<Widget> _buildStickyBottomActions(TicketModel ticket) {
+    final actions = _buildBottomActions(ticket);
+    if (actions.isEmpty && !_hasChanges) return [];
+
+    return [
+      if (actions.isNotEmpty) ...[
+        Row(children: actions),
+        const SizedBox(height: 12),
+      ],
+      SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: (_submitting || !_hasChanges)
+              ? null
+              : () async => _handleUnifiedSave(ticket),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF16A34A), // Green for Save
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          icon: _submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.check_circle_outline_rounded),
+          label: Text(
+            _isVietnamese ? 'Lưu tất cả thay đổi' : 'Save all changes',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    ];
   }
 
   Widget _buildCommentComposerSection(TicketModel ticket) {
@@ -1244,7 +1079,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
           if (_commentMode != 'discussion') ...[
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
-              value: _selectedCommentIssueCode,
+              initialValue: _selectedCommentIssueCode,
               isExpanded: true,
               decoration: InputDecoration(
                 labelText: _isVietnamese ? 'Lỗi' : 'Issue',
@@ -1284,7 +1119,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
             if (_selectedCommentIssueCode == 'OTHER') ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _selectedCommentIssueType,
+                initialValue: _selectedCommentIssueType,
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: _isVietnamese ? 'Loại vấn đề' : 'Issue type',
@@ -1321,7 +1156,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
             ],
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedCommentResolutionCode,
+              initialValue: _selectedCommentResolutionCode,
               isExpanded: true,
               decoration: InputDecoration(
                 labelText:
@@ -1417,21 +1252,6 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton.icon(
-                onPressed: _submitting
-                    ? null
-                    : () async => _submitCommentByMode(ticket),
-                icon: _submitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_rounded),
-                label: Text(
-                  _isVietnamese ? 'Gửi bình luận' : 'Post comment',
-                ),
-              ),
             ],
           ),
         ],
@@ -1572,7 +1392,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     if ((ticket.attachment ?? '').isEmpty) return const SizedBox.shrink();
 
     return _buildSection(
-      title: _isVietnamese ? '\u1ea2nh \u0111\u00ednh k\u00e8m' : 'Attachment',
+      title: _isVietnamese ? 'Ảnh đính kèm' : 'Attachment',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
         child: AspectRatio(
@@ -1584,7 +1404,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
               color: const Color(0xFFF8FAFC),
               alignment: Alignment.center,
               child: Text(
-                _isVietnamese ? 'Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c \u1ea3nh.' : 'Unable to load image.',
+                _isVietnamese ? 'Không tải được ảnh.' : 'Unable to load image.',
                 style: const TextStyle(
                   color: Color(0xFF64748B),
                   fontWeight: FontWeight.w600,
@@ -1599,38 +1419,38 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
 
   Widget _buildOverviewSection(TicketModel ticket) {
     return _buildSection(
-      title: _isVietnamese ? 'Th\u00f4ng tin ch\u00ednh' : 'Overview',
+      title: _isVietnamese ? 'Thông tin chính' : 'Overview',
       child: Column(
         children: [
           _MetaRow(
-            label: _isVietnamese ? 'V\u1ea5n \u0111\u1ec1' : 'Issue',
+            label: _isVietnamese ? 'Vấn đề' : 'Issue',
             value: ticket.finalIssueName ?? ticket.issueName,
           ),
           _MetaRow(
-            label: _isVietnamese ? 'Lo\u1ea1i v\u1ea5n \u0111\u1ec1' : 'Issue type',
+            label: _isVietnamese ? 'Loại vấn đề' : 'Issue type',
             value: _issueTypeLabel(ticket.finalIssueType ?? ticket.issueType),
           ),
           _MetaRow(
-            label: _isVietnamese ? 'Ng\u01b0\u1eddi x\u1eed l\u00fd hi\u1ec7n t\u1ea1i' : 'Current assignee',
+            label: _isVietnamese ? 'Người xử lý hiện tại' : 'Current assignee',
             value: ticket.assigneeName ??
-                (_isVietnamese ? 'Ch\u01b0a c\u00f3' : 'Unassigned'),
+                (_isVietnamese ? 'Chưa có' : 'Unassigned'),
           ),
           _MetaRow(
-            label: _isVietnamese ? 'M\u00e3 sinh vi\u00ean' : 'Student code',
+            label: _isVietnamese ? 'Mã sinh viên' : 'Student code',
             value: ticket.studentCode ?? '--',
           ),
           _MetaRow(
-            label: _isVietnamese ? 'Ph\u00f2ng thi' : 'Exam room',
+            label: _isVietnamese ? 'Phòng thi' : 'Exam room',
             value: (ticket.roomNumber ?? '').isNotEmpty
                 ? ticket.roomNumber!
                 : '--',
           ),
           _MetaRow(
-            label: _isVietnamese ? 'Ng\u00e0y t\u1ea1o' : 'Created at',
+            label: _isVietnamese ? 'Ngày tạo' : 'Created at',
             value: _formatDateTime(ticket.createdAt),
           ),
           _MetaRow(
-            label: _isVietnamese ? 'Ng\u00e0y c\u1eadp nh\u1eadt' : 'Updated at',
+            label: _isVietnamese ? 'Ngày cập nhật' : 'Updated at',
             value: _formatDateTime(ticket.updatedAt),
             isLast: true,
           ),
@@ -1641,12 +1461,12 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
 
   Widget _buildNotesSection(TicketModel ticket) {
     return _buildSection(
-      title: _isVietnamese ? 'M\u00f4 t\u1ea3 v\u00e0 ghi ch\u00fa' : 'Description and notes',
+      title: _isVietnamese ? 'Mô tả và ghi chú' : 'Description and notes',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _NoteBlock(
-            label: _isVietnamese ? 'M\u00f4 t\u1ea3' : 'Description',
+            label: _isVietnamese ? 'Mô tả' : 'Description',
             value: ticket.description,
           ),
         ],
@@ -1664,32 +1484,32 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     if (!hasSnapshot) return const SizedBox.shrink();
 
     return _buildSection(
-      title: _isVietnamese ? 'K\u1ebft lu\u1eadn cu\u1ed1i' : 'Final snapshot',
+      title: _isVietnamese ? 'Kết luận cuối' : 'Final snapshot',
       child: Column(
         children: [
           _MetaRow(
-            label: _isVietnamese ? 'T\u00f3m t\u1eaft m\u1edbi nh\u1ea5t' : 'Latest summary',
+            label: _isVietnamese ? 'Tóm tắt mới nhất' : 'Latest summary',
             value: (ticket.latestSummary ?? '').trim().isEmpty
                 ? '--'
                 : ticket.latestSummary!.trim(),
           ),
           _MetaRow(
-            label: _isVietnamese ? 'L\u1ed7i cu\u1ed1i' : 'Final issue',
+            label: _isVietnamese ? 'Lỗi cuối' : 'Final issue',
             value: ticket.finalIssueName ?? ticket.issueName,
           ),
           _MetaRow(
-            label: _isVietnamese ? 'Lo\u1ea1i v\u1ea5n \u0111\u1ec1' : 'Issue type',
+            label: _isVietnamese ? 'Loại vấn đề' : 'Issue type',
             value: _issueTypeLabel(ticket.finalIssueType ?? ticket.issueType),
           ),
           _MetaRow(
-            label: _isVietnamese ? 'M\u00e3 x\u1eed l\u00fd' : 'Resolution code',
+            label: _isVietnamese ? 'Mã xử lý' : 'Resolution code',
             value: ticket.resolutionCode ?? '--',
           ),
           _MetaRow(
-            label: _isVietnamese ? 'Ch\u1edd review AI' : 'Pending AI review',
+            label: _isVietnamese ? 'Chờ review AI' : 'Pending AI review',
             value: ticket.needsAiReview
-                ? (_isVietnamese ? 'C\u00f3' : 'Yes')
-                : (_isVietnamese ? 'Kh\u00f4ng' : 'No'),
+                ? (_isVietnamese ? 'Có' : 'Yes')
+                : (_isVietnamese ? 'Không' : 'No'),
           ),
           _MetaRow(
             label: _isVietnamese ? 'Resolved at' : 'Resolved at',
@@ -1701,15 +1521,27 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     );
   }
 
-  Widget _buildHistorySection(TicketModel ticket) {
-    if (ticket.activityHistories.isEmpty) return const SizedBox.shrink();
+  Widget _buildHistorySection(
+    TicketModel ticket, {
+    bool onlyComments = false,
+    bool excludeComments = false,
+  }) {
+    final histories = ticket.activityHistories.where((a) {
+      if (onlyComments) return a.activityType == 'TICKET_COMMENTED';
+      if (excludeComments) return a.activityType != 'TICKET_COMMENTED';
+      return true;
+    }).toList();
+
+    if (histories.isEmpty) return const SizedBox.shrink();
 
     return _buildSection(
-      title: _isVietnamese ? 'L\u1ecbch s\u1eed x\u1eed l\u00fd' : 'Activity history',
+      title: onlyComments
+          ? (_isVietnamese ? 'Trao đổi' : 'Discussion')
+          : (_isVietnamese ? 'Lịch sử xử lý' : 'Activity history'),
       child: Column(
-        children: List.generate(ticket.activityHistories.length, (index) {
-          final activity = ticket.activityHistories[index];
-          final isLast = index == ticket.activityHistories.length - 1;
+        children: List.generate(histories.length, (index) {
+          final activity = histories[index];
+          final isLast = index == histories.length - 1;
           return _TimelineItem(
             icon: _timelineIcon(activity.activityType),
             title: _activityTitle(activity),
@@ -1801,82 +1633,148 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
       );
     }
 
-    final bottomActions = _buildBottomActions(ticket);
+    final bottomActions = _buildStickyBottomActions(ticket);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF7F3),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF97316),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(_isVietnamese ? 'Chi ti\u1ebft ticket' : 'Ticket detail'),
-      ),
-      body: Column(
-        children: [
-          if (_ticketLoading)
-            const LinearProgressIndicator(
-              minHeight: 2,
-              color: Color(0xFFF97316),
-              backgroundColor: Color(0xFFFFEDD5),
-            ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () => _reloadTicket(silent: true),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                children: [
-                  _buildHeroCard(ticket),
-                  _buildAttachmentSection(ticket),
-                  _buildOverviewSection(ticket),
-                  _buildFinalSnapshotSection(ticket),
-                  _buildNotesSection(ticket),
-                  _buildHistorySection(ticket),
-                  _buildCommentComposerSection(ticket),
-                ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFF7F3),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF97316),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Text(_isVietnamese ? 'Chi tiết ticket' : 'Ticket detail'),
+        ),
+        body: Column(
+          children: [
+            if (_ticketLoading)
+              const LinearProgressIndicator(
+                minHeight: 2,
+                color: Color(0xFFF97316),
+                backgroundColor: Color(0xFFFFEDD5),
               ),
-            ),
-          ),
-          if (bottomActions.isNotEmpty)
-            SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x120F172A),
-                      blurRadius: 14,
-                      offset: Offset(0, -6),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    IgnorePointer(
-                      ignoring: _submitting,
-                      child: Opacity(
-                        opacity: _submitting ? 0.6 : 1,
-                        child: Row(children: bottomActions),
+            Expanded(
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: Column(
+                        children: [
+                          _buildHeroCard(ticket),
+                          _buildStagedChangesBanner(),
+                        ],
                       ),
                     ),
-                    if (_submitting)
-                      const Positioned(
-                        right: 8,
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                  ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SliverAppBarDelegate(
+                      TabBar(
+                        labelColor: const Color(0xFFF97316),
+                        unselectedLabelColor: const Color(0xFF64748B),
+                        indicatorColor: const Color(0xFFF97316),
+                        indicatorWeight: 4,
+                        labelStyle: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
                         ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                        indicatorSize: TabBarIndicatorSize.label,
+                        tabs: [
+                          Tab(text: _isVietnamese ? 'Thông tin' : 'Details'),
+                          Tab(text: _isVietnamese ? 'Thảo luận' : 'Discussion'),
+                        ],
                       ),
+                    ),
+                  ),
+                ],
+                body: TabBarView(
+                  children: [
+                    // Tab 1: Details & Logs
+                    RefreshIndicator(
+                      onRefresh: () => _reloadTicket(silent: true),
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                        children: [
+                          _buildAttachmentSection(ticket),
+                          _buildOverviewSection(ticket),
+                          _buildFinalSnapshotSection(ticket),
+                          _buildNotesSection(ticket),
+                          _buildHistorySection(ticket, excludeComments: true),
+                        ],
+                      ),
+                    ),
+                    // Tab 2: Discussion
+                    RefreshIndicator(
+                      onRefresh: () => _reloadTicket(silent: true),
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                        children: [
+                          _buildCommentComposerSection(ticket),
+                          const SizedBox(height: 16),
+                          _buildHistorySection(ticket, onlyComments: true),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-        ],
+            if (bottomActions.isNotEmpty)
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x120F172A),
+                        blurRadius: 14,
+                        offset: Offset(0, -6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: bottomActions,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: const Color(0xFFFFF7F3),
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }
 
@@ -2107,4 +2005,3 @@ class _TimelineItem extends StatelessWidget {
     );
   }
 }
-

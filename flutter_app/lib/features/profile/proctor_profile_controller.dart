@@ -27,7 +27,6 @@ class ProctorProfileController extends StateNotifier<ProctorProfileState> {
           user: user,
         );
         await loadDeviceRegistrationStatus();
-        await loadFaceRegistrationStatus();
       } else {
         state = state.copyWith(
           isLoading: false,
@@ -157,24 +156,7 @@ class ProctorProfileController extends StateNotifier<ProctorProfileState> {
     }
   }
 
-  Future<void> loadFaceRegistrationStatus() async {
-    final user = state.user;
-    if (user?.id == null) return;
-
-    try {
-      final faceService = DependencyInjection.get<FaceRegistrationService>();
-      final result = await faceService.checkRegistrationStatus(user!.id!);
-      final statusData = result['data'] is Map<String, dynamic>
-          ? result['data'] as Map<String, dynamic>
-          : result;
-      final isRegistered = statusData['isRegistered'] == true ||
-          statusData['registered'] == true;
-
-      state = state.copyWith(isFaceRegistered: isRegistered);
-    } catch (_) {
-      state = state.copyWith(isFaceRegistered: false);
-    }
-  }
+  
 
   Future<void> logout(BuildContext context) async {
     try {
@@ -257,3 +239,4 @@ final proctorProfileControllerProvider = StateNotifierProvider.autoDispose<
     ProctorProfileController, ProctorProfileState>((ref) {
   return ProctorProfileController();
 });
+

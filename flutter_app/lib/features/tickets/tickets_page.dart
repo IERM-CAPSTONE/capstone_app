@@ -742,6 +742,8 @@ class _TicketsPageState extends State<TicketsPage> {
         return _isVietnamese
             ? 'Chuyển giám thị hành lang'
             : 'Route to Hall Invigilator';
+      case 'PROCTOR':
+        return _isVietnamese ? 'Chuyển giám thị phòng' : 'Route to Proctor';
       default:
         return role;
     }
@@ -755,6 +757,8 @@ class _TicketsPageState extends State<TicketsPage> {
         return 'IT Support';
       case 'HALL_INVIGILATOR':
         return 'Hall Invigilator';
+      case 'PROCTOR':
+        return 'Proctor';
       default:
         return role ?? '--';
     }
@@ -1158,7 +1162,8 @@ class _TicketsPageState extends State<TicketsPage> {
                       ? resolutionText
                       : resolutionLabel;
               final structuredBody = _buildBulkStructuredComment(
-                comment: commentMode == 'discussion' ? commentController.text : '',
+                comment:
+                    commentMode == 'discussion' ? commentController.text : '',
                 issueLabel: issueLabel,
                 issueTypeLabel: _safeIssueTypeLabel(selectedIssueType),
                 resolutionLabel: resolutionLabel,
@@ -1238,7 +1243,8 @@ class _TicketsPageState extends State<TicketsPage> {
                           maxLines: 5,
                           onChanged: (_) => setSheetState(() {}),
                           decoration: InputDecoration(
-                            labelText: _isVietnamese ? 'Trao đổi' : 'Discussion',
+                            labelText:
+                                _isVietnamese ? 'Trao đổi' : 'Discussion',
                             hintText: _isVietnamese
                                 ? 'Để trống nếu không cần thêm trao đổi.'
                                 : 'Leave empty if no discussion is needed.',
@@ -1521,7 +1527,7 @@ class _TicketsPageState extends State<TicketsPage> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              ...['EXAM_OFFICER', 'IT_SUPPORT'].map(
+                              ...['PROCTOR', 'EXAM_OFFICER', 'IT_SUPPORT'].map(
                                 (role) => ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   dense: true,
@@ -1746,7 +1752,8 @@ class _TicketsPageState extends State<TicketsPage> {
                                                 ? selectedIssueType
                                                 : null,
                                             issueCustomText: isStructuredMode &&
-                                                    selectedIssueCode == 'OTHER' &&
+                                                    selectedIssueCode ==
+                                                        'OTHER' &&
                                                     customIssueController.text
                                                         .trim()
                                                         .isNotEmpty

@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../proctor_profile_controller.dart';
 
 class ProctorPersonalInfoSection extends ConsumerWidget {
@@ -9,102 +8,73 @@ class ProctorPersonalInfoSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileState = ref.watch(proctorProfileControllerProvider);
-    final user = profileState.user;
-    final l10n = AppLocalizations.of(context)!;
-
-    if (user == null) return const SizedBox.shrink();
+    final state = ref.watch(proctorProfileControllerProvider);
+    final user = state.user;
 
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Text(
-              l10n.personalInformation,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+          const Row(
+            children: [
+              Icon(Icons.person_outline_rounded, color: AppColors.appBarOrange, size: 22),
+              SizedBox(width: 10),
+              Text(
+                'Thông tin cá nhân',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
-            ),
+            ],
           ),
-          _buildInfoRow(
-            icon: Icons.email,
-            iconColor: Colors.blue,
-            label: l10n.email,
-            value: user.email ?? '',
-          ),
-          const SizedBox(height: 12),
-          _buildInfoRow(
-            icon: Icons.work,
-            iconColor: const Color(0xFFFF6B35),
-            label: l10n.department,
-            value: l10n.examinationDepartment,
-          ),
-          const SizedBox(height: 12),
-          _buildInfoRow(
-            icon: Icons.location_on,
-            iconColor: Colors.red,
-            label: l10n.campus,
-            value: l10n.hoChiMinhCampus,
-          ),
+          const SizedBox(height: 20),
+          _buildInfoRow(Icons.email_outlined, 'Email', user?.email ?? 'N/A'),
+          const Divider(height: 30, thickness: 0.5),
+          _buildInfoRow(Icons.badge_outlined, 'Mã cán bộ', user?.code ?? 'N/A'),
+          const Divider(height: 30, thickness: 0.5),
+          _buildInfoRow(Icons.account_circle_outlined, 'Tên đăng nhập', user?.username ?? 'N/A'),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: iconColor, size: 24),
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.appBarOrange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
+          child: Icon(icon, color: AppColors.appBarOrange, size: 20),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

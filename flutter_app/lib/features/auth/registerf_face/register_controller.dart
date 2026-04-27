@@ -65,6 +65,16 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
     );
   }
 
+  void setSupervisedEnrollmentContext({
+    required String otp,
+    required String retentionPolicy,
+  }) {
+    state = state.copyWith(
+      otp: otp,
+      retentionPolicy: retentionPolicy,
+    );
+  }
+
   @override
   void dispose() {
     shutdown();
@@ -487,6 +497,8 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       final result = await service.registerFace(
         capturedImages: processedImages,
         studentCode: state.targetStudentCode,
+        otp: state.otp,
+        retentionPolicy: state.retentionPolicy,
         isEncrypted: false,
       );
 
@@ -499,6 +511,7 @@ class RegisterFaceController extends StateNotifier<RegisterFaceState> {
       if (status == 'success') {
         state = state.copyWith(
           status: FaceScanStatus.completed,
+          pendingEnrollmentId: data['enrollmentId']?.toString(),
           registeredStudent: studentJson is Map<String, dynamic>
               ? RegisteredStudentInfo.fromJson(studentJson)
               : null,

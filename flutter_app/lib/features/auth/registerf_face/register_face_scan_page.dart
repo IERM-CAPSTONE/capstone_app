@@ -5,11 +5,15 @@ import 'register_face_live_scan_page.dart';
 
 class RegisterFaceScanIntroPage extends StatelessWidget {
   final String? targetStudentCode;
+  final String? otp;
+  final String? retentionPolicy;
   final bool showCompletionInfo;
 
   const RegisterFaceScanIntroPage({
     super.key,
     this.targetStudentCode,
+    this.otp,
+    this.retentionPolicy,
     this.showCompletionInfo = false,
   });
 
@@ -127,6 +131,8 @@ class RegisterFaceScanIntroPage extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => RegisterFaceLiveScanPage(
                             targetStudentCode: targetStudentCode,
+                            otp: otp,
+                            retentionPolicy: retentionPolicy,
                             showCompletionInfo: showCompletionInfo,
                           ),
                         ),

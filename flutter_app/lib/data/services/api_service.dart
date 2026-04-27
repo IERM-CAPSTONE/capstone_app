@@ -158,4 +158,17 @@ abstract class ApiService {
 
   @PATCH('/notifications/{id}/read')
   Future<ApiResponse> markNotificationRead(@Path('id') String id);
+
+  // Face Enrollment (Supervised)
+  @POST('/face-recognition/enrollment/otp')
+  Future<ApiResponse> issueEnrollmentOtp(@Body() Map<String, dynamic> data);
+
+  @POST('/face-recognition/enrollment/verify-otp')
+  Future<ApiResponse> verifyEnrollmentOtp(@Body() Map<String, dynamic> data);
+
+  @POST('/face-recognition/enrollment/approve')
+  Future<ApiResponse> approveEnrollment(@Body() Map<String, dynamic> data);
+
+  @POST('/face-recognition/enrollment/reject')
+  Future<ApiResponse> rejectEnrollment(@Body() Map<String, dynamic> data);
 }

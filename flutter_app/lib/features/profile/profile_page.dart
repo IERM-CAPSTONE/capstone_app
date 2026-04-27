@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -8,10 +8,7 @@ import 'profile_controller.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/personal_info_section.dart';
 import 'widgets/face_recognition_section.dart';
-import 'widgets/help_support_section.dart';
 import 'widgets/bottom_nav_bar.dart';
-
-import '../../core/providers/language_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -22,26 +19,15 @@ class ProfilePage extends ConsumerWidget {
     final profileController = ref.read(profileControllerProvider.notifier);
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundGradientEnd,
       appBar: AppBar(
         backgroundColor: AppColors.appBarOrange,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text(
-          AppLocalizations.of(context)!.profile,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Hồ sơ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.language, color: Colors.white),
-            onPressed: () {
-              _showLanguageBottomSheet(context, ref);
-            },
-          ),
+          IconButton(icon: const Icon(Icons.language, color: Colors.white), onPressed: () {}),
         ],
       ),
       body: Container(
@@ -49,110 +35,45 @@ class ProfilePage extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              AppColors.backgroundGradientStart,
-              AppColors.backgroundGradientEnd,
-            ],
+            colors: [AppColors.backgroundGradientStart, AppColors.backgroundGradientEnd],
           ),
         ),
         child: profileState.isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.appBarOrange),
-                ),
-              )
-            : profileState.user == null
-                ? const Center(child: Text('No user data'))
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Profile Header Section
-                        ProfileHeader(user: profileState.user!),
-
-                        const SizedBox(height: 24),
-
-                        // Personal Information Section
-                        const PersonalInfoSection(),
-
-                        const SizedBox(height: 24),
-
-                        // Face Recognition Section
-                        const FaceRecognitionSection(),
-
-                        /*
-                        const SizedBox(height: 24),
-
-                        // Security Section
-                        const SecuritySection(),
-                        */
-
-                        const SizedBox(height: 24),
-
-                        // Help & Support Section
-                        HelpSupportSection(
-                          onLogout: () => profileController.logout(context),
+            ? const Center(child: CircularProgressIndicator(color: AppColors.appBarOrange))
+            : SingleChildScrollView(
+                child: Column(
+                  children: [
+                    if (profileState.user != null) ProfileHeader(user: profileState.user!),
+                    const SizedBox(height: 24),
+                    const PersonalInfoSection(),
+                    const SizedBox(height: 24),
+                    const FaceRecognitionSection(),
+                    const SizedBox(height: 24),
+                    
+                    // Nút Đăng xuất thiết kế lại
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton.icon(
+                          onPressed: () => profileController.logout(context),
+                          icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                          label: const Text('Đăng xuất', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.redAccent),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            backgroundColor: Colors.white,
+                          ),
                         ),
-
-                        const SizedBox(height: 24),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
       ),
       bottomNavigationBar: const BottomNavBar(currentIndex: 3),
-    );
-  }
-
-  void _showLanguageBottomSheet(BuildContext context, WidgetRef ref) {
-    final currentLocale = ref.read(languageProvider);
-    final l10n = AppLocalizations.of(context);
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10n!.language,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              ListTile(
-                leading: const Text('🇻🇳', style: TextStyle(fontSize: 24)),
-                title: Text(l10n!.vietnamese),
-                trailing: currentLocale.languageCode == 'vi'
-                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
-                    : null,
-                onTap: () {
-                  ref.read(languageProvider.notifier).setLanguage('vi');
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
-                title: Text(l10n!.english),
-                trailing: currentLocale.languageCode == 'en'
-                    ? const Icon(Icons.check, color: AppColors.appBarOrange)
-                    : null,
-                onTap: () {
-                  ref.read(languageProvider.notifier).setLanguage('en');
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

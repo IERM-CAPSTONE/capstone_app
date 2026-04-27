@@ -221,7 +221,7 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 
-  Widget _buildParentToggle(
+    Widget _buildParentToggle(
       ExamSessionsController controller, AppLocalizations l10n) {
     return Container(
       height: 44,
@@ -762,3 +762,6 @@ class _ExamSessionsPageState extends ConsumerState<ExamSessionsPage> {
     );
   }
 }
+
+
+

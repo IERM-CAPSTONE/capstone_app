@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/services/api_service.dart';
 import '../data/services/auth_service.dart';
 import '../data/services/face_registration_service.dart';
+import '../data/services/face_enrollment_service.dart';
 import '../data/services/push_notification_service.dart';
 import '../data/services/realtime_notification_service.dart';
 import '../data/services/socket_service.dart';
@@ -119,6 +120,10 @@ class DependencyInjection {
     // Initialize FaceRegistrationService
     final faceService = FaceRegistrationService(dio);
     _dependencies[FaceRegistrationService] = faceService;
+
+    // Initialize FaceEnrollmentService
+    final faceEnrollmentService = FaceEnrollmentService(dio);
+    _dependencies[FaceEnrollmentService] = faceEnrollmentService;
 
     // Initialize SocketService
     final socketService = SocketService();

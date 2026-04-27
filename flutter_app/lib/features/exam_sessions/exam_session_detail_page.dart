@@ -19,6 +19,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:image/image.dart' as img;
 import 'dart:io';
+import '../../shared/pages/camera_page.dart';
 import '../auth/face_authenticate/face_authenticate_page.dart';
 import '../auth/proctor_face_checkin/proctor_face_checkin_page.dart';
 import '../exam_rooms/seating_plan_page.dart';
@@ -285,7 +286,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         ),
       });
 
-      final response = await aiDio.post('/predict', data: formData);
+      final response = await aiDio.post('predict', data: formData);
       if (response.data is Map<String, dynamic>) {
         return response.data as Map<String, dynamic>;
       }
@@ -2566,50 +2567,78 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
             final isCompact = _isCompactTicketFlow(context);
             final dialogSize = MediaQuery.sizeOf(context);
             return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(isCompact ? 20 : 24),
+                borderRadius: BorderRadius.circular(isCompact ? 20 : 28),
               ),
               insetPadding: EdgeInsets.symmetric(
-                horizontal: isCompact ? 16 : 20,
-                vertical: isCompact ? 18 : 24,
+                horizontal: isCompact ? 16 : 24,
+                vertical: isCompact ? 18 : 32,
               ),
-              titlePadding: EdgeInsets.fromLTRB(
-                isCompact ? 20 : 24,
-                isCompact ? 20 : 22,
-                isCompact ? 20 : 24,
-                0,
-              ),
-              contentPadding: EdgeInsets.fromLTRB(
-                isCompact ? 20 : 24,
-                18,
-                isCompact ? 20 : 24,
-                0,
-              ),
+              titlePadding: EdgeInsets.zero,
+              contentPadding: EdgeInsets.zero,
               actionsPadding: EdgeInsets.fromLTRB(
-                isCompact ? 16 : 20,
+                isCompact ? 16 : 24,
                 8,
-                isCompact ? 16 : 20,
-                isCompact ? 14 : 18,
+                isCompact ? 16 : 24,
+                isCompact ? 14 : 20,
               ),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.createOneTicket,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Điền thông tin hoặc thêm ảnh để AI gợi ý nhanh.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
+              title: Container(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.confirmation_number_rounded,
+                          color: Color(0xFF475569), size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.createOneTicket,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _text(context,
+                                vi: 'Gửi yêu cầu hỗ trợ hoặc báo cáo sự cố',
+                                en: 'Submit support request or report issue'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              content: SizedBox(
-                width: isCompact ? dialogSize.width : 420,
-                height: isCompact ? dialogSize.height * 0.72 : null,
+              content: Container(
+                constraints: BoxConstraints(
+                  maxWidth: 480,
+                  maxHeight: dialogSize.height * 0.8,
+                ),
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.only(bottom: isCompact ? 28 : 18),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2618,112 +2647,195 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           aiPrediction != null ||
                           isAiAnalyzing) ...[
                         _buildDialogSectionTitle(_text(context,
-                            vi: 'Ảnh và AI', en: 'Attachment and AI')),
+                            vi: 'Ảnh và AI hỗ trợ',
+                            en: 'Attachment and AI Support')),
                         if (attachmentImage != null) ...[
-                          SizedBox(
-                            height: 132,
-                            width: double.maxFinite,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: Image.file(
-                                attachmentImage!,
-                                fit: BoxFit.cover,
+                          Stack(
+                            children: [
+                              SizedBox(
+                                height: 180,
+                                width: double.maxFinite,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Image.file(
+                                    attachmentImage!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
                               ),
-                            ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Material(
+                                  color: Colors.black45,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: InkWell(
+                                    onTap: () => setDialogState(() {
+                                      attachmentImage = null;
+                                      aiPrediction = null;
+                                    }),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Icon(Icons.close,
+                                          color: Colors.white, size: 20),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 12),
                         ],
                         if (isAiAnalyzing) ...[
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(14),
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(16),
                               border:
                                   Border.all(color: const Color(0xFFE2E8F0)),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF2563EB)),
+                                  ),
                                 ),
-                                SizedBox(width: 10),
+                                const SizedBox(width: 12),
                                 Expanded(
-                                    child:
-                                        Text('Đang phân tích ảnh bằng AI...')),
+                                  child: Text(
+                                    'AI đang phân tích sự cố...',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF334155),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                         ],
                         if (aiPrediction != null) ...[
                           _buildAiSuggestionCard(aiPrediction!),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                         ],
                       ],
                       _buildDialogSurface(
+                        padding: const EdgeInsets.all(20),
                         children: [
+                          _buildDialogSectionTitle(_text(context,
+                              vi: 'Thông tin cơ bản', en: 'Basic Information')),
+                          const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
                             initialValue: issueType,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded),
                             items: [
                               DropdownMenuItem(
                                 value: 'Technical Issue',
-                                child: Text(_text(context,
-                                    vi: 'Sự cố kỹ thuật',
-                                    en: 'Technical Issue')),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.settings_suggest_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Sự cố kỹ thuật',
+                                        en: 'Technical Issue')),
+                                  ],
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Academic Violation',
-                                child: Text(_text(context,
-                                    vi: 'Vi phạm học thuật',
-                                    en: 'Academic Violation')),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.gavel_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Vi phạm học thuật',
+                                        en: 'Academic Violation')),
+                                  ],
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Room Management',
-                                child: Text(_text(context,
-                                    vi: 'Quản lý phòng',
-                                    en: 'Room Management')),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.meeting_room_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Quản lý phòng',
+                                        en: 'Room Management')),
+                                  ],
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Face Mismatch',
-                                child: Text(_text(context,
-                                    vi: 'Sai thông tin', en: 'Face Mismatch')),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.face_retouching_off_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Sai thông tin mặt',
+                                        en: 'Face Mismatch')),
+                                  ],
+                                ),
                               ),
                             ],
                             onChanged: (v) => issueType = v ?? issueType,
                             decoration:
                                 _ticketFieldDecoration(label: l10n.issueType),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             initialValue: priority,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded),
                             items: [
                               DropdownMenuItem(
                                 value: 'Normal',
-                                child: Text(_text(context,
-                                    vi: 'Bình thường', en: 'Normal')),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.info_outline,
+                                        size: 20, color: Color(0xFF10B981)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Bình thường', en: 'Normal')),
+                                  ],
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Urgent',
-                                child: Text(_text(context,
-                                    vi: 'Khẩn cấp', en: 'Urgent')),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded,
+                                        size: 20, color: Color(0xFFEF4444)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Khẩn cấp', en: 'Urgent')),
+                                  ],
+                                ),
                               ),
                             ],
                             onChanged: (v) => priority = v ?? priority,
                             decoration:
                                 _ticketFieldDecoration(label: l10n.priority),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           TextField(
                             controller: issueNameCtrl,
                             decoration:
                                 _ticketFieldDecoration(label: l10n.issueName),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           if (lockStudentSelection)
                             _buildLockedStudentField(
                               label: l10n.student,
@@ -2733,24 +2845,14 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             DropdownButtonFormField<StudentExam>(
                               initialValue: selectedStudent,
                               isExpanded: true,
+                              icon:
+                                  const Icon(Icons.keyboard_arrow_down_rounded),
                               items: students
                                   .map(
                                     (student) => DropdownMenuItem<StudentExam>(
                                       value: student,
                                       child: Text(
-                                        student.studentCode ?? '-',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              selectedItemBuilder: (context) => students
-                                  .map(
-                                    (student) => Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        student.studentCode ?? '-',
+                                        '${student.studentCode ?? '-'} - ${student.studentName ?? ''}',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -2766,7 +2868,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               decoration:
                                   _ticketFieldDecoration(label: l10n.student),
                             ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           TextField(
                             controller: descriptionCtrl,
                             maxLines: 4,
@@ -2775,19 +2877,13 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      _buildDialogSectionTitle('Ảnh đính kèm'),
-                      // â”€â”€ Attachment Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      const SizedBox(height: 24),
                       _buildDialogSurface(
+                        padding: const EdgeInsets.all(20),
                         children: [
-                          Text(
-                            l10n.attachmentOptional,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
+                          _buildDialogSectionTitle(_text(context,
+                              vi: 'Hình ảnh đính kèm', en: 'Attachments')),
+                          const SizedBox(height: 8),
                           _buildAttachmentButtons(
                             leftLabel: l10n.takePhoto,
                             rightLabel: l10n.gallery,
@@ -2795,10 +2891,12 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               if (isPickerActive) return;
                               isPickerActive = true;
                               try {
-                                final picker = ImagePicker();
-                                final picked = await picker.pickImage(
-                                  source: ImageSource.camera,
-                                  imageQuality: 70,
+                                final XFile? picked = await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const CameraPage(
+                                      title: 'Chụp ảnh sự cố',
+                                    ),
+                                  ),
                                 );
                                 if (picked != null) {
                                   final file = File(picked.path);
@@ -2872,42 +2970,17 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                               }
                             },
                           ),
-                          if (isAiAnalyzing) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(14),
-                                border:
-                                    Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              child: const Row(
-                                children: [
-                                  SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  ),
-                                  SizedBox(width: 10),
-                                  Expanded(
-                                      child: Text(
-                                          'Đang phân tích ảnh bằng AI...')),
-                                ],
-                              ),
-                            ),
-                          ],
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      _buildDialogSectionTitle(
-                        _text(context,
-                            vi: 'Giao ticket cho', en: 'Assign ticket to'),
-                      ),
+                      const SizedBox(height: 24),
                       _buildDialogSurface(
+                        padding: const EdgeInsets.all(20),
                         children: [
+                          _buildDialogSectionTitle(
+                            _text(context,
+                                vi: 'Giao xử lý cho', en: 'Assign To'),
+                          ),
+                          const SizedBox(height: 8),
                           _buildAssignmentSelector(
                             session: session,
                             selectedAssignmentType: confirmedAssignmentType,
@@ -2919,7 +2992,6 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                           ),
                         ],
                       ),
-                      // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     ],
                   ),
                 ),
@@ -3071,6 +3143,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 .toList();
             final isCompact = _isCompactTicketFlow(context);
             return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(isCompact ? 0 : 24),
               ),
@@ -3095,40 +3169,67 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 isCompact ? 16 : 20,
                 isCompact ? 16 : 18,
               ),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _text(
-                      context,
-                      vi: isCompact
-                          ? 'Xem lại trước khi tạo ticket'
-                          : 'Tạo nhiều ticket',
-                      en: isCompact
-                          ? 'Review before creating tickets'
-                          : 'Create multiple tickets',
+              title: Container(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.copy_all_rounded,
+                          color: Color(0xFF475569), size: 24),
                     ),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _text(
-                      context,
-                      vi: '${selectedStudents.length} sinh viên được chọn',
-                      en: '${selectedStudents.length} students selected',
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _text(
+                              context,
+                              vi: 'Tạo nhiều ticket',
+                              en: 'Create multiple tickets',
+                            ),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _text(
+                              context,
+                              vi: '${selectedStudents.length} sinh viên được chọn',
+                              en: '${selectedStudents.length} students selected',
+                            ),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              content: SizedBox(
-                width: isCompact ? MediaQuery.sizeOf(context).width : 420,
-                height:
-                    isCompact ? MediaQuery.sizeOf(context).height - 180 : null,
+              content: Container(
+                constraints: BoxConstraints(
+                  maxWidth: 480,
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+                ),
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -3136,139 +3237,107 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                       if (bulkAttachmentImage != null ||
                           aiPrediction != null ||
                           isAiAnalyzing) ...[
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            _text(context,
-                                vi: 'Ảnh và AI', en: 'Attachment and AI'),
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
+                        _buildDialogSectionTitle(_text(context,
+                            vi: 'Ảnh và AI hỗ trợ',
+                            en: 'Attachment and AI Support')),
                         if (bulkAttachmentImage != null) ...[
-                          SizedBox(
-                            height: 120,
-                            width: double.maxFinite,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                bulkAttachmentImage!,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        if (isAiAnalyzing) ...[
-                          Row(
+                          Stack(
                             children: [
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                              SizedBox(
+                                height: 180,
+                                width: double.maxFinite,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Image.file(
+                                    bulkAttachmentImage!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _text(
-                                    context,
-                                    vi: 'Đang phân tích ảnh bằng AI...',
-                                    en: 'Analyzing image with AI...',
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Material(
+                                  color: Colors.black45,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: InkWell(
+                                    onTap: () => setModalState(() {
+                                      bulkAttachmentImage = null;
+                                      aiPrediction = null;
+                                    }),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Icon(Icons.close,
+                                          color: Colors.white, size: 20),
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
+                        ],
+                        if (isAiAnalyzing) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(16),
+                              border:
+                                  Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Row(
+                              children: [
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF2563EB)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'AI đang phân tích sự cố...',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF334155),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                         ],
                         if (aiPrediction != null) ...[
                           _buildAiSuggestionCard(aiPrediction!),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 20),
                         ],
                       ],
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _text(
-                                          context,
-                                          vi: 'Sinh viên đã chọn',
-                                          en: 'Selected students',
-                                        ),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w700),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _text(
-                                          context,
-                                          vi: '${selectedStudents.length} sinh viên sẽ được tạo ticket',
-                                          en: '${selectedStudents.length} students will receive tickets',
-                                        ),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (aiPrediction != null &&
-                                    (aiPrediction!['needs_human_review'] ??
-                                            false) ==
-                                        true)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFFEDD5),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Text(
-                                      _text(context,
-                                          vi: 'Cần kiểm tra',
-                                          en: 'Needs review'),
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF9A3412),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            if (selectedStudents.isEmpty)
-                              Text(
-                                _text(
-                                  context,
-                                  vi: 'Chưa có sinh viên nào được chọn.',
-                                  en: 'No students selected yet.',
-                                ),
+                      _buildDialogSurface(
+                        padding: const EdgeInsets.all(20),
+                        children: [
+                          _buildDialogSectionTitle(_text(context,
+                              vi: 'Danh sách sinh viên', en: 'Student List')),
+                          const SizedBox(height: 8),
+                          if (selectedStudents.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                _text(context,
+                                    vi: 'Chưa có sinh viên nào được chọn.',
+                                    en: 'No students selected yet.'),
                                 style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 13,
-                                ),
-                              )
-                            else
-                              ...selectedStudents.map(
-                                (s) => Container(
+                                    color: Colors.grey.shade600, fontSize: 13),
+                              ),
+                            )
+                          else
+                            ...selectedStudents.map((s) => Container(
                                   margin: const EdgeInsets.only(bottom: 8),
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 10),
@@ -3286,6 +3355,8 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                       Expanded(
                                         child: Text(
                                           '${s.studentCode ?? '-'} - ${s.studentName ?? ''}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -3305,449 +3376,480 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                           });
                                         },
                                         icon: const Icon(Icons.close, size: 18),
-                                        tooltip: _text(
-                                          context,
-                                          vi: 'Bỏ sinh viên',
-                                          en: 'Remove student',
-                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ),
-                            const SizedBox(height: 8),
-                            OutlinedButton.icon(
-                              onPressed: () async {
-                                final pickedStudent =
-                                    await _showStudentPickerSheet(
-                                  students,
-                                  selected,
-                                );
-                                if (pickedStudent == null) return;
-                                setModalState(() {
-                                  selectedStudentToAdd = pickedStudent;
-                                });
-                              },
-                              icon: const Icon(Icons.person_add_alt_1_outlined,
-                                  size: 18),
-                              label: Text(
-                                selectedStudentToAdd == null
-                                    ? _text(
-                                        context,
-                                        vi: 'Chọn sinh viên để thêm',
-                                        en: 'Choose a student to add',
-                                      )
-                                    : '${selectedStudentToAdd!.studentCode ?? '-'} - ${selectedStudentToAdd!.studentName ?? ''}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(48),
-                                alignment: Alignment.centerLeft,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 12),
-                              ),
+                                )),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final pickedStudent =
+                                  await _showStudentPickerSheet(
+                                      students, selected);
+                              if (pickedStudent == null) return;
+                              setModalState(() {
+                                selectedStudentToAdd = pickedStudent;
+                              });
+                            },
+                            icon: const Icon(Icons.person_add_alt_1_outlined,
+                                size: 18),
+                            label: Text(
+                              selectedStudentToAdd == null
+                                  ? _text(context,
+                                      vi: 'Chọn sinh viên để thêm',
+                                      en: 'Choose a student to add')
+                                  : '${selectedStudentToAdd!.studentCode ?? '-'} - ${selectedStudentToAdd!.studentName ?? ''}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              alignment: Alignment.centerLeft,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                          if (selectedStudentToAdd != null) ...[
                             const SizedBox(height: 8),
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
-                                onPressed: selectedStudentToAdd == null
-                                    ? null
-                                    : () {
-                                        final code =
-                                            selectedStudentToAdd!.studentCode;
-                                        if (code == null || code.isEmpty)
-                                          return;
-                                        setModalState(() {
-                                          selected.add(code);
-                                          selectedStudentToAdd = null;
-                                        });
-                                      },
+                                onPressed: () {
+                                  final code =
+                                      selectedStudentToAdd!.studentCode;
+                                  if (code == null || code.isEmpty) return;
+                                  setModalState(() {
+                                    selected.add(code);
+                                    selectedStudentToAdd = null;
+                                  });
+                                },
                                 icon: const Icon(Icons.add, size: 18),
-                                label: Text(
-                                  _text(
-                                    context,
+                                label: Text(_text(context,
                                     vi: 'Thêm vào danh sách',
-                                    en: 'Add to list',
-                                  ),
-                                ),
+                                    en: 'Add to list')),
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildDialogSectionTitle(
-                        _text(context,
-                            vi: 'Thông tin ticket', en: 'Ticket details'),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: issueType,
-                        items: [
-                          DropdownMenuItem(
-                            value: 'Technical Issue',
-                            child: Text(_text(context,
-                                vi: 'Sự cố kỹ thuật', en: 'Technical Issue')),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Academic Violation',
-                            child: Text(_text(context,
-                                vi: 'Vi phạm học thuật',
-                                en: 'Academic Violation')),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Room Management',
-                            child: Text(_text(context,
-                                vi: 'Quản lý phòng', en: 'Room Management')),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Face Mismatch',
-                            child: Text(_text(context,
-                                vi: 'Sai thông tin', en: 'Face Mismatch')),
-                          ),
                         ],
-                        onChanged: (v) => issueType = v ?? issueType,
-                        decoration:
-                            _ticketFieldDecoration(label: l10n.issueType),
                       ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: priority,
-                        items: [
-                          DropdownMenuItem(
-                            value: 'Normal',
-                            child: Text(_text(context,
-                                vi: 'Bình thường', en: 'Normal')),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Urgent',
-                            child: Text(
-                                _text(context, vi: 'Khẩn cấp', en: 'Urgent')),
-                          ),
-                        ],
-                        onChanged: (v) => priority = v ?? priority,
-                        decoration:
-                            _ticketFieldDecoration(label: l10n.priority),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: issueNameCtrl,
-                        decoration:
-                            _ticketFieldDecoration(label: l10n.issueName),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: descriptionCtrl,
-                        maxLines: 2,
-                        decoration:
-                            _ticketFieldDecoration(label: l10n.description),
-                      ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _text(
-                            context,
-                            vi: 'Ảnh đính kèm',
-                            en: 'Attachment',
-                          ),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF334155),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _text(
-                            context,
-                            vi: 'Ảnh dùng chung cho tất cả ticket tạo trong lần này.',
-                            en: 'This attachment will be shared across all created tickets.',
-                          ),
-                          style: const TextStyle(
-                              fontSize: 12, color: Color(0xFF64748B)),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
+                      const SizedBox(height: 24),
+                      _buildDialogSurface(
+                        padding: const EdgeInsets.all(20),
                         children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.camera_alt, size: 18),
-                              label: Text(
-                                _text(context, vi: 'Chụp ảnh', en: 'Camera'),
+                          _buildDialogSectionTitle(_text(context,
+                              vi: 'Thông tin chung', en: 'General Information')),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            initialValue: issueType,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                            items: [
+                              DropdownMenuItem(
+                                value: 'Technical Issue',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.settings_suggest_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Sự cố kỹ thuật',
+                                        en: 'Technical Issue')),
+                                  ],
+                                ),
                               ),
-                              onPressed: () async {
-                                if (isBulkPickerActive) return;
-                                isBulkPickerActive = true;
-                                try {
-                                  final picker = ImagePicker();
-                                  final picked = await picker.pickImage(
-                                    source: ImageSource.camera,
-                                    imageQuality: 70,
-                                  );
-                                  if (picked != null) {
-                                    final file = File(picked.path);
-                                    setModalState(() {
-                                      bulkAttachmentImage = file;
-                                      aiPrediction = null;
-                                      isAiAnalyzing = true;
-                                    });
-                                    final prediction =
-                                        await _predictTicketFromImage(file);
-                                    if (!mounted) return;
-                                    setModalState(() {
-                                      aiPrediction = prediction;
-                                      isAiAnalyzing = false;
-                                      _applyAiPredictionToTicketForm(
-                                        prediction: prediction,
-                                        issueNameCtrl: issueNameCtrl,
-                                        descriptionCtrl: descriptionCtrl,
-                                        setIssueType: (nextIssueType) {
-                                          issueType = nextIssueType;
-                                        },
-                                        setAssignmentType:
-                                            (nextAssignmentType) {
-                                          confirmedAssignmentType =
-                                              nextAssignmentType;
-                                        },
-                                      );
-                                    });
-                                  }
-                                } finally {
-                                  isBulkPickerActive = false;
-                                }
-                              },
-                            ),
+                              DropdownMenuItem(
+                                value: 'Academic Violation',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.gavel_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Vi phạm học thuật',
+                                        en: 'Academic Violation')),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Room Management',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.meeting_room_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Quản lý phòng',
+                                        en: 'Room Management')),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Face Mismatch',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.face_retouching_off_rounded,
+                                        size: 20, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Sai thông tin mặt',
+                                        en: 'Face Mismatch')),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (v) => issueType = v ?? issueType,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.issueType),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.photo_library, size: 18),
-                              label: Text(
-                                _text(context, vi: 'Thư viện', en: 'Gallery'),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            initialValue: priority,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                            items: [
+                              DropdownMenuItem(
+                                value: 'Normal',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.info_outline,
+                                        size: 20, color: Color(0xFF10B981)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Bình thường', en: 'Normal')),
+                                  ],
+                                ),
                               ),
-                              onPressed: () async {
-                                if (isBulkPickerActive) return;
-                                isBulkPickerActive = true;
-                                try {
-                                  final picker = ImagePicker();
-                                  final picked = await picker.pickImage(
-                                    source: ImageSource.gallery,
-                                    imageQuality: 70,
-                                  );
-                                  if (picked != null) {
-                                    final file = File(picked.path);
-                                    setModalState(() {
-                                      bulkAttachmentImage = file;
-                                      aiPrediction = null;
-                                      isAiAnalyzing = true;
-                                    });
-                                    final prediction =
-                                        await _predictTicketFromImage(file);
-                                    if (!mounted) return;
-                                    setModalState(() {
-                                      aiPrediction = prediction;
-                                      isAiAnalyzing = false;
-                                      _applyAiPredictionToTicketForm(
-                                        prediction: prediction,
-                                        issueNameCtrl: issueNameCtrl,
-                                        descriptionCtrl: descriptionCtrl,
-                                        setIssueType: (nextIssueType) {
-                                          issueType = nextIssueType;
-                                        },
-                                        setAssignmentType:
-                                            (nextAssignmentType) {
-                                          confirmedAssignmentType =
-                                              nextAssignmentType;
-                                        },
-                                      );
-                                    });
-                                  }
-                                } finally {
-                                  isBulkPickerActive = false;
-                                }
-                              },
-                            ),
+                              DropdownMenuItem(
+                                value: 'Urgent',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded,
+                                        size: 20, color: Color(0xFFEF4444)),
+                                    const SizedBox(width: 10),
+                                    Text(_text(context,
+                                        vi: 'Khẩn cấp', en: 'Urgent')),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (v) => priority = v ?? priority,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.priority),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: issueNameCtrl,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.issueName),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: descriptionCtrl,
+                            maxLines: 3,
+                            decoration:
+                                _ticketFieldDecoration(label: l10n.description),
                           ),
                         ],
                       ),
-                      if (isAiAnalyzing) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _text(
-                                  context,
-                                  vi: 'Đang phân tích ảnh bằng AI...',
-                                  en: 'Analyzing image with AI...',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _text(context,
-                              vi: 'Giao ticket cho', en: 'Assign ticket to'),
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
+                      const SizedBox(height: 24),
+                      _buildDialogSurface(
+                        padding: const EdgeInsets.all(20),
+                        children: [
+                          _buildDialogSectionTitle(_text(context,
+                              vi: 'Hình ảnh đính kèm', en: 'Attachments')),
+                          const SizedBox(height: 4),
+                          Text(
+                            _text(context,
+                                vi: 'Ảnh dùng chung cho tất cả ticket tạo trong lần này.',
+                                en: 'Shared across all created tickets.'),
+                            style: const TextStyle(
+                                fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildAttachmentButtons(
+                            leftLabel: l10n.takePhoto,
+                            rightLabel: l10n.gallery,
+                            onTakePhoto: () async {
+                              if (isBulkPickerActive) return;
+                              isBulkPickerActive = true;
+                              try {
+                                final XFile? picked = await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const CameraPage(
+                                      title: 'Chụp ảnh sự cố',
+                                    ),
+                                  ),
+                                );
+                                if (picked != null) {
+                                  final file = File(picked.path);
+                                  setModalState(() {
+                                    bulkAttachmentImage = file;
+                                    aiPrediction = null;
+                                    isAiAnalyzing = true;
+                                  });
+                                  final prediction =
+                                      await _predictTicketFromImage(file);
+                                  if (!mounted) return;
+                                  setModalState(() {
+                                    aiPrediction = prediction;
+                                    isAiAnalyzing = false;
+                                    _applyAiPredictionToTicketForm(
+                                      prediction: prediction,
+                                      issueNameCtrl: issueNameCtrl,
+                                      descriptionCtrl: descriptionCtrl,
+                                      setIssueType: (nextIssueType) {
+                                        issueType = nextIssueType;
+                                      },
+                                      setAssignmentType: (nextAssignmentType) {
+                                        confirmedAssignmentType =
+                                            nextAssignmentType;
+                                      },
+                                    );
+                                  });
+                                }
+                              } finally {
+                                isBulkPickerActive = false;
+                              }
+                            },
+                            onPickGallery: () async {
+                              if (isBulkPickerActive) return;
+                              isBulkPickerActive = true;
+                              try {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                  imageQuality: 70,
+                                );
+                                if (picked != null) {
+                                  final file = File(picked.path);
+                                  setModalState(() {
+                                    bulkAttachmentImage = file;
+                                    aiPrediction = null;
+                                    isAiAnalyzing = true;
+                                  });
+                                  final prediction =
+                                      await _predictTicketFromImage(file);
+                                  if (!mounted) return;
+                                  setModalState(() {
+                                    aiPrediction = prediction;
+                                    isAiAnalyzing = false;
+                                    _applyAiPredictionToTicketForm(
+                                      prediction: prediction,
+                                      issueNameCtrl: issueNameCtrl,
+                                      descriptionCtrl: descriptionCtrl,
+                                      setIssueType: (nextIssueType) {
+                                        issueType = nextIssueType;
+                                      },
+                                      setAssignmentType: (nextAssignmentType) {
+                                        confirmedAssignmentType =
+                                            nextAssignmentType;
+                                      },
+                                    );
+                                  });
+                                }
+                              } finally {
+                                isBulkPickerActive = false;
+                              }
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      _buildAssignmentSelector(
-                        session: session,
-                        selectedAssignmentType: confirmedAssignmentType,
-                        onChanged: (nextAssignmentType) {
-                          setModalState(() {
-                            confirmedAssignmentType = nextAssignmentType;
-                          });
-                        },
+                      const SizedBox(height: 24),
+                      _buildDialogSurface(
+                        padding: const EdgeInsets.all(20),
+                        children: [
+                          _buildDialogSectionTitle(_text(context,
+                              vi: 'Giao xử lý cho', en: 'Assign To')),
+                          const SizedBox(height: 8),
+                          _buildAssignmentSelector(
+                            session: session,
+                            selectedAssignmentType: confirmedAssignmentType,
+                            onChanged: (nextAssignmentType) {
+                              setModalState(() {
+                                confirmedAssignmentType = nextAssignmentType;
+                              });
+                            },
+                          ),
+                        ],
                       ),
-                      // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     ],
                   ),
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(_text(context, vi: 'Hủy', en: 'Cancel')),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final issueName = issueNameCtrl.text.trim();
-                    if (issueName.isEmpty || selected.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            _text(
-                              context,
-                              vi: 'Cần nhập tên vấn đề và chọn ít nhất một sinh viên.',
-                              en: 'Issue name and at least one student are required.',
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF64748B),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: Text(
+                            _text(context, vi: 'Hủy', en: 'Cancel'),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
-                      );
-                      return;
-                    }
-
-                    // Upload once and reuse the same attachment URL for all tickets.
-                    String? sharedUrl;
-                    if (bulkAttachmentImage != null) {
-                      Navigator.of(ctx).pop();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _text(
-                                    context,
-                                    vi: 'Đang tải ảnh lên...',
-                                    en: 'Uploading image...',
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563EB),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shadowColor:
+                                const Color(0xFF2563EB).withOpacity(0.4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final issueName = issueNameCtrl.text.trim();
+                            if (issueName.isEmpty || selected.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    _text(
+                                      context,
+                                      vi: 'Cần nhập tên vấn đề và chọn ít nhất một sinh viên.',
+                                      en: 'Issue name and at least one student are required.',
+                                    ),
                                   ),
                                 ),
-                              ],
-                            ),
-                            duration: const Duration(seconds: 10),
-                          ),
-                        );
-                      }
-                      sharedUrl = await _uploadImage(bulkAttachmentImage!);
-                      if (context.mounted)
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    } else {
-                      Navigator.of(ctx).pop();
-                    }
+                              );
+                              return;
+                            }
 
-                    int successCount = 0;
-                    for (final studentCode in selected) {
-                      final ok = await _submitTicket(
-                        context,
-                        {
-                          'issueName': issueName,
-                          'issueType': issueType,
-                          'description': descriptionCtrl.text.trim(),
-                          'priority': priority,
-                          'sessionId': session.id,
-                          'studentCode': studentCode,
-                          'confirmedAssignmentType': confirmedAssignmentType,
-                          if (sharedUrl != null) 'attachment': sharedUrl,
-                          if (aiPrediction != null) ...{
-                            'ocrText':
-                                (aiPrediction!['ocr_text'] ?? '').toString(),
-                            'aiPredictedIssueName':
-                                (aiPrediction!['issue_name'] ?? '').toString(),
-                            'aiPredictedIssueType':
-                                (aiPrediction!['issue_type'] ?? '').toString(),
-                            'aiConfidence': aiPrediction!['confidence'],
-                            'aiDisplayMessage':
-                                (aiPrediction!['display_message'] ?? '')
-                                    .toString(),
-                            'aiEvidenceText':
-                                (aiPrediction!['evidence_text'] ?? '')
-                                    .toString(),
-                            'aiModelVersion': 'text_baseline_v1',
-                            'aiRecommendedAssignmentType':
-                                (aiPrediction!['recommended_assignment_type'] ??
-                                        '')
-                                    .toString(),
+                            // Upload once and reuse the same attachment URL for all tickets.
+                            String? sharedUrl;
+                            if (bulkAttachmentImage != null) {
+                              Navigator.of(ctx).pop();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          _text(
+                                            context,
+                                            vi: 'Đang tải ảnh lên...',
+                                            en: 'Uploading image...',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    duration: const Duration(seconds: 10),
+                                  ),
+                                );
+                              }
+                              sharedUrl =
+                                  await _uploadImage(bulkAttachmentImage!);
+                              if (context.mounted)
+                                ScaffoldMessenger.of(context)
+                                    .hideCurrentSnackBar();
+                            } else {
+                              Navigator.of(ctx).pop();
+                            }
+
+                            int successCount = 0;
+                            for (final studentCode in selected) {
+                              final ok = await _submitTicket(
+                                context,
+                                {
+                                  'issueName': issueName,
+                                  'issueType': issueType,
+                                  'description': descriptionCtrl.text.trim(),
+                                  'priority': priority,
+                                  'sessionId': session.id,
+                                  'studentCode': studentCode,
+                                  'confirmedAssignmentType':
+                                      confirmedAssignmentType,
+                                  if (sharedUrl != null)
+                                    'attachment': sharedUrl,
+                                  if (aiPrediction != null) ...{
+                                    'ocrText': (aiPrediction!['ocr_text'] ?? '')
+                                        .toString(),
+                                    'aiPredictedIssueName': (aiPrediction![
+                                                'issue_name'] ??
+                                            '')
+                                        .toString(),
+                                    'aiPredictedIssueType': (aiPrediction![
+                                                'issue_type'] ??
+                                            '')
+                                        .toString(),
+                                    'aiConfidence': aiPrediction!['confidence'],
+                                    'aiDisplayMessage': (aiPrediction![
+                                                'display_message'] ??
+                                            '')
+                                        .toString(),
+                                    'aiEvidenceText': (aiPrediction![
+                                                'evidence_text'] ??
+                                            '')
+                                        .toString(),
+                                    'aiModelVersion': 'text_baseline_v1',
+                                    'aiRecommendedAssignmentType':
+                                        (aiPrediction![
+                                                    'recommended_assignment_type'] ??
+                                                '')
+                                            .toString(),
+                                  },
+                                },
+                                showToast: false,
+                              );
+                              if (ok) successCount++;
+                            }
+
+                            if (context.mounted) {
+                              setState(() {
+                                _selectedTicketStudentIds.clear();
+                                _isTicketSelectionMode = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    _text(
+                                      context,
+                                      vi: 'Đã tạo $successCount/${selected.length} ticket',
+                                      en: 'Created $successCount/${selected.length} tickets',
+                                    ),
+                                  ),
+                                  backgroundColor:
+                                      successCount == selected.length
+                                          ? Colors.green
+                                          : Colors.orange,
+                                ),
+                              );
+                            }
                           },
-                        },
-                        showToast: false,
-                      );
-                      if (ok) successCount++;
-                    }
-
-                    if (context.mounted) {
-                      setState(() {
-                        _selectedTicketStudentIds.clear();
-                        _isTicketSelectionMode = false;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
+                          child: Text(
                             _text(
                               context,
-                              vi: 'Đã tạo $successCount/${selected.length} ticket',
-                              en: 'Created $successCount/${selected.length} tickets',
+                              vi: 'Tạo ${selected.length} ticket',
+                              en: 'Create ${selected.length} tickets',
                             ),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          backgroundColor: successCount == selected.length
-                              ? Colors.green
-                              : Colors.orange,
                         ),
-                      );
-                    }
-                  },
-                  child: Text(
-                    _text(
-                      context,
-                      vi: 'Tạo ${selected.length} ticket',
-                      en: 'Create ${selected.length} tickets',
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],

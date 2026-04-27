@@ -3,16 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../face_enrollment/enrollment_controller.dart';
 import 'register_controller.dart';
 import 'register_state.dart';
 
 class RegisterFaceLiveScanPage extends ConsumerStatefulWidget {
   final String? targetStudentCode;
+  final String? otp;
+  final String? retentionPolicy;
   final bool showCompletionInfo;
 
   const RegisterFaceLiveScanPage({
     super.key,
     this.targetStudentCode,
+    this.otp,
+    this.retentionPolicy,
     this.showCompletionInfo = false,
   });
 
@@ -33,6 +38,12 @@ class _RegisterFaceLiveScanPageState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final controller = ref.read(registerFaceControllerProvider.notifier);
       controller.setTargetStudentCode(widget.targetStudentCode);
+      if (widget.otp != null && widget.retentionPolicy != null) {
+        controller.setSupervisedEnrollmentContext(
+          otp: widget.otp!,
+          retentionPolicy: widget.retentionPolicy!,
+        );
+      }
       controller.initializeCamera();
     });
   }
@@ -152,6 +163,8 @@ class _RegisterFaceLiveScanPageState
         .toLowerCase()
         .startsWith('vi');
     final student = state.registeredStudent;
+    final bool isStaffTargeted =
+        widget.targetStudentCode != null && widget.targetStudentCode!.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -161,20 +174,36 @@ class _RegisterFaceLiveScanPageState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 80),
+              Icon(
+                (isStaffTargeted || state.pendingEnrollmentId == null)
+                    ? Icons.check_circle
+                    : Icons.hourglass_top,
+                color: (isStaffTargeted || state.pendingEnrollmentId == null)
+                    ? Colors.green
+                    : AppColors.appBarOrange,
+                size: 80,
+              ),
               const SizedBox(height: 24),
               Text(
                 isVietnamese
-                    ? 'Đăng ký thành công!'
-                    : 'Registration successful!',
+                    ? (isStaffTargeted || state.pendingEnrollmentId == null)
+                        ? 'Đăng ký thành công!'
+                        : 'Đã gửi yêu cầu duyệt'
+                    : (isStaffTargeted || state.pendingEnrollmentId == null)
+                        ? 'Registration successful!'
+                        : 'Waiting for approval',
                 style:
                     const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(
                 isVietnamese
-                    ? 'Dữ liệu khuôn mặt đã được cập nhật.'
-                    : 'Face data has been updated.',
+                    ? (isStaffTargeted || state.pendingEnrollmentId == null)
+                        ? 'Dữ liệu khuôn mặt đã được cập nhật.'
+                        : 'Vui lòng chờ giám thị phê duyệt để hoàn tất.'
+                    : (isStaffTargeted || state.pendingEnrollmentId == null)
+                        ? 'Face data has been updated.'
+                        : 'Please wait for supervisor approval.',
                 style: const TextStyle(color: Colors.black54),
               ),
               if (widget.showCompletionInfo && student != null) ...[
@@ -213,15 +242,31 @@ class _RegisterFaceLiveScanPageState
               ],
               const SizedBox(height: 48),
               ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).popUntil((route) => route.isFirst),
+                onPressed: () {
+                  final pendingId = state.pendingEnrollmentId;
+                  if (!isStaffTargeted && pendingId != null) {
+                    ref
+                        .read(enrollmentControllerProvider.notifier)
+                        .startWaiting(enrollmentId: pendingId);
+                    // No longer showing EnrollmentWaitingPage, stay on completion screen
+                    // or pop to root as this registration is now supervised and pending.
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    return;
+                  }
+
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.appBarOrange,
                   foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                 ),
-                child: Text(isVietnamese ? 'Hoàn tất' : 'Complete'),
+                child: Text(
+                  (isStaffTargeted || state.pendingEnrollmentId == null)
+                      ? (isVietnamese ? 'Hoàn tất' : 'Complete')
+                      : (isVietnamese ? 'Chờ duyệt' : 'Wait for approval'),
+                ),
               ),
             ],
           ),

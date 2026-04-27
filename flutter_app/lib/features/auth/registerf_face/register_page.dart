@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-
+﻿import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/dialogs/data_consent_dialog.dart';
-import 'register_face_scan_page.dart';
+import '../../face_enrollment/student/face_storage_consent_page.dart';
+import '../../face_enrollment/student/otp_input_page.dart';
 
 class RegisterFaceStartPage extends StatelessWidget {
   final String? targetStudentCode;
@@ -14,30 +14,16 @@ class RegisterFaceStartPage extends StatelessWidget {
     this.showCompletionInfo = false,
   });
 
-  bool get _isProctorMode =>
-      targetStudentCode != null && targetStudentCode!.trim().isNotEmpty;
-
   @override
   Widget build(BuildContext context) {
-    final isVietnamese = Localizations.localeOf(context)
-        .languageCode
-        .toLowerCase()
-        .startsWith('vi');
+    final bool isStaffTargeted =
+        targetStudentCode != null && targetStudentCode!.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _isProctorMode
-              ? (isVietnamese
-                  ? 'Đăng ký khuôn mặt sinh viên'
-                  : 'Register student face')
-              : (isVietnamese
-                  ? 'Đăng ký nhận diện khuôn mặt'
-                  : 'Register face identity'),
-        ),
+        title: const Text('Đăng ký khuôn mặt'),
         backgroundColor: AppColors.appBarOrange,
         foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -57,79 +43,47 @@ class RegisterFaceStartPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-                Text(
-                  _isProctorMode
-                      ? (isVietnamese
-                          ? 'Sẵn sàng đăng ký khuôn mặt cho sinh viên?'
-                          : 'Ready to register this student face?')
-                      : (isVietnamese
-                          ? 'Sẵn sàng đăng ký khuôn mặt?'
-                          : 'Ready to register your face?'),
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                  ),
+                const Text(
+                  'Sẵn sàng đăng ký khuôn mặt?',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
                 ),
-                if (_isProctorMode) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.badge_outlined,
-                            color: AppColors.appBarOrange),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            isVietnamese
-                                ? 'Mã sinh viên: ${targetStudentCode!}'
-                                : 'Student code: ${targetStudentCode!}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 16),
                 _StepCard(
                   stepNumber: 1,
-                  title: isVietnamese ? 'Quét khuôn mặt' : 'Scan face',
-                  description: isVietnamese
-                      ? 'Đảm bảo khuôn mặt hiển thị rõ ràng. Không đeo kính, mũ hoặc khẩu trang.'
-                      : 'Make sure the face is clearly visible. Do not wear glasses, a hat, or a mask.',
-                  icon: Icons.face_retouching_natural,
+                  title: isStaffTargeted ? 'Chuẩn bị quét' : 'Nhập mã OTP',
+                  description: isStaffTargeted
+                      ? 'Dữ liệu sẽ được đăng ký cho sinh viên $targetStudentCode. Vui lòng hướng camera về phía sinh viên.'
+                      : 'Vui lòng nhập mã OTP từ giám thị hành lang để tiếp tục.',
+                  icon: isStaffTargeted ? Icons.camera_alt : Icons.vpn_key,
                 ),
                 const Spacer(),
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: FilledButton(
-                    onPressed: () async {
-                      final agreed = await DataConsentDialog.show(context);
-                      if (!agreed || !context.mounted) return;
-
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => RegisterFaceScanIntroPage(
-                            targetStudentCode: targetStudentCode,
-                            showCompletionInfo: showCompletionInfo,
+                    onPressed: () {
+                      if (isStaffTargeted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => FaceStorageConsentPage(
+                              targetStudentCode: targetStudentCode,
+                              showCompletionInfo: showCompletionInfo,
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const OtpInputPage(),
+                          ),
+                        );
+                      }
                     },
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.appBarOrange,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text(isVietnamese ? 'Tiếp tục' : 'Continue'),
+                    child: const Text('Tiếp tục'),
                   ),
                 ),
               ],
@@ -161,57 +115,23 @@ class _StepCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: AppColors.appBarOrange,
-            ),
-            child: Text(
-              '$stepNumber',
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
+          CircleAvatar(
+            backgroundColor: AppColors.appBarOrange,
+            child: Text('$stepNumber', style: const TextStyle(color: Colors.white)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: TextStyle(
-                    color: Theme.of(context).hintColor,
-                    height: 1.25,
-                  ),
-                ),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(description, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
-          const SizedBox(width: 12),
           Icon(icon, color: AppColors.appBarOrange),
         ],
       ),

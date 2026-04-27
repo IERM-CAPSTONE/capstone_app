@@ -1,121 +1,78 @@
-import 'package:flutter/material.dart';
-import '../../../data/models/user_model.dart';
-import '../../../core/constants/app_colors.dart';
+﻿import 'package:flutter/material.dart';
+import '../../../../data/models/user_model.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class ProctorProfileHeader extends StatelessWidget {
   final UserModel user;
 
-  const ProctorProfileHeader({
-    super.key,
-    required this.user,
-  });
+  const ProctorProfileHeader({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      alignment: Alignment.center,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+      decoration: const BoxDecoration(
+        color: AppColors.appBarOrange,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF6B35).withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFFFF6B35),
-                width: 3,
-              ),
+          const SizedBox(height: 10),
+          Center(
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 55,
+                    backgroundColor: Colors.white,
+                    backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+                    child: user.avatarUrl == null
+                        ? const Icon(Icons.person, size: 60, color: AppColors.appBarOrange)
+                        : null,
+                  ),
+                ),
+              ],
             ),
-            child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                ? ClipOval(
-                    child: Image.network(
-                      user.avatarUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildDefaultAvatar(),
-                    ),
-                  )
-                : _buildDefaultAvatar(),
           ),
-
-          const SizedBox(height: 16),
-
-          // Name
+          const SizedBox(height: 20),
           Text(
-            (user.fullName ?? 'No Name').toUpperCase(),
-            textAlign: TextAlign.center,
+            user.fullName?.toUpperCase() ?? 'N/A',
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: 1.2,
             ),
           ),
-
           const SizedBox(height: 8),
-
-          if (user.code != null && user.code!.isNotEmpty) ...[
-            Text(
-              user.code!.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          const SizedBox(height: 12),
-
-          // Proctor Tag
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF6B35).withOpacity(0.1),
+              color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: const Color(0xFFFF6B35),
-                width: 1,
-              ),
             ),
-            child: Builder(
-              builder: (context) {
-                final role = user.role?.toLowerCase() ?? 'proctor';
-                String roleDisplay = 'Proctor';
-                if (role == 'it_support') roleDisplay = 'IT Support';
-                else if (role == 'hall_invigilator') roleDisplay = 'Hall Invigilator';
-                else if (role == 'proctor') roleDisplay = 'Proctor';
-                else if (role == 'student') roleDisplay = 'Student';
-
-                return Text(
-                  '$roleDisplay - FPT University',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFFF6B35),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                );
-              }
+            child: Text(
+              user.code ?? 'FPT UNIVERSITY',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDefaultAvatar() {
-    return const Icon(
-      Icons.person,
-      size: 50,
-      color: Color(0xFFFF6B35),
     );
   }
 }
