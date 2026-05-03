@@ -101,6 +101,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   bool _isSeatSwapMode = false;
   bool _isSwappingSeats = false;
   String? _selectedSwapSeatId;
+  final ScrollController _scrollController = ScrollController();
   StreamSubscription<TicketRealtimeEvent>? _faceAuthSubscription;
 
   @override
@@ -113,6 +114,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   @override
   void dispose() {
     _faceAuthSubscription?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -130,12 +132,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   }
 
   Future<void> _refreshSessionData() async {
-    ref.invalidate(examSessionDetailProvider(widget.examSessionId));
     ref.invalidate(sessionStudentsProvider(widget.examSessionId));
     ref.invalidate(sessionExamSeatsProvider(widget.examSessionId));
 
     await Future.wait([
-      ref.read(examSessionDetailProvider(widget.examSessionId).future),
       ref.read(sessionStudentsProvider(widget.examSessionId).future),
       ref.read(sessionExamSeatsProvider(widget.examSessionId).future),
     ]);
@@ -942,12 +942,15 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                     );
                     final studentsAsync = ref
                         .watch(sessionStudentsProvider(widget.examSessionId));
+                    final examSeatsAsync =
+                        ref.watch(sessionExamSeatsProvider(widget.examSessionId));
                     final subjectPartsAsync = ref.watch(
                         sessionSubjectPartsProvider(session.subjectCode));
 
                     return _buildLoadedContent(
                       session: session,
                       studentsAsync: studentsAsync,
+                      examSeatsAsync: examSeatsAsync,
                       subjectPartsAsync: subjectPartsAsync,
                       l10n: l10n,
                     );
@@ -970,86 +973,82 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   Widget _buildLoadedContent({
     required ExamSession session,
     required AsyncValue<List<StudentExam>> studentsAsync,
+    required AsyncValue<List<ExamSeatRecord>> examSeatsAsync,
     required AsyncValue<List<SubjectPartOption>> subjectPartsAsync,
     required AppLocalizations l10n,
   }) {
-    return studentsAsync.when(
-      data: (students) {
-        final examSeats =
-          ref.watch(sessionExamSeatsProvider(widget.examSessionId)).valueOrNull ??
-            const <ExamSeatRecord>[];
-        final canManageSessionActions = _canManageSessionActions(session);
-        final subjectParts =
-            subjectPartsAsync.valueOrNull ?? const <SubjectPartOption>[];
-        final selectedExamPartCode = _resolveSelectedExamPartCode(subjectParts);
-        final seatingPlan = SeatingPlan.fromExamData(
-          maxRows: session.maxRows ?? 6,
-          maxColumns: session.maxColumns ?? 6,
-          totalSeats: session.totalSeats ??
-              ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
-          studentExams: students,
-          examSeats: examSeats,
-          selectedExamPartCode:
-              subjectParts.isNotEmpty ? selectedExamPartCode : null,
-        );
-        final canSwapSeats = _canSwapSeats(session) && examSeats.isNotEmpty;
+    final students = studentsAsync.valueOrNull;
+    final examSeats = examSeatsAsync.valueOrNull;
+    if (students == null || examSeats == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildExamInfo(session, l10n),
-              if (subjectPartsAsync.isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: LinearProgressIndicator(minHeight: 2),
-                ),
-              if (subjectParts.isNotEmpty && canManageSessionActions)
-                _buildPartSelector(subjectParts, selectedExamPartCode),
-              _buildActionButtons(
-                context: context,
-                session: session,
-                students: students,
-                subjectParts: subjectParts,
-                selectedExamPartCode: selectedExamPartCode,
-                l10n: l10n,
-              ),
-              _buildSeatSwapModeButton(
-                session: session,
-                canSwapSeats: canSwapSeats,
-              ),
-              if (_isSeatSwapMode)
-                _buildSeatSwapBanner(seatingPlan: seatingPlan),
-              _buildStatsCards(
-                students: students,
-                seatingPlan: seatingPlan,
-                l10n: l10n,
-              ),
-              const SizedBox(height: 8),
-              const SeatingLegend(),
-              const SizedBox(height: 16),
-              if (students.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Center(
-                    child: Text(
-                        _text(context, vi: 'No session', en: 'No session')),
-                  ),
-                )
-              else
-                _buildSeatingPlanView(
-                  seatingPlan: seatingPlan,
-                  selectedExamPartCode: selectedExamPartCode,
-                  l10n: l10n,
-                ),
-              const SizedBox(height: 32),
-            ],
+    final canManageSessionActions = _canManageSessionActions(session);
+    final subjectParts =
+        subjectPartsAsync.valueOrNull ?? const <SubjectPartOption>[];
+    final selectedExamPartCode = _resolveSelectedExamPartCode(subjectParts);
+    final seatingPlan = SeatingPlan.fromExamData(
+      maxRows: session.maxRows ?? 6,
+      maxColumns: session.maxColumns ?? 6,
+      totalSeats: session.totalSeats ??
+          ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
+      studentExams: students,
+      examSeats: examSeats,
+      selectedExamPartCode:
+          subjectParts.isNotEmpty ? selectedExamPartCode : null,
+    );
+    final canSwapSeats = _canSwapSeats(session) && examSeats.isNotEmpty;
+
+    return SingleChildScrollView(
+      controller: _scrollController,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildExamInfo(session, l10n),
+          if (subjectPartsAsync.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+          if (subjectParts.isNotEmpty && canManageSessionActions)
+            _buildPartSelector(subjectParts, selectedExamPartCode),
+          _buildActionButtons(
+            context: context,
+            session: session,
+            students: students,
+            subjectParts: subjectParts,
+            selectedExamPartCode: selectedExamPartCode,
+            l10n: l10n,
           ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => Center(
-        child: Text(_text(context, vi: 'No session', en: 'No session')),
+          _buildSeatSwapModeButton(
+            session: session,
+            canSwapSeats: canSwapSeats,
+          ),
+          if (_isSeatSwapMode)
+            _buildSeatSwapBanner(seatingPlan: seatingPlan),
+          _buildStatsCards(
+            students: students,
+            seatingPlan: seatingPlan,
+            l10n: l10n,
+          ),
+          const SizedBox(height: 8),
+          const SeatingLegend(),
+          const SizedBox(height: 16),
+          if (students.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Text(_text(context, vi: 'No session', en: 'No session')),
+              ),
+            )
+          else
+            _buildSeatingPlanView(
+              seatingPlan: seatingPlan,
+              selectedExamPartCode: selectedExamPartCode,
+              l10n: l10n,
+            ),
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }

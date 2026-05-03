@@ -144,68 +144,68 @@ class SeatingPlan {
       }
     }
 
-    final Map<String, ExamSeatRecord> backendSeatByPosition = {};
-    for (final seat in examSeats) {
-      // Backend coordinates are one-based in most sessions; keep both keys
-      // to stay compatible with older zero-based data if present.
-      backendSeatByPosition['${seat.row}-${seat.col}'] = seat;
-      backendSeatByPosition['${seat.row + 1}-${seat.col + 1}'] = seat;
+    final hasZeroBasedCoordinates =
+        examSeats.any((seat) => seat.row == 0 || seat.col == 0);
+
+    String toSeatKeyFromBackend(ExamSeatRecord seat) {
+      if (hasZeroBasedCoordinates) {
+        return '${seat.row + 1}-${seat.col + 1}';
+      }
+      return '${seat.row}-${seat.col}';
     }
+
+    final Map<String, ExamSeatRecord> backendSeatByPosition = {
+      for (final seat in examSeats) toSeatKeyFromBackend(seat): seat,
+    };
 
     final Map<String, ExamSeatRecord> backendSeatById = {
       for (final seat in examSeats) seat.id: seat,
     };
 
     final Map<String, StudentExam> studentBySeatPosition = {};
+    final Set<String> studentsWithValidPosition = {};
     for (final student in studentExams) {
       final seatPosition = student.seatPosition?.trim();
       if (seatPosition == null || seatPosition.isEmpty) continue;
       final backendSeat = backendSeatById[seatPosition];
       if (backendSeat == null) continue;
-      final key = '${backendSeat.row}-${backendSeat.col}';
+      final key = toSeatKeyFromBackend(backendSeat);
       studentBySeatPosition[key] = student;
-      studentBySeatPosition['${backendSeat.row + 1}-${backendSeat.col + 1}'] =
-          student;
+      studentsWithValidPosition.add(student.id);
     }
 
     SeatStatus resolveStatus(ExamSeatRecord? backendSeat, StudentExam? student) {
       final backendStatus = backendSeat?.status.trim().toLowerCase();
-      switch (backendStatus) {
-        case 'locked':
-          return SeatStatus.locked;
-        case 'present':
-          return SeatStatus.present;
-        case 'absent':
-          return SeatStatus.absent;
-        case 'assigned':
-          return student != null ? SeatStatus.absent : SeatStatus.available;
-        case 'available':
-        default:
-          if (student == null) {
-            return SeatStatus.available;
-          }
-          if (selectedExamPartCode != null &&
-              selectedExamPartCode.trim().isNotEmpty) {
-            final part = student.findPartByCode(selectedExamPartCode);
-            if (student.status == StudentExamStatus.removed) {
-              return SeatStatus.absent;
-            }
-            if (part?.isCheckedIn == true) {
-              return SeatStatus.present;
-            }
-            return SeatStatus.absent;
-          }
-          if (student.hasAnyCheckedInPart ||
-              student.status == StudentExamStatus.checkedIn ||
-              student.status == StudentExamStatus.checkedOut) {
-            return SeatStatus.present;
-          }
-          if (student.status == StudentExamStatus.registered ||
-              student.status == StudentExamStatus.removed) {
-            return SeatStatus.absent;
-          }
-          return SeatStatus.absent;
+      if (backendStatus == 'locked') {
+        return SeatStatus.locked;
       }
+
+      if (student == null) {
+        return SeatStatus.available;
+      }
+
+      if (selectedExamPartCode != null &&
+          selectedExamPartCode.trim().isNotEmpty) {
+        final part = student.findPartByCode(selectedExamPartCode);
+        if (student.status == StudentExamStatus.removed) {
+          return SeatStatus.absent;
+        }
+        if (part?.isCheckedIn == true) {
+          return SeatStatus.present;
+        }
+        return SeatStatus.absent;
+      }
+
+      if (student.hasAnyCheckedInPart ||
+          student.status == StudentExamStatus.checkedIn ||
+          student.status == StudentExamStatus.checkedOut) {
+        return SeatStatus.present;
+      }
+      if (student.status == StudentExamStatus.registered ||
+          student.status == StudentExamStatus.removed) {
+        return SeatStatus.absent;
+      }
+      return SeatStatus.absent;
     }
 
     // Generate all seats
@@ -219,9 +219,16 @@ class SeatingPlan {
         StudentExam? studentExam;
         SeatStatus status = resolveStatus(backendSeat, null);
 
-        // Prefer authoritative seatPosition mapping, then fallback to seatNumber
+        // Prefer authoritative seatPosition mapping
         studentExam = studentBySeatPosition[seatNumber];
-        studentExam ??= studentBySeat[seatNumber];
+        
+        // Only fallback to seatNumber if student doesn't have a valid seatPosition
+        if (studentExam == null) {
+          final fallbackStudent = studentBySeat[seatNumber];
+          if (fallbackStudent != null && !studentsWithValidPosition.contains(fallbackStudent.id)) {
+            studentExam = fallbackStudent;
+          }
+        }
 
         if (studentExam != null) {
           status = resolveStatus(backendSeat, studentExam);
