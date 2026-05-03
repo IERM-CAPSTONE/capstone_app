@@ -7,8 +7,10 @@ import '../../core/routes/app_routes.dart';
 import 'profile_controller.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/personal_info_section.dart';
-import 'widgets/face_recognition_section.dart';
+import 'widgets/device_verification_section.dart';
 import 'widgets/bottom_nav_bar.dart';
+import 'widgets/face_enrollment_section.dart';
+import 'widgets/face_registration_section.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -47,8 +49,24 @@ class ProfilePage extends ConsumerWidget {
                     const SizedBox(height: 24),
                     const PersonalInfoSection(),
                     const SizedBox(height: 24),
-                    const FaceRecognitionSection(),
-                    const SizedBox(height: 24),
+                    if (profileState.user?.role?.toUpperCase() == 'STUDENT')
+                      const FaceRegistrationSection(),
+                    if (profileState.user?.role?.toUpperCase() == 'STUDENT')
+                      const SizedBox(height: 24),
+                    if (profileState.user?.role?.toUpperCase() == 'HALL_INVIGILATOR' ||
+                        profileState.user?.role?.toUpperCase() == 'PROCTOR')
+                      const DeviceVerificationSection(),
+                    if (profileState.user?.role?.toUpperCase() == 'HALL_INVIGILATOR' ||
+                        profileState.user?.role?.toUpperCase() == 'PROCTOR')
+                      const SizedBox(height: 24),
+                    if (profileState.user?.role?.toUpperCase() == 'HALL_INVIGILATOR' ||
+                        profileState.user?.role?.toUpperCase() == 'PROCTOR' ||
+                        profileState.user?.role?.toUpperCase() == 'EXAM_OFFICER')
+                      const FaceEnrollmentSection(),
+                    if (profileState.user?.role?.toUpperCase() == 'HALL_INVIGILATOR' ||
+                        profileState.user?.role?.toUpperCase() == 'PROCTOR' ||
+                        profileState.user?.role?.toUpperCase() == 'EXAM_OFFICER')
+                      const SizedBox(height: 24),
                     
                     // Nút Đăng xuất thiết kế lại
                     Padding(

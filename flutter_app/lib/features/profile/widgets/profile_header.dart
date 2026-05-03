@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import '../../../data/models/user_model.dart';
 import '../../../core/constants/app_colors.dart';
 
+String _humanizeRole(String? role) {
+  if (role == null || role.trim().isEmpty) return '';
+  final parts = role.replaceAll('_', ' ').split(RegExp(r"\s+"));
+  return parts.map((p) => p.isEmpty ? p : '${p[0].toUpperCase()}${p.substring(1).toLowerCase()}').join(' ');
+}
+
 class ProfileHeader extends StatelessWidget {
   final UserModel user;
 
@@ -60,7 +66,7 @@ class ProfileHeader extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          if (user.code != null && user.code!.isNotEmpty) ...[
+          if (user.role?.toLowerCase() == 'student' && user.code != null && user.code!.isNotEmpty)
             Text(
               user.code!.toUpperCase(),
               textAlign: TextAlign.center,
@@ -68,9 +74,21 @@ class ProfileHeader extends StatelessWidget {
                 fontSize: 16,
                 color: Colors.grey,
               ),
+            )
+          else if (user.role != null && user.role!.isNotEmpty)
+            Text(
+              _humanizeRole(user.role),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
             ),
+
+          if (user.role?.toLowerCase() == 'student' && user.code != null && user.code!.isNotEmpty)
+            const SizedBox(height: 8)
+          else if (user.role != null && user.role!.isNotEmpty)
             const SizedBox(height: 8),
-          ],
 
           const SizedBox(height: 12),
 

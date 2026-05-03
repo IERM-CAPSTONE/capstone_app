@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../profile_controller.dart';
 
+String _humanizeRole(String? role) {
+  if (role == null || role.trim().isEmpty) return 'N/A';
+  final parts = role.replaceAll('_', ' ').split(RegExp(r"\s+"));
+  return parts.map((p) => p.isEmpty ? p : '${p[0].toUpperCase()}${p.substring(1).toLowerCase()}').join(' ');
+}
+
 class PersonalInfoSection extends ConsumerWidget {
   const PersonalInfoSection({super.key});
 
@@ -35,6 +41,27 @@ class PersonalInfoSection extends ConsumerWidget {
             iconColor: Colors.blue,
             label: AppLocalizations.of(context)!.email,
             value: user.email ?? '',
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            icon: Icons.badge_outlined,
+            iconColor: Colors.indigo,
+            label: 'Mã cán bộ',
+            value: user.code ?? 'N/A',
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            icon: Icons.location_on,
+            iconColor: Colors.teal,
+            label: AppLocalizations.of(context)!.campus,
+            value: user.campus ?? 'N/A',
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            icon: Icons.work_outline,
+            iconColor: Colors.orange,
+            label: 'Vai trò',
+            value: _humanizeRole(user.role),
           ),
 
           /*

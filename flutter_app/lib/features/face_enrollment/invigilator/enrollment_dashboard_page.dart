@@ -5,8 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../../config/dependency_injection.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/models/exam_session.dart';
-import '../../../../config/dependency_injection.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../data/services/face_enrollment_service.dart';
 import '../enrollment_controller.dart';
 import 'otp_display_page.dart';

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../proctor_profile_controller.dart';
-import '../proctor_profile_state.dart';
+import '../profile_controller.dart';
+import '../profile_state.dart';
 
-class ProctorDeviceVerificationSection extends ConsumerWidget {
-  const ProctorDeviceVerificationSection({super.key});
+class DeviceVerificationSection extends ConsumerWidget {
+  const DeviceVerificationSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileState = ref.watch(proctorProfileControllerProvider);
-    final profileController =
-        ref.read(proctorProfileControllerProvider.notifier);
+    final profileState = ref.watch(profileControllerProvider);
+    final profileController = ref.read(profileControllerProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
@@ -148,7 +149,7 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
                                 : l10n.deviceRegistrationDesc,
                         style: const TextStyle(
                           fontSize: 14,
-                          color: Colors.black54,
+                          color: Colors.grey,
                         ),
                       ),
                     ],
@@ -160,8 +161,6 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
 
           if (profileState.deviceStatus == DeviceRegistrationStatus.none) ...[
             const SizedBox(height: 12),
-
-            // Register Device Button
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -246,7 +245,6 @@ class ProctorDeviceVerificationSection extends ConsumerWidget {
 
           const SizedBox(height: 12),
 
-          // My Device List Button
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(

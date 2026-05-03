@@ -5,6 +5,8 @@
   "email": "Email",
   "faceRecognition": "Face Recognition",
   "faceRegistration": "Face Registration",
+  "faceEnrollmentManagement": "Face Enrollment Management",
+  "faceEnrollmentManagementDesc": "Open the dashboard to review or verify face enrollment.",
   "registered": "Registered",
   "notRegistered": "Not Registered",
   "faceRegisteredDesc": "Your face data is registered. You can check-in to exams using facial recognition.",

@@ -5,6 +5,8 @@
   "email": "Email",
   "faceRecognition": "Nhận diện khuôn mặt",
   "faceRegistration": "Đăng ký khuôn mặt",
+  "faceEnrollmentManagement": "Quản lý đăng ký khuôn mặt",
+  "faceEnrollmentManagementDesc": "Mở dashboard để duyệt hoặc kiểm tra đăng ký khuôn mặt.",
   "registered": "Đã đăng ký",
   "notRegistered": "Chưa đăng ký",
   "faceRegisteredDesc": "Dữ liệu khuôn mặt của bạn đã được đăng ký. Bạn có thể điểm danh vào thi bằng nhận diện khuôn mặt.",

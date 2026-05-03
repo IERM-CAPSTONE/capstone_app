@@ -10,6 +10,7 @@ class UserModel {
   final String? username; // Added
   final String? avatarUrl; // Renamed from avatar
   final String? role;
+  final String? campus;
   final String? code;
   final bool isActive; // Added
   final DateTime? createdAt;
@@ -22,6 +23,7 @@ class UserModel {
     this.username,
     this.avatarUrl,
     this.role,
+    this.campus,
     this.code,
     this.isActive = true,
     this.createdAt,
@@ -40,6 +42,7 @@ class UserModel {
     String? username,
     String? avatarUrl,
     String? role,
+    String? campus,
     String? code,
     bool? isActive,
     DateTime? createdAt,
@@ -52,6 +55,7 @@ class UserModel {
       username: username ?? this.username,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       role: role ?? this.role,
+      campus: campus ?? this.campus,
       code: code ?? this.code,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,

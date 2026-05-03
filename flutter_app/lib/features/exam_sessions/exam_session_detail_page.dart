@@ -25,8 +25,8 @@ import '../auth/proctor_face_checkin/proctor_face_checkin_page.dart';
 import '../exam_rooms/seating_plan_page.dart';
 import '../exam_rooms/widgets/seat_widget.dart';
 import '../exam_rooms/widgets/seating_legend.dart';
-import '../profile/proctor_profile_controller.dart';
-import '../profile/proctor_profile_state.dart';
+import '../profile/profile_controller.dart';
+import '../profile/profile_state.dart';
 
 final examSessionDetailProvider =
     FutureProvider.family<Map<String, dynamic>?, String>(
@@ -1296,7 +1296,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       return const SizedBox.shrink();
     }
 
-    final profileState = ref.watch(proctorProfileControllerProvider);
+    final profileState = ref.watch(profileControllerProvider);
     final deviceIsActive =
         profileState.deviceStatus == DeviceRegistrationStatus.active;
     final requiresPartSelection = subjectParts.isNotEmpty;

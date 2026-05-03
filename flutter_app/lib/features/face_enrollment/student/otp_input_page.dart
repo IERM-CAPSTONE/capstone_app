@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/routes/app_routes.dart';
 import '../enrollment_controller.dart';
 import 'face_storage_consent_page.dart';
 
@@ -186,7 +188,7 @@ class _OtpInputPageState extends ConsumerState<OtpInputPage> {
                   ),
                   const SizedBox(height: 40),
                   TextButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.go(AppRoutes.profile),
                     icon: const Icon(Icons.arrow_back_rounded, size: 20),
                     label: const Text('Quay lại'),
                     style: TextButton.styleFrom(

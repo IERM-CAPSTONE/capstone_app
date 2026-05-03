@@ -4,7 +4,6 @@ import '../../features/devices/my_devices_page.dart';
 import '../../features/exam_sessions/exam_sessions_page.dart';
 import '../../features/home/proctor_dashboard_page.dart';
 import '../../features/notifications/notifications_page.dart';
-import '../../features/profile/proctor_profile_page.dart';
 import '../../features/profile/profile_page.dart';
 import '../../features/tickets/ticket_detail_page.dart';
 import '../../features/tickets/tickets_page.dart';
@@ -16,8 +15,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String home = '/home';
   static const String profile = '/profile';
-  static const String proctorProfile = '/proctor-profile';
-  static const String myDeviceList = '/proctor-profile/my-devices';
+  static const String myDeviceList = '/profile/my-devices';
   static const String examSchedule = '/exam-schedule';
   static const String proctorDashboard = '/proctor-dashboard';
   static const String tickets = '/tickets';
@@ -37,7 +35,6 @@ class AppRoutes {
       GoRoute(path: faceEnrollmentDashboard, builder: (context, state) => const EnrollmentDashboardPage()),
       GoRoute(path: faceEnrollmentConsent, builder: (context, state) => const FaceStorageConsentPage()),
       GoRoute(path: profile, builder: (context, state) => const ProfilePage()),
-      GoRoute(path: proctorProfile, builder: (context, state) => const ProctorProfilePage()),
       GoRoute(path: myDeviceList, builder: (context, state) => const MyDevicesPage()),
       GoRoute(path: proctorDashboard, builder: (context, state) => const ProctorDashboardPage()),
       GoRoute(path: tickets, builder: (context, state) => const TicketsPage()),

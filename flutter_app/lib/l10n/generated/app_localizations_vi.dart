@@ -24,6 +24,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get faceRegistration => 'Đăng ký khuôn mặt';
 
   @override
+  String get faceEnrollmentManagement => 'Quản lý đăng ký khuôn mặt';
+
+  @override
+  String get faceEnrollmentManagementDesc =>
+      'Mở dashboard để duyệt hoặc kiểm tra đăng ký khuôn mặt.';
+
+  @override
   String get registered => 'Đã đăng ký';
 
   @override

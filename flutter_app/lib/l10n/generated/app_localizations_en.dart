@@ -24,6 +24,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get faceRegistration => 'Face Registration';
 
   @override
+  String get faceEnrollmentManagement => 'Face Enrollment Management';
+
+  @override
+  String get faceEnrollmentManagementDesc =>
+      'Open the dashboard to review or verify face enrollment.';
+
+  @override
   String get registered => 'Registered';
 
   @override

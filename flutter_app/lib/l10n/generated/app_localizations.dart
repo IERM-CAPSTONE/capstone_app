@@ -128,6 +128,18 @@ abstract class AppLocalizations {
   /// **'Face Registration'**
   String get faceRegistration;
 
+  /// No description provided for @faceEnrollmentManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Face Enrollment Management'**
+  String get faceEnrollmentManagement;
+
+  /// No description provided for @faceEnrollmentManagementDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the dashboard to review or verify face enrollment.'**
+  String get faceEnrollmentManagementDesc;
+
   /// No description provided for @registered.
   ///
   /// In en, this message translates to:

@@ -2,6 +2,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/routes/app_routes.dart';
 import '../../core/constants/app_colors.dart';
 import '../profile/widgets/bottom_nav_bar.dart';
 import 'my_devices_controller.dart';
@@ -76,7 +77,7 @@ class MyDevicesPage extends ConsumerWidget {
                   if (GoRouter.of(context).canPop()) {
                     GoRouter.of(context).pop();
                   } else {
-                    GoRouter.of(context).go('/proctor-profile');
+                    GoRouter.of(context).go(AppRoutes.profile);
                   }
                 },
               ),
