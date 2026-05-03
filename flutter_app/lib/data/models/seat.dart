@@ -1,4 +1,5 @@
 import 'student_exam.dart';
+import 'exam_seat_record.dart';
 
 enum SeatStatus {
   available,
@@ -108,6 +109,7 @@ class SeatingPlan {
     required int maxColumns,
     required int totalSeats,
     required List<StudentExam> studentExams,
+    List<ExamSeatRecord> examSeats = const [],
     String? selectedExamPartCode,
   }) {
     final List<Seat> seats = [];
@@ -133,7 +135,7 @@ class SeatingPlan {
       return trimmed;
     }
 
-    // Create a map of seatNumber -> StudentExam for quick lookup
+    // Create a map of seatNumber -> StudentExam for legacy/fallback lookup
     final Map<String, StudentExam> studentBySeat = {};
     for (var student in studentExams) {
       final normalizedSeat = normalizeSeatNumber(student.seatNumber);
@@ -142,43 +144,87 @@ class SeatingPlan {
       }
     }
 
+    final Map<String, ExamSeatRecord> backendSeatByPosition = {};
+    for (final seat in examSeats) {
+      // Backend coordinates are one-based in most sessions; keep both keys
+      // to stay compatible with older zero-based data if present.
+      backendSeatByPosition['${seat.row}-${seat.col}'] = seat;
+      backendSeatByPosition['${seat.row + 1}-${seat.col + 1}'] = seat;
+    }
+
+    final Map<String, ExamSeatRecord> backendSeatById = {
+      for (final seat in examSeats) seat.id: seat,
+    };
+
+    final Map<String, StudentExam> studentBySeatPosition = {};
+    for (final student in studentExams) {
+      final seatPosition = student.seatPosition?.trim();
+      if (seatPosition == null || seatPosition.isEmpty) continue;
+      final backendSeat = backendSeatById[seatPosition];
+      if (backendSeat == null) continue;
+      final key = '${backendSeat.row}-${backendSeat.col}';
+      studentBySeatPosition[key] = student;
+      studentBySeatPosition['${backendSeat.row + 1}-${backendSeat.col + 1}'] =
+          student;
+    }
+
+    SeatStatus resolveStatus(ExamSeatRecord? backendSeat, StudentExam? student) {
+      final backendStatus = backendSeat?.status.trim().toLowerCase();
+      switch (backendStatus) {
+        case 'locked':
+          return SeatStatus.locked;
+        case 'present':
+          return SeatStatus.present;
+        case 'absent':
+          return SeatStatus.absent;
+        case 'assigned':
+          return student != null ? SeatStatus.absent : SeatStatus.available;
+        case 'available':
+        default:
+          if (student == null) {
+            return SeatStatus.available;
+          }
+          if (selectedExamPartCode != null &&
+              selectedExamPartCode.trim().isNotEmpty) {
+            final part = student.findPartByCode(selectedExamPartCode);
+            if (student.status == StudentExamStatus.removed) {
+              return SeatStatus.absent;
+            }
+            if (part?.isCheckedIn == true) {
+              return SeatStatus.present;
+            }
+            return SeatStatus.absent;
+          }
+          if (student.hasAnyCheckedInPart ||
+              student.status == StudentExamStatus.checkedIn ||
+              student.status == StudentExamStatus.checkedOut) {
+            return SeatStatus.present;
+          }
+          if (student.status == StudentExamStatus.registered ||
+              student.status == StudentExamStatus.removed) {
+            return SeatStatus.absent;
+          }
+          return SeatStatus.absent;
+      }
+    }
+
     // Generate all seats
     for (int row = 0; row < maxRows; row++) {
       for (int col = 0; col < maxColumns; col++) {
         final seatNumber = '${row + 1}-${col + 1}';
-        final id = 'seat_${row}_$col';
+        final backendSeat = backendSeatByPosition[seatNumber];
+        final id = backendSeat?.id ?? 'seat_${row}_$col';
 
         // Check if this seat has a student
         StudentExam? studentExam;
-        SeatStatus status = SeatStatus.available;
+        SeatStatus status = resolveStatus(backendSeat, null);
 
-        // Try to find student by seat number
-        if (studentBySeat.containsKey(seatNumber)) {
-          studentExam = studentBySeat[seatNumber];
+        // Prefer authoritative seatPosition mapping, then fallback to seatNumber
+        studentExam = studentBySeatPosition[seatNumber];
+        studentExam ??= studentBySeat[seatNumber];
 
-          // Determine status based on student exam status
-          if (studentExam != null) {
-            if (selectedExamPartCode != null &&
-                selectedExamPartCode.trim().isNotEmpty) {
-              final part = studentExam.findPartByCode(selectedExamPartCode);
-              if (studentExam.status == StudentExamStatus.removed) {
-                status = SeatStatus.absent;
-              } else if (part?.isCheckedIn == true) {
-                status = SeatStatus.present;
-              } else {
-                status = SeatStatus.absent;
-              }
-            } else {
-              if (studentExam.hasAnyCheckedInPart ||
-                  studentExam.status == StudentExamStatus.checkedIn ||
-                  studentExam.status == StudentExamStatus.checkedOut) {
-                status = SeatStatus.present;
-              } else if (studentExam.status == StudentExamStatus.registered ||
-                  studentExam.status == StudentExamStatus.removed) {
-                status = SeatStatus.absent;
-              }
-            }
-          }
+        if (studentExam != null) {
+          status = resolveStatus(backendSeat, studentExam);
         }
 
         final stt = (row * maxColumns) + col + 1;

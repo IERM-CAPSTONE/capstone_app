@@ -7,6 +7,7 @@ import '../../config/env.dart';
 import '../../config/dependency_injection.dart';
 import '../../data/models/exam_session.dart';
 import '../../data/models/attendance_snapshot.dart';
+import '../../data/models/exam_seat_record.dart';
 import '../../data/models/seat.dart';
 import '../../data/models/student_exam.dart';
 import '../../data/models/subject_part_option.dart';
@@ -21,8 +22,6 @@ import 'package:image/image.dart' as img;
 import 'dart:io';
 import '../../shared/pages/camera_page.dart';
 import '../auth/face_authenticate/face_authenticate_page.dart';
-import '../auth/proctor_face_checkin/proctor_face_checkin_page.dart';
-import '../exam_rooms/seating_plan_page.dart';
 import '../exam_rooms/widgets/seat_widget.dart';
 import '../exam_rooms/widgets/seating_legend.dart';
 import '../profile/profile_controller.dart';
@@ -50,6 +49,12 @@ final sessionSubjectPartsProvider =
   }
   final repository = DependencyInjection.get<ExamSessionRepository>();
   return repository.getSubjectParts(subjectCode);
+});
+
+final sessionExamSeatsProvider =
+    FutureProvider.family<List<ExamSeatRecord>, String>((ref, examSessionId) async {
+  final repository = DependencyInjection.get<ExamSessionRepository>();
+  return repository.getExamSeats(examSessionId);
 });
 
 class ExamSessionDetailPage extends ConsumerStatefulWidget {
@@ -91,9 +96,11 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   String? _userId;
   bool _isStaff = false;
   String? _selectedExamPartCode;
-  bool _hasProctorCheckedIn = false;
   final Set<String> _selectedTicketStudentIds = <String>{};
   bool _isTicketSelectionMode = false;
+  bool _isSeatSwapMode = false;
+  bool _isSwappingSeats = false;
+  String? _selectedSwapSeatId;
   StreamSubscription<TicketRealtimeEvent>? _faceAuthSubscription;
 
   @override
@@ -125,10 +132,12 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   Future<void> _refreshSessionData() async {
     ref.invalidate(examSessionDetailProvider(widget.examSessionId));
     ref.invalidate(sessionStudentsProvider(widget.examSessionId));
+    ref.invalidate(sessionExamSeatsProvider(widget.examSessionId));
 
     await Future.wait([
       ref.read(examSessionDetailProvider(widget.examSessionId).future),
       ref.read(sessionStudentsProvider(widget.examSessionId).future),
+      ref.read(sessionExamSeatsProvider(widget.examSessionId).future),
     ]);
   }
 
@@ -167,6 +176,10 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   bool _canManageSessionActions(ExamSession session) {
     if (_userId == null) return false;
     return _userId == session.proctorId || _userId == session.hallInvigilatorId;
+  }
+
+  bool _canSwapSeats(ExamSession session) {
+    return _userRole == 'PROCTOR' && _userId != null && _userId == session.proctorId;
   }
 
   ExamSession _mergeSessionFallback(ExamSession fetched) {
@@ -299,7 +312,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       return null;
     } finally {
       if (preparedImage != null && preparedImage.path != imageFile.path) {
-        unawaited(preparedImage.delete().catchError((_) {}));
+        try {
+          await preparedImage.delete();
+        } catch (_) {}
       }
     }
   }
@@ -960,6 +975,9 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
   }) {
     return studentsAsync.when(
       data: (students) {
+        final examSeats =
+          ref.watch(sessionExamSeatsProvider(widget.examSessionId)).valueOrNull ??
+            const <ExamSeatRecord>[];
         final canManageSessionActions = _canManageSessionActions(session);
         final subjectParts =
             subjectPartsAsync.valueOrNull ?? const <SubjectPartOption>[];
@@ -970,9 +988,11 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
           totalSeats: session.totalSeats ??
               ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
           studentExams: students,
+          examSeats: examSeats,
           selectedExamPartCode:
               subjectParts.isNotEmpty ? selectedExamPartCode : null,
         );
+        final canSwapSeats = _canSwapSeats(session) && examSeats.isNotEmpty;
 
         return SingleChildScrollView(
           child: Column(
@@ -994,7 +1014,12 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                 selectedExamPartCode: selectedExamPartCode,
                 l10n: l10n,
               ),
-              _buildProctorFaceCheckInButton(session: session),
+              _buildSeatSwapModeButton(
+                session: session,
+                canSwapSeats: canSwapSeats,
+              ),
+              if (_isSeatSwapMode)
+                _buildSeatSwapBanner(seatingPlan: seatingPlan),
               _buildStatsCards(
                 students: students,
                 seatingPlan: seatingPlan,
@@ -1459,147 +1484,70 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
               ),
             ],
           ),
-          if (false) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _openSingleTicketDialog(
-                  context,
-                  session,
-                  students,
-                  <String>{},
-                ),
-                icon: const Icon(Icons.person_search_outlined, size: 18),
-                label: Text(
-                  _text(
-                    context,
-                    vi: 'Tạo ticket thủ công theo sinh viên',
-                    en: 'Create ticket manually by student',
-                  ),
-                  style: const TextStyle(fontSize: 13),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1565C0),
-                  side: const BorderSide(color: Color(0xFF90CAF9)),
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-          ],
-          if (false && _isTicketSelectionMode) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3F2FD),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF90CAF9)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.touch_app_outlined,
-                    size: 18,
-                    color: Color(0xFF1565C0),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _text(
-                        context,
-                        vi: 'Chế độ chọn ghế đang bật. Đã chọn ${_selectedTicketStudentIds.length} sinh viên.',
-                        en: 'Seat selection mode is on. ${_selectedTicketStudentIds.length} students selected.',
-                      ),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F4C81),
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isTicketSelectionMode = false;
-                        _selectedTicketStudentIds.clear();
-                      });
-                    },
-                    child: Text(_text(context, vi: 'Tắt', en: 'Off')),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildProctorPresenceButton({required ExamSession session}) {
+  Widget _buildSeatSwapModeButton({
+    required ExamSession session,
+    required bool canSwapSeats,
+  }) {
     final isAssignedProctor = _userId != null && _userId == session.proctorId;
 
     if (!isAssignedProctor) {
       return const SizedBox.shrink();
     }
 
+    final isActive = _isSeatSwapMode;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: () {
-            setState(() {
-              _hasProctorCheckedIn = !_hasProctorCheckedIn;
-            });
+          onPressed: canSwapSeats
+              ? () {
+                  final nextState = !_isSeatSwapMode;
+                  setState(() {
+                    _isSeatSwapMode = nextState;
+                    _selectedSwapSeatId = null;
+                  });
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  _hasProctorCheckedIn
-                      ? _text(
-                          context,
-                          vi: 'Đã xác nhận giám thị có mặt trong phòng thi.',
-                          en: 'Proctor marked as present in the exam room.',
-                        )
-                      : _text(
-                          context,
-                          vi: 'Đã hủy xác nhận giám thị có mặt trong phòng thi.',
-                          en: 'Proctor presence confirmation removed.',
-                        ),
-                ),
-                backgroundColor: _hasProctorCheckedIn
-                    ? const Color(0xFF2E7D32)
-                    : Colors.grey.shade700,
-              ),
-            );
-          },
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        nextState
+                            ? _text(
+                                context,
+                                vi: 'Đã bật chế độ đổi chỗ. Chọn ghế nguồn rồi chọn ghế đích.',
+                                en: 'Swap mode is on. Select a source seat, then a destination seat.',
+                              )
+                            : _text(
+                                context,
+                                vi: 'Đã tắt chế độ đổi chỗ.',
+                                en: 'Swap mode is off.',
+                              ),
+                      ),
+                      backgroundColor:
+                          nextState ? const Color(0xFF1565C0) : Colors.grey,
+                    ),
+                  );
+                }
+              : null,
           icon: Icon(
-            _hasProctorCheckedIn ? Icons.verified_user : Icons.how_to_reg,
+            isActive ? Icons.swap_horiz : Icons.swap_horiz_outlined,
             size: 20,
           ),
           label: Text(
-            _hasProctorCheckedIn
-                ? _text(
-                    context,
-                    vi: 'Giám thị đã vào phòng thi',
-                    en: 'Proctor is in the exam room',
-                  )
-                : _text(
-                    context,
-                    vi: 'Xác nhận giám thị vào phòng thi',
-                    en: 'Confirm proctor entered room',
-                  ),
+            isActive
+                ? _text(context, vi: 'Tắt chế độ đổi chỗ', en: 'Exit swap mode')
+                : _text(context, vi: 'Bật chế độ đổi chỗ', en: 'Enable swap mode'),
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _hasProctorCheckedIn
-                ? const Color(0xFF2E7D32)
-                : const Color(0xFFFF9800),
+            backgroundColor:
+                isActive ? const Color(0xFF1565C0) : const Color(0xFFFF9800),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 12),
             shape:
@@ -1610,74 +1558,62 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     );
   }
 
-  Widget _buildProctorFaceCheckInButton({required ExamSession session}) {
-    final isAssignedProctor = _userId != null && _userId == session.proctorId;
-
-    if (!isAssignedProctor) {
-      return const SizedBox.shrink();
+  Widget _buildSeatSwapBanner({required SeatingPlan seatingPlan}) {
+    Seat? selectedSeat;
+    if (_selectedSwapSeatId != null) {
+      for (final seat in seatingPlan.seats) {
+        if (seat.id == _selectedSwapSeatId) {
+          selectedSeat = seat;
+          break;
+        }
+      }
     }
 
-    final checkedInAt = session.proctorCheckedInAt;
-    final hasCheckedIn = checkedInAt != null;
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: SizedBox(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Container(
         width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () async {
-            final result = await Navigator.of(context).push<bool>(
-              MaterialPageRoute(
-                builder: (_) => ProctorFaceCheckInPage(
-                  examSessionId: widget.examSessionId,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3F2FD),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF90CAF9)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.touch_app_outlined,
+                color: Color(0xFF1565C0), size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                selectedSeat == null
+                    ? _text(
+                        context,
+                        vi: 'Chế độ đổi chỗ đang bật. Chạm vào ghế nguồn để bắt đầu.',
+                        en: 'Swap mode is active. Tap a source seat to begin.',
+                      )
+                    : _text(
+                        context,
+                        vi: 'Ghế nguồn đã chọn: ${selectedSeat.stt}. Chạm ghế đích để đổi chỗ.',
+                        en: 'Source seat selected: ${selectedSeat.stt}. Tap a destination seat to swap.',
+                      ),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F4C81),
                 ),
               ),
-            );
-
-            if (result == true) {
-              ref.invalidate(examSessionDetailProvider(widget.examSessionId));
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    _text(
-                      context,
-                      vi: 'Điểm danh giám thị thành công.',
-                      en: 'Proctor check-in successful.',
-                    ),
-                  ),
-                  backgroundColor: const Color(0xFF2E7D32),
-                ),
-              );
-            }
-          },
-          icon: Icon(
-            hasCheckedIn ? Icons.verified_user : Icons.face_retouching_natural,
-            size: 20,
-          ),
-          label: Text(
-            hasCheckedIn
-                ? _text(
-                    context,
-                    vi: 'Giám thị đã vào phòng thi',
-                    en: 'Proctor has checked in',
-                  )
-                : _text(
-                    context,
-                    vi: 'Quét khuôn mặt giám thị vào phòng thi',
-                    en: 'Scan proctor face for check-in',
-                  ),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: hasCheckedIn
-                ? const Color(0xFF2E7D32)
-                : const Color(0xFFFF9800),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
+            ),
+            if (selectedSeat != null)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedSwapSeatId = null;
+                  });
+                },
+                child: Text(_text(context, vi: 'Bỏ chọn', en: 'Clear')),
+              ),
+          ],
         ),
       ),
     );
@@ -1930,10 +1866,16 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     final studentId = seat.studentExam?.studentId;
     final selectedByTicket =
         studentId != null && _selectedTicketStudentIds.contains(studentId);
-    final isSelected = selectedByTicket;
+    final isSwapSelected = _selectedSwapSeatId == seat.id;
+    final isSelected = selectedByTicket || isSwapSelected;
 
     return GestureDetector(
       onTap: () {
+        if (_isSeatSwapMode) {
+          _handleSeatSwapTap(seat);
+          return;
+        }
+
         if (seat.status == SeatStatus.available) return;
         if (_isTicketSelectionMode) {
           if (studentId != null && studentId.isNotEmpty) {
@@ -1961,6 +1903,100 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
       },
       child: SeatWidget(seat: seat, isSelected: isSelected),
     );
+  }
+
+  void _handleSeatSwapTap(Seat seat) {
+    if (_isSwappingSeats) return;
+
+    if (_selectedSwapSeatId == null) {
+      setState(() {
+        _selectedSwapSeatId = seat.id;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _text(
+              context,
+              vi: 'Đã chọn ghế nguồn ${seat.stt}. Chọn ghế đích để hoàn tất.',
+              en: 'Selected source seat ${seat.stt}. Choose a destination seat to complete the swap.',
+            ),
+          ),
+          backgroundColor: const Color(0xFF1565C0),
+        ),
+      );
+      return;
+    }
+
+    if (_selectedSwapSeatId == seat.id) {
+      setState(() {
+        _selectedSwapSeatId = null;
+      });
+      return;
+    }
+
+    unawaited(_swapSeats(sourceSeatId: _selectedSwapSeatId!, targetSeat: seat));
+  }
+
+  Future<void> _swapSeats({
+    required String sourceSeatId,
+    required Seat targetSeat,
+  }) async {
+    final repository = DependencyInjection.get<ExamSessionRepository>();
+
+    setState(() {
+      _isSwappingSeats = true;
+    });
+
+    try {
+      await repository.swapSeats(
+        examSessionId: widget.examSessionId,
+        sourceSeatId: sourceSeatId,
+        targetSeatId: targetSeat.id,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _selectedSwapSeatId = null;
+      });
+
+      await _refreshSessionData();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _text(
+              context,
+              vi: 'Đổi chỗ thành công.',
+              en: 'Seat swap completed successfully.',
+            ),
+          ),
+          backgroundColor: const Color(0xFF2E7D32),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _text(
+              context,
+              vi: 'Không thể đổi chỗ: $e',
+              en: 'Unable to swap seats: $e',
+            ),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSwappingSeats = false;
+        });
+      }
+    }
   }
 
   void _showSeatDetails({

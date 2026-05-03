@@ -89,6 +89,7 @@ class StudentExam {
   final String examSessionId;
   final String studentId;
   final String? seatNumber; // Changed from int? to String?
+  final String? seatPosition;
   final StudentExamStatus status;
   final String? currentLocation;
   final String? identityId;
@@ -111,6 +112,7 @@ class StudentExam {
     required this.examSessionId,
     required this.studentId,
     this.seatNumber,
+    this.seatPosition,
     required this.status,
     this.currentLocation,
     this.identityId,
@@ -144,6 +146,7 @@ class StudentExam {
       examSessionId: json['examSessionId'] as String? ?? '',
       studentId: json['studentId'] as String? ?? '',
       seatNumber: json['seatNumber']?.toString(),
+      seatPosition: json['seatPosition']?.toString(),
       status: StudentExamStatus.values.firstWhere(
         (e) =>
             e.toString().split('.').last.toUpperCase() ==

@@ -1,9 +1,9 @@
-import '../models/exam_session.dart';
 import '../models/attendance_snapshot.dart';
 import '../models/student_exam.dart';
 import '../models/subject_part_option.dart';
 import '../models/user_model.dart';
 import '../models/exam_room.dart';
+import '../models/exam_seat_record.dart';
 import '../services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
@@ -172,6 +172,50 @@ class ExamSessionRepository {
       return response.data;
     } catch (e) {
       return [];
+    }
+  }
+
+  Future<List<ExamSeatRecord>> getExamSeats(String examSessionId) async {
+    try {
+      final response = await _dio.get('/exam-seats/session/$examSessionId');
+      final payload = response.data;
+      final rawItems = payload is List
+          ? payload
+          : payload is Map<String, dynamic>
+              ? payload['data'] ?? payload['items'] ?? const []
+              : const [];
+
+      return (rawItems as List<dynamic>)
+          .whereType<Map<String, dynamic>>()
+          .map(ExamSeatRecord.fromJson)
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> swapSeats({
+    required String examSessionId,
+    required String sourceSeatId,
+    required String targetSeatId,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/exam-seats/$sourceSeatId/swap',
+        data: {'targetSeatId': targetSeatId},
+      );
+      final payload = response.data;
+      if (payload is Map<String, dynamic>) {
+        return payload;
+      }
+      return {
+        'success': true,
+        'examSessionId': examSessionId,
+        'sourceSeatId': sourceSeatId,
+        'targetSeatId': targetSeatId,
+      };
+    } catch (e) {
+      throw Exception('Failed to swap seats: $e');
     }
   }
 
