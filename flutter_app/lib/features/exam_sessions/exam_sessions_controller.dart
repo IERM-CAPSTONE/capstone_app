@@ -88,6 +88,26 @@ class ExamSessionsController extends StateNotifier<ExamSessionsState> {
         totalItems: result['totalItems'] as int,
         isLoading: false,
       );
+    } on DioException catch (e) {
+      // Handle HTTP errors separately to provide clearer UX
+      final status = e.response?.statusCode;
+      if (status == 401) {
+        // Unauthorized - force logout and redirect to login
+        try {
+          await _authService.signOut(revokePushToken: false, redirectToLogin: true);
+        } catch (_) {}
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Session expired. Please sign in again.',
+        );
+        return;
+      }
+
+      final serverMessage = e.response?.data?.toString() ?? e.message;
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to load exam sessions: HTTP $status - $serverMessage',
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
