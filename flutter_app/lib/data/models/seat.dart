@@ -158,25 +158,26 @@ class SeatingPlan {
 
           // Determine status based on student exam status
           if (studentExam != null) {
-            if (selectedExamPartCode != null &&
+            final hasCheckedInPart = studentExam.hasAnyCheckedInPart ||
+                studentExam.parts.any((part) => part.isCheckedIn);
+            final isActuallyPresent = studentExam.isPresent ||
+                studentExam.checkinTime != null ||
+                hasCheckedInPart;
+
+            if (studentExam.status == StudentExamStatus.removed) {
+              status = SeatStatus.absent;
+            } else if (selectedExamPartCode != null &&
                 selectedExamPartCode.trim().isNotEmpty) {
               final part = studentExam.findPartByCode(selectedExamPartCode);
-              if (studentExam.status == StudentExamStatus.removed) {
-                status = SeatStatus.absent;
-              } else if (part?.isCheckedIn == true) {
+              if (part?.isCheckedIn == true || isActuallyPresent) {
                 status = SeatStatus.present;
-              } else {
+              } else if (part != null) {
                 status = SeatStatus.absent;
               }
-            } else {
-              if (studentExam.hasAnyCheckedInPart ||
-                  studentExam.status == StudentExamStatus.checkedIn ||
-                  studentExam.status == StudentExamStatus.checkedOut) {
-                status = SeatStatus.present;
-              } else if (studentExam.status == StudentExamStatus.registered ||
-                  studentExam.status == StudentExamStatus.removed) {
-                status = SeatStatus.absent;
-              }
+            } else if (isActuallyPresent) {
+              status = SeatStatus.present;
+            } else if (studentExam.status == StudentExamStatus.registered) {
+              status = SeatStatus.absent;
             }
           }
         }

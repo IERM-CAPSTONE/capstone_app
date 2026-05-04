@@ -26,8 +26,8 @@ class SeatWidget extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isSelected
-                ? const Color(0xFFFFD54F).withAlpha((0.35 * 255).round())
-                : Colors.black.withAlpha((0.08 * 255).round()),
+                ? const Color(0xFFFFD54F).withValues(alpha: 0.35)
+                : Colors.black.withValues(alpha: 0.08),
             blurRadius: isSelected ? 10 : 4,
             offset: const Offset(0, 2),
           ),
@@ -66,7 +66,7 @@ class SeatWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  (seat.studentExam?.stt ?? seat.stt).toString(),
+                  seat.studentExam?.seatNumber ?? seat.displayNumber,
                   style: TextStyle(
                     color: _getTextColor(),
                     fontWeight: FontWeight.w800,
