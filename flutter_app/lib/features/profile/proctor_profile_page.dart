@@ -1,12 +1,12 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../l10n/generated/app_localizations.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import 'proctor_profile_controller.dart';
 import 'widgets/proctor_profile_header.dart';
 import 'widgets/proctor_personal_info_section.dart';
+import 'widgets/proctor_device_verification_section.dart';
 import 'widgets/bottom_nav_bar.dart';
 
 class ProctorProfilePage extends ConsumerWidget {
@@ -16,8 +16,6 @@ class ProctorProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(proctorProfileControllerProvider);
     final profileController = ref.read(proctorProfileControllerProvider.notifier);
-    final l10n = AppLocalizations.of(context)!;
-
     return Scaffold(
       backgroundColor: AppColors.backgroundGradientEnd,
       appBar: AppBar(
@@ -39,7 +37,9 @@ class ProctorProfilePage extends ConsumerWidget {
                   const SizedBox(height: 24),
                   const ProctorPersonalInfoSection(),
                   const SizedBox(height: 24),
-                  
+                  const ProctorDeviceVerificationSection(),
+                  const SizedBox(height: 24),
+
                   // Action Section
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),

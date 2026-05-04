@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
@@ -964,15 +964,16 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         final subjectParts =
             subjectPartsAsync.valueOrNull ?? const <SubjectPartOption>[];
         final selectedExamPartCode = _resolveSelectedExamPartCode(subjectParts);
-        final seatingPlan = SeatingPlan.fromExamData(
-          maxRows: session.maxRows ?? 6,
-          maxColumns: session.maxColumns ?? 6,
-          totalSeats: session.totalSeats ??
-              ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
-          studentExams: students,
-          selectedExamPartCode:
-              subjectParts.isNotEmpty ? selectedExamPartCode : null,
-        );
+        final seatingPlan = session.seatingPlan ??
+            SeatingPlan.fromExamData(
+              maxRows: session.maxRows ?? 6,
+              maxColumns: session.maxColumns ?? 6,
+              totalSeats: session.totalSeats ??
+                  ((session.maxRows ?? 6) * (session.maxColumns ?? 6)),
+              studentExams: students,
+              selectedExamPartCode:
+                  subjectParts.isNotEmpty ? selectedExamPartCode : null,
+            );
 
         return SingleChildScrollView(
           child: Column(
@@ -2004,7 +2005,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: _getSeatColor(seat.status).withAlpha(25),
+                    color: _getSeatColor(seat.status).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -2021,7 +2022,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) {
                                   return Text(
-                                    (student.stt ?? seat.stt).toString(),
+                                    seat.studentExam?.seatNumber ?? seat.displayNumber,
                                     style: TextStyle(
                                       color: _getSeatColor(seat.status),
                                       fontWeight: FontWeight.bold,
@@ -2033,7 +2034,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
                             ),
                           )
                         : Text(
-                            (student.stt ?? seat.stt).toString(),
+                            seat.studentExam?.seatNumber ?? seat.displayNumber,
                             style: TextStyle(
                               color: _getSeatColor(seat.status),
                               fontWeight: FontWeight.bold,
@@ -2432,20 +2433,7 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
     required StudentExam studentExam,
     required AppLocalizations l10n,
   }) {
-    if (selectedExamPartCode != null && selectedExamPartCode.isNotEmpty) {
-      final partInfo = studentExam.findPartByCode(selectedExamPartCode);
-      if (studentExam.status == StudentExamStatus.removed) {
-        return l10n.absent;
-      }
-      if (partInfo?.isCheckedIn == true) {
-        return l10n.present;
-      }
-      return l10n.absent;
-    }
-
     switch (seatStatus) {
-      case SeatStatus.available:
-        return l10n.available;
       case SeatStatus.present:
         return l10n.present;
       case SeatStatus.absent:
@@ -2454,6 +2442,18 @@ class _ExamSessionDetailPageState extends ConsumerState<ExamSessionDetailPage> {
         return Localizations.localeOf(context).languageCode == 'vi'
             ? 'Khóa'
             : 'Locked';
+      case SeatStatus.available:
+        if (selectedExamPartCode != null && selectedExamPartCode.isNotEmpty) {
+          final partInfo = studentExam.findPartByCode(selectedExamPartCode);
+          if (studentExam.status == StudentExamStatus.removed) {
+            return l10n.absent;
+          }
+          if (partInfo?.isCheckedIn == true) {
+            return l10n.present;
+          }
+          return l10n.absent;
+        }
+        return l10n.available;
     }
   }
 

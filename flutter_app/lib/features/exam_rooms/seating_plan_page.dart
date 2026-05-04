@@ -23,12 +23,13 @@ final seatingPlanProvider =
     final examSession = sessionData['session'] as ExamSession;
 
     // Create seating plan
-    final seatingPlan = SeatingPlan.fromExamData(
-      maxRows: examSession.maxRows ?? 6,
-      maxColumns: examSession.maxColumns ?? 6,
-      totalSeats: examSession.totalSeats ?? 30,
-      studentExams: studentExams,
-    );
+    final seatingPlan = examSession.seatingPlan ??
+        SeatingPlan.fromExamData(
+          maxRows: examSession.maxRows ?? 6,
+          maxColumns: examSession.maxColumns ?? 6,
+          totalSeats: examSession.totalSeats ?? 30,
+          studentExams: studentExams,
+        );
 
     return seatingPlan;
   } catch (e) {

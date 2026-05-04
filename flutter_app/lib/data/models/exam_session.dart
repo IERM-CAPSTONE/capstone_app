@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'seat.dart';
+
 part 'exam_session.g.dart';
 
 enum ExamSessionStatus {
@@ -45,6 +47,7 @@ class ExamSession {
   final int? totalSeats;
   final bool isArchived;
   final String? campus;
+  final SeatingPlan? seatingPlan;
 
   ExamSession({
     required this.id,
@@ -72,6 +75,7 @@ class ExamSession {
     this.totalSeats,
     this.isArchived = false,
     this.campus,
+    this.seatingPlan,
   }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -180,7 +184,18 @@ class ExamSession {
       totalSeats: (json['totalSeats'] as num?)?.toInt(),
       isArchived: json['isArchived'] as bool? ?? false,
       campus: json['campus']?.toString(),
+      seatingPlan: _parseSeatingPlan(json),
     );
+  }
+
+  static SeatingPlan? _parseSeatingPlan(Map<String, dynamic> json) {
+    final raw = json['seatingPlan'] ?? json['seatPlan'] ?? json['seats'];
+    if (raw is! Map<String, dynamic>) return null;
+    try {
+      return SeatingPlan.fromJson(raw);
+    } catch (_) {
+      return null;
+    }
   }
 
   static String? _parseUserName(dynamic userObj) {
